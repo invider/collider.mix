@@ -123,6 +123,19 @@ module.exports = {
         child.prototype.constructor = child;
         child.prototype.__super__ = parent
         child.prototype.__superProto__ = parent.prototype
+    },
+
+    path: function(node) {
+        if (!node || !this.isObj(node) || !this.isObj(node.__)) return ''
+        if (node.__.name === '/') return this.getName(node)
+        return this.path(node.__) + '/' + this.getName(node)
+    },
+
+    getName: function(node) {
+        if (!node || !this.isObj(node)) return '?'
+        if (this.isString(node.name)) return node.name
+        if (this.isObj(node.__)) return '#' + node.__._ls.indexOf(node)
+        return '?'
     }
 }
 

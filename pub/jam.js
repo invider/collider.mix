@@ -39,9 +39,9 @@ const isFrame = function(f) {
 }
 
 function mix() {
-    var arg, prop, mixin = {};
-    for (arg = 0; arg < arguments.length; arg++) {
-        for (prop in arguments[arg]) {
+    let mixin = {};
+    for (let arg = 0; arg < arguments.length; arg++) {
+        for (let prop in arguments[arg]) {
             if (arguments[arg].hasOwnProperty(prop)) {
                 mixin[prop] = arguments[arg][prop];
             }
@@ -52,11 +52,13 @@ function mix() {
 function augment() {
     let mixin = arguments[0];
     for (let arg = 1; arg < arguments.length; arg++) {
-        if (arguments[arg]) for (let prop in arguments[arg]) {
+        const source = arguments[arg]
+        if (source && source !== mixin) for (let prop in source) {
             if (isObj(mixin[prop]) && isObj(arguments[arg][prop])) {
-                augment(mixin[prop], arguments[arg][prop])
+                // property is already assigned - augment it
+                if (mixin !== source[prop]) augment(mixin[prop], source[prop])
             } else {
-                mixin[prop] = arguments[arg][prop];
+                mixin[prop] = source[prop];
             }
         }
     }
@@ -65,11 +67,12 @@ function augment() {
 function supplement() {
     let mixin = arguments[0];
     for (let arg = 1; arg < arguments.length; arg++) {
-        for (let prop in arguments[arg]) {
-            if (!mixin[prop]) {
-                mixin[prop] = arguments[arg][prop];
-            } else if (isObj(mixin[prop]) && isObj(arguments[arg][prop])) {
-                supplement(mixin[prop], arguments[arg][prop])
+        const source = arguments[arg]
+        for (let prop in source) {
+            if (isObj(mixin[prop]) && isObj(source[prop])) {
+                if (mixin !== source[prop]) supplement(mixin[prop], source[prop])
+            } else if (!mixin[prop]) {
+                mixin[prop] = source[prop];
             }
         }
     }
@@ -486,15 +489,8 @@ LabFrame.prototype.onAttached = function(node, name, parent) {
 
     // TODO probably shouldn't be called here
     //if (isFun(node.spawn)) node.spawn() // spawn handler
-    if (isNumber(node.x) && isNumber(node.y)) node._positional = true
-    else node._positional = false
-    if (node._positional
-            && isNumber(node.w)
-            && isNumber(node.h)) {
-        node._sizable = true
-    } else {
-        node.sizable = false
-    }
+    node._positional = (isNumber(node.x) && isNumber(node.y))
+    node._sizable = (node._positional && isNumber(node.w) && isNumber(node.h))
 
     // TODO make arbitrary augmentation and dependency injection possible
     //this._.aug._ls.forEach( function(aug) {
@@ -742,7 +738,7 @@ const Mod = function(dat) {
 
         _exec: function() {
 
-            for (let batch = 0; batch < this._execList.length; batch++) {
+            for (let batch = 1; batch < this._execList.length; batch++) {
                 if (!this._execList[batch]) continue
                 this._.log.sys('eval-'+batch, '===== evaluating batch #'
                     + batch + ' for ' + this._.name + ' =====')
@@ -836,6 +832,7 @@ const Mod = function(dat) {
     this.attach(new LabFrame(), 'lab')
 
     // container for mods
+    // TODO what to do with this autoloading?
     var mod = function mod(path, name) {
         if (!name) {
             let i = path.lastIndexOf('/')
@@ -843,7 +840,9 @@ const Mod = function(dat) {
             else name = path
         }
         let nmod = this.mod.touch(name)
-        nmod.fix(nmod, path, 'fix')
+        // TODO we've removed fix() function for now
+        //      use load instead?
+        //nmod.fix(nmod, path, 'fix')
     }
     augment(mod, new Frame())
 
@@ -957,92 +956,7 @@ Mod.prototype.draw = function() {
         }
     }
 }
-/*
-Mod.prototype.scan = function(target) {
-    // normalize target
-    if (!target) target = window
 
-    let found = 0
-    // search for declarations
-    for (var key in target) {
-        if (key.startsWith('_boot$')) {
-            let node = target[key]
-            if (isFun(node)) {
-                found++
-                _scene.log.sys('executing: ' + key)
-                node(_scene)
-                target[key] = false
-            }
-
-        } else if (key.startsWith('_patch$')) {
-            let node = target[key]
-            if (node) {
-                found++
-                let path = ''
-                if (node._$patchAt) {
-                    path = node._$patchAt
-                    if (!path.endsWith('/')) path += '/'
-                }
-                for (var pkey in node) {
-                    if (!pkey.startsWith('_')) {
-                        let fullPath = path + pkey
-                        let val = node[pkey]
-                        if (val) {
-                            _scene.log.sys('~~ ' + fullPath + ' << ' + (val._info? val._info : (val.name? val.name : '')))
-                            _scene.patch(_scene, fullPath, val)
-                        }
-                    }
-                }
-                target[key] = false
-            }
-            
-        } else if (key.indexOf('@') >= 0) {
-            let node = target[key]
-            if (node) {
-                found++
-                let path = key.substring(key.indexOf('@') + 1)
-                _scene.log.sys('~~ ' + path + ' << ' + (node._info? node._info : (node.name? node.name : '')))
-                _scene.patch(_scene, path, target[key])
-                target[key] = false
-            }
-        } else if (key.startsWith('_$') && node && isString(node._$patchAt)) {
-            found++
-            let path = node._$patchAt
-            _scene.log.sys('~~ ' + path + ' << ' + (val._info? val._info : (val.name? val.name : '')))
-            _scene.patch(_scene, fullPath, val)
-        }
-        
-        } else if (key.startsWith('_lib$')) {
-            var node = target[key]
-            var name = key.substring(4, key.length)
-            if (node.name !== undefined) {
-                name = node.name
-            }
-            _scene.patch('lib', name, node)
-            target[key] = "loaded"
-
-        } else if (key.startsWith('_env$')) {
-            var node = target[key]
-            var name = key.substring(4, key.length)
-            if (node.name !== undefined) {
-                name = node.name
-            }
-            _scene.patch('env', name, node)
-            target[key] = "loaded"
-
-        } else if (key.startsWith('_lab$')) {
-            var node = target[key]
-            var name = key.substring(4, key.length)
-            if (node.name !== undefined) {
-                name = node.name
-            }
-            _scene.patch('lab', name, node)
-            target[key] = "loaded"
-        }
-    }
-    return found
-}
-*/
 Mod.prototype.patch = function(target, path, node) {
     if (!isMutable(target)) throw { src: this, msg: "can't attach to imutable node @" + path }
 
@@ -1144,7 +1058,7 @@ Mod.prototype.patch = function(target, path, node) {
             }
         }
 
-        // load resources if applicable
+        // trigger onLoad event
         if (isFun(node.onLoad)) {
             node.onLoad(this)
             node.onLoad = true // replace function with true, so we'd not call it second time
@@ -1156,7 +1070,7 @@ function getExtention(url) {
     return url.slice((Math.max(0, url.lastIndexOf(".")) || Infinity) + 1).toLowerCase();
 }
 
-function getNodeName(url) {
+function getResourceName(url) {
     const name = url.replace(/^.*[\\\/]/, '') // remove path
     return name.replace(/\.[^/.]+$/, '') // remove extension
 }
@@ -1224,15 +1138,23 @@ function scheduleLoad(_, batch, url, base, path, ext) {
     ajax.onreadystatechange = function() {
         if (this.readyState == 4) {
             if (this.status == 200) {
-                // json is loaded
-                // store it in the exec list
-                _.res._execList[batch].push({
+                // content is loaded
+                const script = {
                     origin: url,
                     path: path,
                     base: base,
                     ext: ext,
                     src: this.responseText,
-                })
+                }
+                if (batch === 0) {
+                    // boot scripts are evaluated imediately
+                    _.log.sys('boot-eval', '=> ' + script.path)
+                    evalLoadedContent(script, _)
+                } else {
+                    // push script into exec list
+                    _.res._execList[batch].push(script)
+                }
+
                 _.res._onLoaded()
             } else {
                 _.log.sys('loader-' + batch, 'unable to load ' + url)
@@ -1254,8 +1176,8 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
     // TODO do we need this function at all?
     function onLoad() {
         _.res._onLoaded()
-        /*
         // TODO on --debug-slow-network enable slow network loading simulation
+        /*
         let max_wait = 10
         let delay = Math.floor(Math.random() * max_wait) * 1000
         setTimeout(function() {
@@ -1265,21 +1187,17 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
     }
 
     const ext = getExtention(url)
-    const nodeName = getNodeName(url)
-    let name = nodeName
+    const resourceName = getResourceName(url)
+    let name = resourceName
     let classifier = false // classifies additional actions, like .map12x12 etc...
 
-    let i = nodeName.indexOf('.')
+    const i = resourceName.indexOf('.')
     if (i > 0) {
-        name = nodeName.substring(0, i)
-        classifier = nodeName.substring(i+1)
+        name = resourceName.substring(0, i) // simplify name by removing the classifier
+        classifier = resourceName.substring(i+1) // extract the classifier
     }
 
-    let pathName
-    if (path) {
-        pathName = path.replace(/^.*[\\\/]/, '') // remove path
-        name = pathName
-    }
+    name = path? path.replace(/^.*[\\\/]/, '') : name // take the name form path
 
     _.log.sys('loader-' + batch, ext + ': ' + url + ' -> ' + addPath(base.name, path))
 
@@ -1306,110 +1224,6 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
 
     }
 }
-
-// DEPRECATED
-Mod.prototype.fixRes = function(target, base, ignore, batch, src, path) {
-    if (path.startsWith(base)) {
-        // refix without base
-        path = path.substring(base.length)
-        this.fixRes(target, base, ignore, batch, src, path)
-    } else {
-        //_scene.log.sys('fixer-'+batch+'!'+this.name, ': [' + src + '] -> ' + path)
-        if (ignore && path.startsWith(ignore)) {
-            _scene.log.sys('loader-'+batch, 'ignoring: [' + src + ']')
-        } else {
-            path = path.replace(/\..+$/, '');
-
-            // determine target mod
-            if (path.startsWith('mod')) {
-                let i = path.indexOf('/', 4)
-                if (i > 0) {
-                    let modPath = path.substring(0, i)
-                    let modName = path.substring(4, i)
-                    // TODO fix mod loading
-                    //path = path.substring(i+1)
-                    let mod = this.mod._dir[modName]
-                    if (!isFrame(mod)) {
-                        mod = this.mod.touch(modName)
-                    }
-                    // load in other mod's context in the next batch
-                    this.batchLoad(batch+1, mod, base + src, target, path)
-                } else {
-                    _scene.log.sys('loader-'+batch, 'ignoring: [' + src + ']')
-                }
-            } else if (path.startsWith('boot')) {
-                let i = path.indexOf('/', 4)
-                if (i > 0) {
-                    let modPath = path.substring(0, i)
-                    let modName = path.substring(4, i)
-                    path = path.substring(i+1)
-                    let boot = this._dir['boot']
-                    if (!isFrame(boot)) {
-                        boot = this.touch('boot')
-                    }
-                    // load in other mod's context in the previous batch
-                    boot.batchLoad(batch-1, boot, base + src, boot, path)
-                } else {
-                    _scene.log.sys('loader-'+batch, 'ignoring: [' + src + ']')
-                }
-
-            } else {
-                this.batchLoad(batch, this, base + src, target, path)
-            }
-        }
-    }
-}
-
-// TODO provide topology path, so we can have just couple of topologies (sys and base)
-//      topology must be failproof - if we got one, use it
-//      don't overload many times
-var modBatch = 0
-// DEPRECATED
-Mod.prototype.fix = function(target, base, ignore, forceBatch, onLoaded) {
-    let batch
-    if (forceBatch) {
-        batch = forceBatch
-    } else {
-        batch = modBatch++ // load the next batch
-    }
-
-    // normalize base
-    if (base.length > 0 && !base.endsWith('/')) {
-        base = base + '/'
-    }
-
-    // get and process new topology for the given base at the target node
-    this.log.sys('fix', target.name + ' <= ' + base)
-
-    let currentMod = this
-
-    // load collider.units definition
-    let url = base + UNITS_JSON + "?" + Math.random() // fix possible cache issue
-    fetch(url)
-        .then(response => {
-            if (response.ok) {
-                return response.json()
-            } else {
-                _scene.log.err('loader', 'unable to load unit definitions from [' + url + ']')
-            }
-        })
-        .then(json => {
-            if (!json) return
-            console.dir(json)
-            //json.forEach(src => currentMod.fixRes(target, base, ignore, batch, src, src))
-            //if (isFun(onLoaded)) onLoaded(
-        })
-        .catch(err => {
-            _scene.log.err('loader', 'unable to load unit definitions from [' + url + ']')
-        })
-}
-
-/*
-Mod.prototype.loadRes = function(path, url) {
-    //this.log.debug('loading [' + path + '] <= ' + url)
-    this.batchLoad(1, url, this, path)
-}
-*/
 
 function addPath(base, path) {
     if (!base) return path
@@ -1466,7 +1280,7 @@ function validateUnitRequirements(unit, loadingQueue) {
     })
     return res 
 }
-function queueUnit(unitsToLoad, loadingQueue) {
+function queueUnits(unitsToLoad, loadingQueue) {
     if (unitsToLoad.length === 0) return
 
     let nexti = -1
@@ -1482,7 +1296,7 @@ function queueUnit(unitsToLoad, loadingQueue) {
     if (nexti >= 0) {
         unitsToLoad.splice(nexti, 1)
         loadingQueue.push(nextUnit)
-        queueUnit(unitsToLoad, loadingQueue)
+        queueUnits(unitsToLoad, loadingQueue)
     } else {
         // requirements is not satisfied for the rest of the queue
         const msg = "some units can't be loaded due to missing requirements"
@@ -1532,17 +1346,23 @@ Mod.prototype.loadUnits = function(baseMod, target) {
             })
 
             const loadQueue = []
-            queueUnit(unitsToLoad, loadQueue)
+            queueUnits(unitsToLoad, loadQueue)
             loaderMod.log.sys('units loading order: ' + loadQueue.map(u => u.id).join(', '))
 
             // schedule the loading
-            let batch = 0
+            let batch = 1
             loadQueue.forEach(unit => {
                 const ls = unit.ls
                 ls.forEach(resLocalUrl => {
-                    const targetPath = addPath(unit.mount, removeExtention(resLocalUrl))
+                    // remove ext and classifier and add unit mount point to get mod path
+                    const targetPath = addPath(unit.mount, removeExtention(removeExtention(resLocalUrl)))
                     const url = addPath(unit.id, resLocalUrl)
-                    loaderMod.batchLoad(batch, url, currentMod, targetPath)
+
+                    if (targetPath.startsWith('boot')) {
+                        loaderMod.batchLoad(0, url, currentMod, targetPath)
+                    } else {
+                        loaderMod.batchLoad(batch, url, currentMod, targetPath)
+                    }
                 })
                 batch++
             })
@@ -1598,6 +1418,7 @@ _scene.attach(new Frame({
     },
 }))
 
+// TODO is it deprecated? or any use for that?
 _scene.packDeclarations = function(target) {
     // normalize target
     if (!isObj(target)) target = window
