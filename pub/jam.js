@@ -198,7 +198,6 @@ Frame.prototype.touch = touchFun(Frame)
 
 Frame.prototype.attach = function(node, name) {
     if (node === undefined) return
-    if (this._locked) throw { src: this, msg: "can't attach - node is locked" }
     if (isObj(node) || isFun(node)) {
         // inject mod, parent and name
         node._ = this._
@@ -212,8 +211,10 @@ Frame.prototype.attach = function(node, name) {
         this._dir[name] = node
     }
     this._ls.push(node)
-    if (isFun(node.init)) node.init() // initialize node
+
     this.onAttached(node, name, this)
+    if (isFun(node.init)) node.init() // initialize node
+
     return node
 };
 
@@ -482,6 +483,7 @@ LabFrame.prototype.onAttached = function(node, name, parent) {
         if (isFun(this.__.onAttached)) this.__.onAttached(this, this.name, this.__)
         return
     }
+
     //this._.log.sys('spawned ' + node.name)
     // normalize and augment the node
     if (!isFun(node.draw)) node.draw = false // ghost
@@ -681,8 +683,9 @@ const checkScriptDependencies = function(script, batch) {
         })
         if (dependency) depends.push(dependency)
         else {
+            _scene.log.sys('current batch:')
             console.dir(batch)
-            throw 'dependency ' + key + ' is not found'
+            throw '[' + script.origin + ']: dependency [' + key + '] is not found'
         }
     }
     return depends
@@ -810,11 +813,11 @@ const Mod = function(dat) {
         }
     }))
     // system functions
-    this.attach(new Frame("sys"))
+    //this.attach(new Frame("sys"))
     // library functions
     //this.attach(new Frame("lib"))
     // log functions
-    this.attach(new Frame("log"))
+    //this.attach(new Frame("log"))
 
     // prototypes/constructors
     //this.attach(new Frame(), 'dna')
@@ -1397,26 +1400,26 @@ _scene.path = function() {
 // ***
 // log
 _scene.attach(new Frame({
-    name: 'log',
-    err: function(msg, post) {
-        post? console.log('! [' + msg + '] ' + post) : console.log('! ' + msg) 
-    },
-    warn: function(msg, post) {
-        post? console.log('? [' + msg + '] ' + post) : console.log('? ' + msg) 
-    },
-    out: function(msg, post) {
-        post? console.log('> [' + msg + '] ' + post) : console.log('> ' + msg) 
-    },
-    debug: function(msg, post) {
-        post? console.log('# [' + msg + '] ' + post) : console.log('# ' + msg) 
-    },
-    sys: function(msg, post) {
-        post? console.log('$ [' + msg + '] ' + post) : console.log('$ ' + msg) 
-    },
-    dump: function(obj) {
-        console.dir(obj)
-    },
+    name: 'log'
 }))
+_scene.log.attach(function err(msg, post) {
+    post? console.log('! [' + msg + '] ' + post) : console.log('! ' + msg) 
+}, 'err')
+_scene.log.attach(function warn(msg, post) {
+    post? console.log('? [' + msg + '] ' + post) : console.log('? ' + msg) 
+}, 'warn')
+_scene.log.attach(function out(msg, post) {
+    post? console.log('> [' + msg + '] ' + post) : console.log('> ' + msg) 
+}, 'out')
+_scene.log.attach(function debug(msg, post) {
+    post? console.log('# [' + msg + '] ' + post) : console.log('# ' + msg) 
+}, 'debug')
+_scene.log.attach(function sys(msg, post) {
+    post? console.log('$ [' + msg + '] ' + post) : console.log('$ ' + msg) 
+}, 'sys')
+_scene.log.attach(function dump(obj) {
+    console.dir(obj)
+}, 'dump')
 
 // TODO is it deprecated? or any use for that?
 _scene.packDeclarations = function(target) {
