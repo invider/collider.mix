@@ -70,10 +70,12 @@ function supplement() {
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
         for (let prop in source) {
-            if (isObj(mixin[prop]) && isObj(source[prop])) {
-                if (mixin !== source[prop]) supplement(mixin[prop], source[prop])
-            } else if (!mixin[prop]) {
-                mixin[prop] = source[prop];
+            if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
+                if (isObj(mixin[prop]) && isObj(source[prop])) {
+                    if (mixin !== source[prop]) supplement(mixin[prop], source[prop])
+                } else if (!mixin[prop]) {
+                    mixin[prop] = source[prop];
+                }
             }
         }
     }
@@ -130,7 +132,11 @@ const matchType = function(v) {
 };
 
 const getParentPath = function(path) {
-    return path.replace(/[^\/]+$/, '') // remove extension
+    return path.replace(/[^\/]+$/, '')
+}
+
+const removeExtension = function(path) {
+    return path.replace(/^.*[\\\/]/, '') // remove path
 }
 
 
@@ -904,6 +910,8 @@ Mod.prototype.start = function() {
 }
 
 Mod.prototype.inherit = function() {
+    this.touch('sys')
+    this.touch('log')
     supplement(this.sys, this.___.sys)
     supplement(this.log, this.___.log)
 }
@@ -1182,7 +1190,7 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
     // TODO do we need this function at all?
     function onLoad() {
         if (_scene.env.config.latency) {
-            let max_wait = 15
+            let max_wait = 5
             let delay = Math.floor(Math.random() * max_wait) * 1000
             setTimeout(function() {
                 _.res._onLoaded()
@@ -1255,7 +1263,8 @@ function randomizeUrl(url) {
 }
 
 function fixUnitMountPoint(unit) {
-    unit.name = (unit.id
+    unit.name = removeExtension(unit.id)
+    unit.name = (unit.name
             .replace('.mod', '')
             .replace('.fix', '')
             .replace('mod', '')
