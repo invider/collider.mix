@@ -8,7 +8,8 @@ $ = scene = (function(window) {
 // ***********
 // environment
 let SCRIPT_SRC = 'collider.mix/jam.js'
-let UNITS_JSON = 'units.map'
+let UNITS_MAP = 'units.map'
+let JAM_CONFIG = 'jam.config'
 let canvasName = 'canvas'
 
 
@@ -1069,8 +1070,10 @@ Mod.prototype.patch = function(target, path, node) {
     }
 }
 
-function getExtention(url) {
-    return url.slice((Math.max(0, url.lastIndexOf(".")) || Infinity) + 1).toLowerCase();
+function getExtension(url) {
+    const match = url.match(/\.[^/.]+$/)
+    if (match && match.length > 0) return match[0].substring(1)
+    return ''
 }
 
 function getResourceName(url) {
@@ -1151,7 +1154,7 @@ function scheduleLoad(_, batch, url, base, path, ext) {
                 }
                 if (batch === 0) {
                     // boot scripts are evaluated imediately
-                    _.log.sys('boot-eval', '=> ' + script.path)
+                    _.log.sys('eval-0/boot', '=> ' + script.path)
                     evalLoadedContent(script, _)
                 } else {
                     // push script into exec list
@@ -1178,18 +1181,18 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
 
     // TODO do we need this function at all?
     function onLoad() {
-        _.res._onLoaded()
-        // TODO on --debug-slow-network enable slow network loading simulation
-        /*
-        let max_wait = 10
-        let delay = Math.floor(Math.random() * max_wait) * 1000
-        setTimeout(function() {
+        if (_scene.env.config.latency) {
+            let max_wait = 15
+            let delay = Math.floor(Math.random() * max_wait) * 1000
+            setTimeout(function() {
+                _.res._onLoaded()
+            }, delay)
+        } else {
             _.res._onLoaded()
-        }, delay)
-        */
+        }
     }
 
-    const ext = getExtention(url)
+    const ext = getExtension(url)
     const resourceName = getResourceName(url)
     let name = resourceName
     let classifier = false // classifies additional actions, like .map12x12 etc...
@@ -1223,7 +1226,7 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
             break;
 
         default:
-            _.log.error('loader-' + batch, 'ignoring resource: [' + target + ']')
+            _.log.err('loader-' + batch, 'ignoring resource: [' + url + ']')
 
     }
 }
@@ -1313,8 +1316,6 @@ function queueUnits(unitsToLoad, loadingQueue) {
         throw msg
     }
 }
-function prioritizeUnits(units) {
-}
 
 Mod.prototype.loadUnits = function(baseMod, target) {
     target = normalizeDirPath(target)
@@ -1324,7 +1325,7 @@ Mod.prototype.loadUnits = function(baseMod, target) {
     let loaderMod = this
 
     // load collider.units definition
-    let url = randomizeUrl(addPath(target, UNITS_JSON))
+    let url = randomizeUrl(addPath(target, UNITS_MAP))
     fetch(url)
         .then(response => {
             if (response.ok) {
@@ -1361,7 +1362,7 @@ Mod.prototype.loadUnits = function(baseMod, target) {
                     const targetPath = addPath(unit.mount, removeExtention(removeExtention(resLocalUrl)))
                     const url = addPath(unit.id, resLocalUrl)
 
-                    if (targetPath.startsWith('boot')) {
+                    if (targetPath.startsWith('boot') || targetPath.startsWith('/boot')) {
                         loaderMod.batchLoad(0, url, currentMod, targetPath)
                     } else {
                         loaderMod.batchLoad(batch, url, currentMod, targetPath)
@@ -1474,6 +1475,26 @@ _scene.env.keys = {}  // down key set
 // LIFECYCLE
 // main scene lifecycle - bootstrap, cycle[evo, draw]
 //
+const preboot = function() {
+    _scene.log.sys('loader', 'loading config: ' + JAM_CONFIG)
+
+    fetch(JAM_CONFIG)
+        .then((response) => {
+            if (response.ok) return response.json();
+        })
+        .then(function(config) {
+            if (config) {
+                _scene.log.sys(' = Config =: ' + JSON.stringify(config));
+                _scene.env.config = config
+            }
+            bootstrap()
+        })
+        .catch((err) => {
+            _scene.log.sys('loader', 'unable to get [' + JAM_CONFIG + ']: ' + err)
+            bootstrap()
+        })
+}
+
 const bootstrap = function() {
     _scene.log.sys('jam', '*** booting up ***')
 
@@ -1767,7 +1788,7 @@ function focus() {
 function bindHandlers(target) {
     if (!target) return
     target.onresize = expandView
-    target.onload = bootstrap
+    target.onload = preboot
     target.onmousedown = handleMouseDown
     target.onmouseup = handleMouseUp
     target.onclick = handleMouseClick
