@@ -1568,14 +1568,14 @@ const bootstrap = function() {
     _scene.scan(window._def$)
     */
 
-    /*
-    // TODO turn for --full-screen startup tag
-    // TODO add isFun checks
-    canvas.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT); //Chrome
-    canvas.mozRequestFullScreen(); //Firefox
-    canvas.msRequestFullscreen();
-    canvas.requestFullscreen();
-    */
+    if (_scene.env.config.fullscreen) {
+        // TODO turn for --full-screen startup tag
+        // TODO add isFun checks
+        if (isFun(canvas.webkitRequestFullScreen)) canvas.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT)
+        if (isFun(canvas.mozRequestFullScreen)) canvas.mozRequestFullScreen() //Firefox
+        if (isFun(canvas.msRequestFullscreen)) canvas.msRequestFullscreen()
+        if (isFun(canvas.requestFullscreen)) canvas.requestFullscreen()
+    }
     startCycle()
 }
 
