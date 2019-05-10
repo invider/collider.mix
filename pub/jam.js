@@ -73,7 +73,7 @@ function supplement() {
             if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
                 if (isObj(mixin[prop]) && isObj(source[prop])) {
                     if (mixin !== source[prop]) supplement(mixin[prop], source[prop])
-                } else if (!mixin[prop]) {
+                } else if (mixin[prop] === undefined) {
                     mixin[prop] = source[prop];
                 }
             }
@@ -210,7 +210,7 @@ Frame.prototype.attach = function(node, name) {
         node._ = this._
         node.__ = this
         if (name && isObj(node)) node.name = name
-        if (!name && node.name) name = node.name
+        name = node.name
 	}
 
     if (name) {
@@ -1599,14 +1599,15 @@ function startCycle() {
 
 // > implement 'keepOriginalAspectRatio'&'aspectRatio' option
 function expandCanvas(name) {
+    var canvas = document.getElementById(name)
+    if (!canvas) return
+
     if (_scene.env.canvasStyle === 'preserve') {
-        var canvas = document.getElementById(name)
         _scene.env.width = _scene.ctx.width = canvas.width
         _scene.env.height = _scene.ctx.height = canvas.height
         _scene.draw() // it doesn't work without forced redraw
     } else {
         // default full-screen canvas
-        var canvas = document.getElementById(name)
         var newWidth = window.innerWidth
         var newHeight = window.innerHeight
         _scene.env.width = _scene.ctx.width = canvas.width = newWidth
