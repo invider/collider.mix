@@ -143,7 +143,7 @@ const removeExtension = function(path) {
 // =======================================================
 // system definitions
 // =======================================================
-const touchFun = function(nodeConstructor) {
+const touchFun = function(nodeFactory) {
     return function(path) {
         if (path === undefined || path === '') return this
         if (path.startsWith('@')) return this.touch(path.substring(1))
@@ -157,7 +157,7 @@ const touchFun = function(nodeConstructor) {
             let nextNode = this[nextName]
             if (!nextNode) {
                 // no existing node, provide a new one
-                return this.attach(new nodeConstructor(nextName)).touch(nextPath)
+                return this.attach(nodeFactory(nextName)).touch(nextPath)
             } else {
                 if (isFun(nextNode.touch)) {
                     return nextNode.touch(nextPath)
@@ -174,8 +174,7 @@ const touchFun = function(nodeConstructor) {
             // we got the name of the final frame in the path
             if (this[path]) return this[path]
             // node seems to be missing - create a new one
-            if (this._locked) throw new Error("can't touch - node is locked")
-            return this.attach(new nodeConstructor(path))
+            return this.attach(nodeFactory(path))
         }
     }
 }
@@ -201,16 +200,18 @@ Frame.prototype.path = function() {
     if (this.__) return addPath(this.__.path(), this.name)
     return this.name
 }
-Frame.prototype.touch = touchFun(Frame)
+Frame.prototype.touch = touchFun((name) => new Frame(name))
 
 Frame.prototype.attach = function(node, name) {
     if (node === undefined) return
     if (isObj(node) || isFun(node)) {
-        // inject mod, parent and name
+        // attaching an object - inject mod, parent and name
         node._ = this._
         node.__ = this
+        // set name for the node if possible
         if (name && isObj(node)) node.name = name
-        name = node.name
+        // take name from the node if not defined
+        if (!name && node.name) name = node.name
 	}
 
     if (name) {
@@ -479,9 +480,9 @@ Frame.prototype.kill = function() {
 const LabFrame = function(st) {
     Frame.call(this, st)
 }
-LabFrame.prototype = new Frame()
+LabFrame.prototype = Object.create(Frame.prototype)
 
-LabFrame.prototype.touch = touchFun(LabFrame)
+LabFrame.prototype.touch = touchFun((name) => new LabFrame(name))
 
 // TODO processing of attached node and event on attachment probably should be different functions
 LabFrame.prototype.onAttached = function(node, name, parent) {
@@ -532,6 +533,91 @@ LabFrame.prototype.draw = function() {
             e.draw()
         }
     }
+}
+
+const CueFrame = function(st) {
+    Frame.call(this, st)
+}
+CueFrame.prototype = Object.create(Frame.prototype)
+
+CueFrame.prototype.touch = touchFun((name) => new CueFrame(name))
+
+function parseCueTime(df) {
+    if (!df || df.length === 0) return 0
+
+    let time = parseInt(df)
+    if (!isNumber(time)) return 0
+
+    df = df.replace(/([0-9])+/, '')
+    if (df.startsWith('ms')) time /= 1000
+    else if (df.startsWith('m')) time *= 60
+    else if (df.startsWith('h')) time *= 3600
+    df = df.replace(/([a-z])+/, '')
+
+    if (df.length > 0 && df.match('[0-9]')) return time + parseCueTime(df)
+    return time
+}
+
+function parseTimes(df) {
+    if (!df || df.length === 0) return
+    if (!df.endsWith('times')) {
+        throw new Error('Wrong cue format - number of times definition expected @[' + df + ']!')
+    }
+
+    let times = parseInt(df)
+    if (!isNumber(times)) {
+        throw new Error('Wrong cue format - number is expected @[' + df + ']!')
+    }
+    return times
+}
+
+CueFrame.prototype.attach = function(node, name) {
+    if (!isFun(node)) throw new Error('Cue must be a function!')
+    if (!name) name = node.name
+    if (!isString(name)) throw new Error('Cue must have a name!')
+    Frame.prototype.attach.call(this, node, name)
+
+    // augment node
+    if (name.startsWith('at')) {
+        const time = parseCueTime(name.substring(2))
+        node.timer = 0
+        node.evo = function(dt) {
+            this.timer += dt
+            if (this.timer > time) {
+                this(this.timer)
+                this.__.detach(this)
+            }
+        }
+    } else if (name.startsWith('each')) {
+        const dfs = name.split('_')
+        const time = parseCueTime(dfs[0].substring(4))
+        const count = parseTimes(dfs[1])
+        console.dir(dfs)
+        console.log(name + ': ' + time + ' #' + count)
+
+        node.count = count
+        node.timer = 0
+        node.evo = function(dt) {
+            this.timer += dt
+            if (this.timer > time) {
+                this(this.timer)
+                this.timer -= time
+
+                if (this.count > 0) {
+                    this.count--
+                    if (this.count === 0) this.__.detach(this)
+                }
+            }
+        }
+    } else {
+        throw new Error('Wrong cue format [' + name + ']! Must be at... or each... (e.g. at1m, each5s)')
+    }
+}
+
+CueFrame.prototype.evo = function(dt) {
+    this._ls.forEach( e => {
+        if (e.evo && !e.dead && !e.paused) e.evo(dt)
+    })
 }
 
 
@@ -838,8 +924,11 @@ const Mod = function(dat) {
         name: "env",
         started: false,
     }))
+
     // container for acting entities - actors, ghosts, props
     this.attach(new LabFrame(), 'lab')
+
+    this.attach(new CueFrame(), 'cue')
 
     // container for mods
     // TODO what to do with this autoloading?
@@ -856,7 +945,7 @@ const Mod = function(dat) {
     }
     augment(mod, new Frame())
 
-    mod.touch = touchFun(Mod)
+    mod.touch = touchFun((name) => new Mod(name))
     this.attach(mod)
 
     // container for traps
@@ -931,10 +1020,13 @@ Mod.prototype.evo = function(dt) {
     }
     if (this.paused) return
 
+
     // evolve all entities in the lab
-    this.lab._ls.forEach( e => {
-        if (e.evo && !e.dead && !e.paused) e.evo(dt)
-    });
+    this.cue.evo(dt)
+    this.lab.evo(dt)
+    //this.lab._ls.forEach( e => {
+    //    if (e.evo && !e.dead && !e.paused) e.evo(dt)
+    //});
 
     // evolve all mods
     this.mod._ls.map( function(m) {
