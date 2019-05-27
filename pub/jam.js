@@ -1,5 +1,6 @@
 /*
  * Collider.JAM Supervisor
+ * TODO rename to collider.js?
  */
 $ = scene = (function(window) {
 
@@ -592,8 +593,6 @@ CueFrame.prototype.attach = function(node, name) {
         const dfs = name.split('_')
         const time = parseCueTime(dfs[0].substring(4))
         const count = parseTimes(dfs[1])
-        console.dir(dfs)
-        console.log(name + ': ' + time + ' #' + count)
 
         node.count = count
         node.timer = 0
