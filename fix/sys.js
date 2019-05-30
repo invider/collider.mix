@@ -50,7 +50,7 @@ module.exports = {
         if (this._.sys.isString(source)) {
             cons = this._.selectOne(sbase + source)
             if (!isFun(cons) && !isObj(cons)) throw "can't find the spawn dna: "
-                + this._.name + sbase + source
+                + this._.name + '/' + sbase + source
         }
 
         let dest = target

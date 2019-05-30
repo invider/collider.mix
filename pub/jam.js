@@ -216,7 +216,10 @@ Frame.prototype.attach = function(node, name) {
 	}
 
     if (name) {
-        this[name] = node
+        // make sure we are not shaddowing prototype definitions
+        if (!Frame.prototype[name]) {
+            this[name] = node
+        }
         this._dir[name] = node
     }
     this._ls.push(node)
