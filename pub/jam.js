@@ -736,6 +736,7 @@ function parseProp(src) {
             }
         }
     }
+    return prop
 }
 
 function evalLoadedContent(script, _) {
