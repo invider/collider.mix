@@ -8,7 +8,7 @@ $ = scene = (function(window) {
 
 // ***********
 // environment
-let SCRIPT_SRC = 'collider.mix/jam.js'
+let SCRIPT_SRC = 'collider.mix/collider.js'
 let UNITS_MAP = 'units.map'
 let JAM_CONFIG = 'jam.config'
 let canvasName = 'canvas'
