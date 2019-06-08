@@ -13,7 +13,6 @@ let UNITS_MAP = 'units.map'
 let JAM_CONFIG = 'jam.config'
 let canvasName = 'canvas'
 
-
 // *********
 // utilities
 const isObj = function(o) {
@@ -623,6 +622,10 @@ CueFrame.prototype.evo = function(dt) {
 }
 
 
+
+
+
+
 // =============================================================
 //                          LOADER 
 // =============================================================
@@ -654,10 +657,10 @@ function evalJS(script, _) {
     }
 
     // provide lexical scope for mod context and scope object for this. definitions
-    let code = '(function ' + name + '(_, ctx, module, require, sys, lib, res, dna, env, lab, mod, log, trap) {'
+    let code = '(function ' + name + '(_, ctx, module, require, sys, lib, res, dna, env, lab, mod, log, cue, trap) {'
         + " /* path: " + script.path + "*/ "
         + script.src
-    + '}).call(scope, __, __.ctx, module, require, __.sys, __.lib, __.res, __.dna, __.env, __.lab, __.mod, __.log, __.trap)'
+    + '}).call(scope, __, __.ctx, module, require, __.sys, __.lib, __.res, __.dna, __.env, __.lab, __.mod, __.log, __.cue, __.trap)'
     + '\n//# sourceURL=' + script.origin
 
     /*
@@ -757,6 +760,7 @@ function evalLoadedContent(script, _) {
         case 'prop': _.patch(script.base, script.path, parseProp(script.src)); break;
         case 'fun': script.fun(); break;
     }
+    _._patchLog.push(script)
     //} catch (e) {
     //    _scene.log.err('jam-loader', 'error in [' + script.path + ']' + e)
     //    throw e
@@ -780,7 +784,7 @@ const checkScriptDependencies = function(script, batch) {
         if (dependency) depends.push(dependency)
         else {
             _scene.log.sys('current batch:')
-            console.dir(batch)
+            _scene.log.dump(batch)
             throw '[' + script.origin + ']: dependency [' + key + '] is not found'
         }
     }
@@ -820,7 +824,7 @@ const evalLoadedBatch = function(ibatch, batch, _) {
 
 // Mod context container
 const Mod = function(dat) {
-    this._$ = _scene
+    this._patchLog = []
     this.ctx = false
     this.focus = true
     this.paused = false
@@ -835,8 +839,19 @@ const Mod = function(dat) {
         _loaded: 0,
         _execList: [],
 
-        _exec: function() {
+        _schedule: function(batch, script) {
+            switch(script.ext) {
+            case 'fun': 
+                batch = 1; break;
+            }
 
+            if (!this._execList[batch]) {
+                this._execList[batch] = []
+            }
+            this._execList[batch].push(script)
+        },
+
+        _exec: function() {
             for (let batch = 1; batch < this._execList.length; batch++) {
                 if (!this._execList[batch]) continue
                 this._.log.sys('eval-'+batch, '===== evaluating batch #'
@@ -948,7 +963,11 @@ const Mod = function(dat) {
     }
     augment(mod, new Frame())
 
-    mod.touch = touchFun((name) => new Mod(name))
+    mod.touch = touchFun((name) => {
+        const mod = new Mod(name)
+        mod._$ = _scene
+        return mod
+    })
     this.attach(mod)
 
     // container for traps
@@ -982,7 +1001,33 @@ Mod.prototype.init = function() {
     this._ = this // must be in init, since it is assigned during the regular node.attach()
     if (!this.ctx) this.ctx = this.___.ctx // clone draw context from parent mod if not set explicitly
     this.inherit()
-} 
+}
+
+Mod.prototype._runTests = function() {
+    if (!isFrame(this.test)) return
+    if (this.test._ls.length === 0) return
+
+    _scene.log.sys('running tests in: ' + this.name)
+    Object.keys(this.test._dir).forEach(name => {
+        const test = this.test[name]
+
+        if (isFun(test)) {
+            _scene.log.sys('test [' + name + ']')
+            //try {
+                const mod = constructScene()
+                mod.ctx = _scene.ctx
+                repatchScene(mod, _scene)
+
+                mod.test[name]()
+
+                _scene.log.sys('[' + name + '] Passed')
+            //} catch (err) {
+            //    _scene.log.err(err)
+            //    _scene.log.err('[' + name + '] Failed!')
+            //}
+        }
+    })
+}
 
 Mod.prototype.start = function() {
     if (this.env.started) return
@@ -999,6 +1044,8 @@ Mod.prototype.start = function() {
     _scene.log.sys('starting evolution of [' + this.path() + ']')
     this.env.started = true
     this.status = 'started'
+
+    if (_scene.env.config.test) this._runTests()
 }
 
 Mod.prototype.inherit = function() {
@@ -1221,19 +1268,29 @@ function patchImg(_, batch, url, base, path, classifier, onLoad) {
         if (wh.length === 2) {
             let w = parseInt(wh[0])
             let h = parseInt(wh[1])
-            _.res._execList[batch].push({
+            // TODO is it really need to be a custom fun instead of just img/tile type?
+            _.res._schedule(batch, {
                 origin: url,
                 base: base,
                 path: path,
                 ext: 'fun',
                 fun: function() {
                     let tileSet = new _scene.lib.img.TileSet(img, 0, 0, w, h)
-                    _.patch(base, path, tileSet)
+                    _.patch(this.base, path, tileSet)
                 }
             })
         }
     } else {
-        _.patch(base, path, img)
+        //_.patch(base, path, img)
+        _.res._schedule(batch, {
+            origin: url,
+            base: base,
+            path: path,
+            ext: 'fun',
+            fun: function() {
+                _.patch(this.base, path, img)
+            }
+        })
     }
 }
 
@@ -1260,8 +1317,8 @@ function scheduleLoad(_, batch, url, base, path, ext) {
                     _.log.sys('eval-0/boot', '=> ' + script.path)
                     evalLoadedContent(script, _)
                 } else {
-                    // push script into exec list
-                    _.res._execList[batch].push(script)
+                    // push the script into the exec list
+                    _.res._schedule(batch, script)
                 }
 
                 _.res._onLoaded()
@@ -1278,11 +1335,6 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
     const _ = this
     //_.log.sys('batch-#' + batch, 'url: ' + url + ' base: ' + base.name + ' path: ' + path)
 
-    if (!_.res._execList[batch]) {
-        _.res._execList[batch] = []
-    }
-
-    // TODO do we need this function at all?
     function onLoad() {
         if (_scene.env.config.latency) {
             let max_wait = 5
@@ -1458,7 +1510,7 @@ Mod.prototype.loadUnits = function(baseMod, target) {
             loaderMod.log.sys('units loading order: ' + loadQueue.map(u => u.id).join(', '))
 
             // schedule the loading
-            let batch = 1
+            let batch = 2 // 0 is for boot, 1 is for static resources
             loadQueue.forEach(unit => {
                 const ls = unit.ls
                 ls.forEach(resLocalUrl => {
@@ -1483,13 +1535,88 @@ Mod.prototype.loadUnits = function(baseMod, target) {
 
 // ***********************
 // collider scene construction
-var _scene = new Mod()
-_scene.name = '/'
-_scene._ = _scene // set the context
-_scene._$ = _scene // root context
-_scene.__ = false // don't have any parents
-_scene.___ = _scene// parent context
-_scene.inherit = function() {}
+function constructScene(proto) {
+    const mod = new Mod()
+    mod.name = '/'
+    mod._ = mod // set the context
+    mod._$ = mod // root context
+    mod.__ = false // don't have any parents
+    mod.___ = mod // parent context
+    mod.inherit = function() {}
+
+    // sys
+    mod.attach(new Frame({
+        name: "sys",
+    }))
+    mod.sys.attach(mix)
+    mod.sys.attach(augment)
+    mod.sys.attach(supplement)
+    mod.sys.attach(before)
+    mod.sys.attach(after)
+
+    mod.sys.attach(Frame)
+    mod.sys.attach(LabFrame)
+
+    mod.sys.attach(isObj)
+    mod.sys.attach(isFun)
+    mod.sys.attach(isNumber)
+    mod.sys.attach(isString)
+    mod.sys.attach(isArray)
+    mod.sys.attach(isMutable)
+    mod.sys.attach(isFrame)
+
+    // log
+    mod.attach(new Frame({
+        name: 'log'
+    }))
+    mod.log.attach(function err(msg, post) {
+        post? console.log('! [' + msg + '] ' + post) : console.log('! ' + msg) 
+    }, 'err')
+    mod.log.attach(function warn(msg, post) {
+        post? console.log('? [' + msg + '] ' + post) : console.log('? ' + msg) 
+    }, 'warn')
+    mod.log.attach(function out(msg, post) {
+        post? console.log('> [' + msg + '] ' + post) : console.log('> ' + msg) 
+    }, 'out')
+    mod.log.attach(function debug(msg, post) {
+        post? console.log('# [' + msg + '] ' + post) : console.log('# ' + msg) 
+    }, 'debug')
+    mod.log.attach(function sys(msg, post) {
+        post? console.log('$ [' + msg + '] ' + post) : console.log('$ ' + msg) 
+    }, 'sys')
+    mod.log.attach(function dump(obj) {
+        console.dir(obj)
+    }, 'dump')
+
+    // setup env
+    mod.env.TARGET_FPS = 60
+    mod.env.MAX_EVO_STEP = 0.01
+    mod.env.MAX_EVO_PER_CYCLE = 0.3
+    mod.env.lastFrame = Date.now()
+    mod.env.mouseX = 0
+    mod.env.mouseY = 0
+    mod.env.mouseLX = 0
+    mod.env.mouseLY = 0
+    mod.env.keys = {}  // down key set
+
+    return mod
+}
+
+function repatchScene(mod, proto) {
+    if (proto && proto._patchLog && proto._patchLog.length > 0) {
+        proto._patchLog.forEach(script => {
+            try {
+                script.base = mod
+                evalLoadedContent(script, mod)
+            } catch (err) {
+                console.log(err)
+            }
+        })
+    }
+}
+
+// root
+const _scene = constructScene()
 
 /*
 _scene.path = function() {
@@ -1502,29 +1629,6 @@ _scene.path = function() {
 // TODO disable for now - need to figure out if we need that at all
 //augment(_scene.env, window['_env$'])
 
-// ***
-// log
-_scene.attach(new Frame({
-    name: 'log'
-}))
-_scene.log.attach(function err(msg, post) {
-    post? console.log('! [' + msg + '] ' + post) : console.log('! ' + msg) 
-}, 'err')
-_scene.log.attach(function warn(msg, post) {
-    post? console.log('? [' + msg + '] ' + post) : console.log('? ' + msg) 
-}, 'warn')
-_scene.log.attach(function out(msg, post) {
-    post? console.log('> [' + msg + '] ' + post) : console.log('> ' + msg) 
-}, 'out')
-_scene.log.attach(function debug(msg, post) {
-    post? console.log('# [' + msg + '] ' + post) : console.log('# ' + msg) 
-}, 'debug')
-_scene.log.attach(function sys(msg, post) {
-    post? console.log('$ [' + msg + '] ' + post) : console.log('$ ' + msg) 
-}, 'sys')
-_scene.log.attach(function dump(obj) {
-    console.dir(obj)
-}, 'dump')
 
 // TODO is it deprecated? or any use for that?
 _scene.packDeclarations = function(target) {
@@ -1545,35 +1649,6 @@ _scene.packDeclarations = function(target) {
 
 // ********************************************
 // sys functions
-_scene.attach(new Frame({
-    name: "sys",
-}))
-_scene.sys.attach(mix)
-_scene.sys.attach(augment)
-_scene.sys.attach(supplement)
-_scene.sys.attach(before)
-_scene.sys.attach(after)
-
-_scene.sys.attach(Frame)
-_scene.sys.attach(LabFrame)
-
-_scene.sys.attach(isObj)
-_scene.sys.attach(isFun)
-_scene.sys.attach(isNumber)
-_scene.sys.attach(isString)
-_scene.sys.attach(isArray)
-_scene.sys.attach(isMutable)
-_scene.sys.attach(isFrame)
-
-_scene.env.TARGET_FPS = 60
-_scene.env.MAX_EVO_STEP = 0.01
-_scene.env.MAX_EVO_PER_CYCLE = 0.3
-_scene.env.lastFrame = Date.now()
-_scene.env.mouseX = 0
-_scene.env.mouseY = 0
-_scene.env.mouseLX = 0
-_scene.env.mouseLY = 0
-_scene.env.keys = {}  // down key set
 
 // *****************************************************
 // LIFECYCLE
@@ -1622,6 +1697,8 @@ const bootstrap = function() {
         document.body.style.overflow = "hiddenq";
         document.body.setAttribute("scroll", "no");
     }
+
+    // bind context
     _scene.ctx = canvas.getContext("2d")
 
     _scene.loadUnits(_scene, _scene.env.syspath)
@@ -1876,10 +1953,10 @@ for (let i = 0; i < scripts.length; i++) {
         _scene.env.title = document.title
 
         _scene.log.sys('=== Environment ===')
-        _scene.log.sys('BASENAME: ' + _scene.env.basename)
-        _scene.log.sys('SYSPATH: ' + _scene.env.syspath)
-        _scene.log.sys('BASEPATH: ' + _scene.env.basepath)
-        _scene.log.sys('TITLE: ' + _scene.env.title)
+        _scene.log.sys('basename: ' + _scene.env.basename)
+        _scene.log.sys('syspath: ' + _scene.env.syspath)
+        _scene.log.sys('basepath: ' + _scene.env.basepath)
+        _scene.log.sys('title: ' + _scene.env.title)
         break;
     }
 }
