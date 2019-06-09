@@ -825,6 +825,7 @@ const evalLoadedBatch = function(ibatch, batch, _) {
 // Mod context container
 const Mod = function(dat) {
     this._patchLog = []
+    this._testLog = []
     this.ctx = false
     this.focus = true
     this.paused = false
@@ -1007,45 +1008,83 @@ Mod.prototype._runTests = function() {
     if (!isFrame(this.test)) return
     if (this.test._ls.length === 0) return
 
-    _scene.log.sys('running tests in: ' + this.name)
-    Object.keys(this.test._dir).forEach(name => {
-        const test = this.test[name]
-
+    if (isString(_scene.env.config.test)) {
+        this.status = 'testing'
+        const test = this.test[_scene.env.config.test]
         if (isFun(test)) {
-            _scene.log.sys('test [' + name + ']')
-            //try {
-                const mod = constructScene()
-                mod.ctx = _scene.ctx
-                repatchScene(mod, _scene)
-
-                mod.test[name]()
-
-                _scene.log.sys('[' + name + '] Passed')
-            //} catch (err) {
-            //    _scene.log.err(err)
-            //    _scene.log.err('[' + name + '] Failed!')
-            //}
+            _scene.log.sys('running test [' + _scene.env.config.test + '] in ' + this.name)
+            return test()
         }
-    })
+        return false
+
+    } else {
+        _scene.log.sys('running tests in: ' + this.name)
+        this.status = 'testing'
+        
+        let passed = 0
+        let failed = 0
+        Object.keys(this.test._dir).forEach(name => {
+            const test = this.test[name]
+
+            if (isFun(test) && !test.manual) {
+                //_scene.log.sys('test [' + name + ']')
+                try {
+                    const mod = constructScene()
+                    mod.ctx = _scene.ctx
+                    repatchScene(mod, _scene)
+
+                    const res = mod.test[name]()
+
+                    passed ++
+                    this._testLog.push({
+                        name: name,
+                        status: 'ok',
+                        result: res,
+                    })
+                    this.log.sys('[' + name + '] Passed')
+
+                } catch (err) {
+
+                    failed ++
+                    this._testLog.push({
+                        name: name,
+                        status: 'failed',
+                        result: err,
+                    })
+                    this.log.err(err)
+                    this.log.err('[' + name + '] Failed!')
+                }
+
+            }
+            this.log.sys('=== Test of ' + this.name + ' ===')
+            this.log.sys('Passed: ' + passed)
+            this.log.sys('Failed: ' + failed)
+        })
+        return false
+    }
 }
 
 Mod.prototype.start = function() {
     if (this.env.started) return
     this.inherit()
 
-    if (isFun(this.setup)) {
-        this.setup()
-    } if (isFrame(this.setup)) {
-        this.setup._ls.forEach( f => f() )
+    this.env.started = true
+
+    let captured = false
+    if (_scene.env.config.test) captured = this._runTests()
+    
+    if (isFrame(this.mod)) this.mod._ls.forEach( mod => mod.start() )
+    
+    if (!captured) {
+        if (isFun(this.setup)) {
+            this.setup()
+        } if (isFrame(this.setup)) {
+            this.setup._ls.forEach( f => f() )
+        }
+        this.status = 'started'
     }
 
-    if (isFrame(this.mod)) this.mod._ls.forEach( mod => mod.start() )
-
     _scene.log.sys('starting evolution of [' + this.path() + ']')
-    this.env.started = true
-    this.status = 'started'
-
-    if (_scene.env.config.test) this._runTests()
 }
 
 Mod.prototype.inherit = function() {
@@ -1598,6 +1637,9 @@ function constructScene(proto) {
     mod.env.mouseLX = 0
     mod.env.mouseLY = 0
     mod.env.keys = {}  // down key set
+    mod.env.config = {}
+
+
 
     return mod
 }
@@ -1664,7 +1706,7 @@ const preboot = function() {
         .then(function(config) {
             if (config) {
                 _scene.log.sys(' = Config =: ' + JSON.stringify(config));
-                _scene.env.config = config
+                augment(_scene.env.config, config)
             }
             bootstrap()
         })
@@ -1951,6 +1993,17 @@ for (let i = 0; i < scripts.length; i++) {
         _scene.env.basename = htmlname
         _scene.env.syspath = syspath
         _scene.env.title = document.title
+
+        // check out test hash
+        if (location.hash && location.hash.startsWith('#test')) {
+            // determine test name
+            const testName = location.hash.substring(6)
+            if (testName.length === 0) {
+                _scene.env.config.test = true
+            } else {
+                _scene.env.config.test = testName
+            }
+        }
 
         _scene.log.sys('=== Environment ===')
         _scene.log.sys('basename: ' + _scene.env.basename)
