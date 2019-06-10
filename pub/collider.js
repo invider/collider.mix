@@ -214,6 +214,7 @@ Frame.prototype.attach = function(node, name) {
         if (!name && node.name) name = node.name
 	}
 
+    if (name === 'pub') debugger
     if (name) {
         // make sure we are not shaddowing prototype definitions
         if (!Frame.prototype[name]) {
@@ -226,6 +227,24 @@ Frame.prototype.attach = function(node, name) {
     this.onAttached(node, name, this)
     if (isFun(node.init)) node.init() // initialize node
 
+    return node
+};
+
+Frame.prototype.link = function(node, name) {
+    if (node === undefined) return
+    if (isObj(node) || isFun(node)) {
+        // take name from the node if not defined
+        if (!name && node.name) name = node.name
+	}
+
+    if (name) {
+        // make sure we are not shaddowing prototype definitions
+        if (!Frame.prototype[name]) {
+            this[name] = node
+        }
+        this._dir[name] = node
+    }
+    this._ls.push(node)
     return node
 };
 
@@ -887,6 +906,8 @@ const Mod = function(dat) {
         },
 
         onAttached: function(node, name, parent) {
+            if (!node) {
+            }
             // on attaching a resource
             // TODO move autoloading by name to another autoloading node
             //      definitelly don't need to autoload here in /res
@@ -937,7 +958,7 @@ const Mod = function(dat) {
     // augment functions
     // TODO remove in favor of .aug
     //this.attach(new Frame(), 'aug')
-
+    //
     // static environment data entities
     this.attach(new Frame({
         name: "env",
@@ -1066,7 +1087,7 @@ Mod.prototype._runTests = function() {
 
 Mod.prototype.start = function() {
     if (this.env.started) return
-    this.inherit()
+    //this.inherit()
 
     this.env.started = true
 
@@ -1092,6 +1113,7 @@ Mod.prototype.inherit = function() {
     this.touch('log')
     supplement(this.sys, this.___.sys)
     supplement(this.log, this.___.log)
+    this.link(this.___.pub)
 }
 
 Mod.prototype.onAttached = function(node, name, parent) {
@@ -1574,7 +1596,7 @@ Mod.prototype.loadUnits = function(baseMod, target) {
 
 // ***********************
 // collider scene construction
-function constructScene(proto) {
+function constructScene() {
     const mod = new Mod()
     mod.name = '/'
     mod._ = mod // set the context
@@ -1603,6 +1625,11 @@ function constructScene(proto) {
     mod.sys.attach(isArray)
     mod.sys.attach(isMutable)
     mod.sys.attach(isFrame)
+
+    // pub
+    mod.attach(new Frame({
+        name: 'pub',
+    }))
 
     // log
     const log = function log(msg, post) {
