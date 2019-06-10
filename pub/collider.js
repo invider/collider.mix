@@ -1605,9 +1605,12 @@ function constructScene(proto) {
     mod.sys.attach(isFrame)
 
     // log
-    mod.attach(new Frame({
-        name: 'log'
-    }))
+    const log = function log(msg, post) {
+        log.out(msg, post)
+    }
+    augment(log, new Frame())
+    mod.attach(log)
+
     mod.log.attach(function err(msg, post) {
         post? console.log('! [' + msg + '] ' + post) : console.log('! ' + msg) 
     }, 'err')
