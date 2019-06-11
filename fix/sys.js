@@ -45,7 +45,7 @@ module.exports = {
     spawn: function(source, spawnData, target, sbase, tbase) {
         if (!sbase) sbase = 'dna/'
         if (!tbase) tbase = 'lab/'
-        
+
         let cons = source
         if (this._.sys.isString(source)) {
             cons = this._.selectOne(sbase + source)

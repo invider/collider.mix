@@ -214,7 +214,6 @@ Frame.prototype.attach = function(node, name) {
         if (!name && node.name) name = node.name
 	}
 
-    if (name === 'pub') debugger
     if (name) {
         // make sure we are not shaddowing prototype definitions
         if (!Frame.prototype[name]) {
@@ -505,6 +504,10 @@ const LabFrame = function(st) {
 LabFrame.prototype = Object.create(Frame.prototype)
 
 LabFrame.prototype.touch = touchFun((name) => new LabFrame(name))
+
+LabFrame.prototype.spawn = function(dna, st) {
+    return this._.sys.spawn(dna, st, this)
+}
 
 // TODO processing of attached node and event on attachment probably should be different functions
 LabFrame.prototype.onAttached = function(node, name, parent) {
