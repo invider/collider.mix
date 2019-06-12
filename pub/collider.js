@@ -82,6 +82,7 @@ function supplement() {
     return mixin;
 }
 
+// TODO make into regular obj.fn = before(patch, obj.fn)
 const before = function(obj, fun, patch) {
     var orig = obj[fun]
     if (!orig) {
@@ -98,6 +99,7 @@ const before = function(obj, fun, patch) {
     }
 }
 
+// TODO make into regular obj.fn = after(obj.fn, patch)
 const after = function(obj, fun, patch) {
     var orig = obj[fun]
     if (!orig) {
@@ -679,10 +681,10 @@ function evalJS(script, _) {
     }
 
     // provide lexical scope for mod context and scope object for this. definitions
-    let code = '(function ' + name + '(_, ctx, module, require, sys, lib, res, dna, env, lab, mod, log, cue, trap) {'
+    let code = '(function ' + name + '(_, ctx, _$, module, require, sys, lib, res, dna, env, lab, mod, pub, log, cue, trap) {'
         + " /* path: " + script.path + "*/ "
         + script.src
-    + '}).call(scope, __, __.ctx, module, require, __.sys, __.lib, __.res, __.dna, __.env, __.lab, __.mod, __.log, __.cue, __.trap)'
+    + '}).call(scope, __, __.ctx, __._$, module, require, __.sys, __.lib, __.res, __.dna, __.env, __.lab, __.mod, __.pub, __.log, __.cue, __.trap)'
     + '\n//# sourceURL=' + script.origin
 
     /*
