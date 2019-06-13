@@ -1115,10 +1115,17 @@ Mod.prototype.start = function() {
 
 Mod.prototype.inherit = function() {
     this.touch('sys')
-    this.touch('log')
-    supplement(this.sys, this.___.sys)
-    supplement(this.log, this.___.log)
+
     this.link(this.___.pub)
+    supplement(this.sys, this.___.sys)
+
+    // log
+    const log = function log(msg, post) {
+        log.out(msg, post)
+    }
+    augment(log, new Frame())
+    this.attach(log)
+    supplement(this.log, this.___.log)
 }
 
 Mod.prototype.onAttached = function(node, name, parent) {
@@ -1325,7 +1332,7 @@ function patchImg(_, batch, url, base, path, classifier, onLoad) {
     _.res._included ++
 
     var img = new Image()
-    img.src = url
+    img.src = randomizeUrl(url)
     img.onload = onLoad
 
     if (classifier && classifier.startsWith('map')) {
@@ -1336,7 +1343,7 @@ function patchImg(_, batch, url, base, path, classifier, onLoad) {
             let h = parseInt(wh[1])
             // TODO is it really need to be a custom fun instead of just img/tile type?
             _.res._schedule(batch, {
-                origin: url,
+                origin: randomizeUrl(url),
                 base: base,
                 path: path,
                 ext: 'fun',
@@ -1362,9 +1369,6 @@ function patchImg(_, batch, url, base, path, classifier, onLoad) {
 
 function scheduleLoad(_, batch, url, base, path, ext) {
     _.res._included ++
-    // TODO randomize only in debug/develop mode
-    // for production/static deployment it doesn't make sense
-    const usrc = url + "?" + Math.random() // fix possible cache issue
 
     var ajax = new XMLHttpRequest()
     ajax.onreadystatechange = function() {
@@ -1393,7 +1397,7 @@ function scheduleLoad(_, batch, url, base, path, ext) {
             }
         }
     }
-    ajax.open("GET", url, true);
+    ajax.open("GET", randomizeUrl(url), true);
     ajax.send();
 }
 
@@ -1426,7 +1430,7 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
 
     name = path? path.replace(/^.*[\\\/]/, '') : name // take the name form path
 
-    _.log.sys('loader-' + batch, ext + ': ' + url + ' -> ' + addPath(base.name, path))
+    _.log.sys('loader-' + batch, '.' + ext + ': ' + url + ' -> ' + addPath(base.name, path))
 
     switch (ext) {
         case 'png': case 'jpge': case 'jpg':
@@ -1447,7 +1451,7 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
             break;
 
         default:
-            _.log.err('loader-' + batch, 'ignoring resource: [' + url + ']')
+            _.log.sys('loader-' + batch, 'ignoring resource by type: [' + url + ']')
 
     }
 }
@@ -1472,7 +1476,12 @@ function normalizeDirPath(path) {
 
 function randomizeUrl(url) {
     // TODO look at the global env config - useful only in dynamic debug mode
-    return url + '?' + Math.random()
+    if (_scene.env.config.debug) {
+        return url + '?' + Math.random()
+    } else {
+        return url + '?' + Math.random()
+        //return url
+    }
 }
 
 function fixUnitMountPoint(unit) {
@@ -1539,6 +1548,14 @@ function queueUnits(unitsToLoad, loadingQueue) {
     }
 }
 
+function isIgnored(url, ignoreList) {
+    let ignored = false
+    ignoreList.forEach(irexp => {
+        if (irexp.test(url)) ignored = true
+    })
+    return ignored
+}
+
 Mod.prototype.loadUnits = function(baseMod, target) {
     target = normalizeDirPath(target)
     this.log.sys('loader', '[' + this.name + '] loading: [' + baseMod.name + '] <= [' + target + ']') 
@@ -1547,8 +1564,8 @@ Mod.prototype.loadUnits = function(baseMod, target) {
     let loaderMod = this
 
     // load collider.units definition
-    let url = randomizeUrl(addPath(target, UNITS_MAP))
-    fetch(url)
+    let url = addPath(target, UNITS_MAP)
+    fetch(randomizeUrl(url))
         .then(response => {
             if (response.ok) {
                 return response.json()
@@ -1575,6 +1592,12 @@ Mod.prototype.loadUnits = function(baseMod, target) {
             queueUnits(unitsToLoad, loadQueue)
             loaderMod.log.sys('units loading order: ' + loadQueue.map(u => u.id).join(', '))
 
+            let ignoreList = []
+            loadQueue.forEach(unit => {
+                if (isArray(unit.ignore)) ignoreList = ignoreList.concat(unit.ignore)
+            })
+            ignoreList = ignoreList.map(e => new RegExp(e))
+
             // schedule the loading
             let batch = 2 // 0 is for boot, 1 is for static resources
             loadQueue.forEach(unit => {
@@ -1584,10 +1607,14 @@ Mod.prototype.loadUnits = function(baseMod, target) {
                     const targetPath = addPath(unit.mount, removeExtention(removeExtention(resLocalUrl)))
                     const url = addPath(unit.id, resLocalUrl)
 
-                    if (targetPath.startsWith('boot') || targetPath.startsWith('/boot')) {
-                        loaderMod.batchLoad(0, url, currentMod, targetPath)
+                    if (isIgnored(url, ignoreList)) {
+                        loaderMod.log.sys('loader-' + batch, 'ignoring by rule: ' + url)
                     } else {
-                        loaderMod.batchLoad(batch, url, currentMod, targetPath)
+                        if (targetPath.startsWith('boot') || targetPath.startsWith('/boot')) {
+                            loaderMod.batchLoad(0, url, currentMod, targetPath)
+                        } else {
+                            loaderMod.batchLoad(batch, url, currentMod, targetPath)
+                        }
                     }
                 })
                 batch++
@@ -1673,8 +1700,6 @@ function constructScene() {
     mod.env.mouseLY = 0
     mod.env.keys = {}  // down key set
     mod.env.config = {}
-
-
 
     return mod
 }
