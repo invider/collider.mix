@@ -1367,6 +1367,30 @@ function patchImg(_, batch, url, base, path, classifier, onLoad) {
     }
 }
 
+function loadJson(url) {
+    const promise = new Promise(function(resolve, reject) {
+        const ajax = new XMLHttpRequest()
+        ajax.onreadystatechange = function() {
+            if (this.readyState == 4) {
+                if (this.status == 200) {
+                    try {
+                        const jsonData = JSON.parse(this.responseText)
+                        resolve(jsonData)
+                    } catch (err) {
+                        reject(err)
+                    }
+                } else {
+                    reject(this.status, this.responseText)
+                }
+            }
+        }
+        ajax.open("GET", randomizeUrl(url), true);
+        ajax.send();
+    })
+
+    return promise 
+}
+
 function scheduleLoad(_, batch, url, base, path, ext) {
     _.res._included ++
 
@@ -1565,14 +1589,7 @@ Mod.prototype.loadUnits = function(baseMod, target) {
 
     // load collider.units definition
     let url = addPath(target, UNITS_MAP)
-    fetch(randomizeUrl(url))
-        .then(response => {
-            if (response.ok) {
-                return response.json()
-            } else {
-                this.log.err('loader', 'unable to load unit definitions from [' + url + ']')
-            }
-        })
+    loadJson(randomizeUrl(url))
         .then(units => {
             if (!units) return
             loaderMod._units = units
@@ -1759,10 +1776,7 @@ _scene.packDeclarations = function(target) {
 const preboot = function() {
     _scene.log.sys('loader', 'loading config: ' + JAM_CONFIG)
 
-    fetch(JAM_CONFIG)
-        .then((response) => {
-            if (response.ok) return response.json();
-        })
+    loadJson(JAM_CONFIG)
         .then(function(config) {
             if (config) {
                 _scene.log.sys(' = Config =: ' + JSON.stringify(config));
