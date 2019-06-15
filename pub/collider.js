@@ -1457,7 +1457,7 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
     _.log.sys('loader-' + batch, '.' + ext + ': ' + url + ' -> ' + addPath(base.name, path))
 
     switch (ext) {
-        case 'png': case 'jpge': case 'jpg':
+        case 'png': case 'jpge': case 'jpg': case 'svg':
             patchImg(_, batch, url, base, path, classifier, onLoad)
             break;
 
