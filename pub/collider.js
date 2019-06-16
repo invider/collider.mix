@@ -1890,7 +1890,7 @@ function expandCanvas(name) {
     var canvas = document.getElementById(name)
     if (!canvas) return
 
-    if (_scene.env.canvasStyle === 'preserve') {
+    if (_scene.env.canvasStyle === 'preserve' || _scene.env.config.preserveCanvas) { 
         _scene.env.width = _scene.ctx.width = canvas.width
         _scene.env.height = _scene.ctx.height = canvas.height
         _scene.draw() // it doesn't work without forced redraw
