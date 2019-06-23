@@ -865,11 +865,6 @@ const Mod = function(dat) {
         _execList: [],
 
         _schedule: function(batch, script) {
-            switch(script.ext) {
-            case 'fun': 
-                batch = 1; break;
-            }
-
             if (!this._execList[batch]) {
                 this._execList[batch] = []
             }
@@ -1354,8 +1349,8 @@ function patchImg(_, batch, url, base, path, classifier, onLoad) {
             })
         }
     } else {
-        //_.patch(base, path, img)
-        _.res._schedule(batch, {
+        // static image resource - scheduling the patch in batch 1
+        _.res._schedule(1, {
             origin: url,
             base: base,
             path: path,
