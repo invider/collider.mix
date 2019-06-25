@@ -1025,23 +1025,60 @@ Mod.prototype.init = function() {
     this.inherit()
 }
 
+Mod.prototype._runExp = function() {
+    if (!isFrame(this.exp)) return false
+    if (this.exp._ls.length === 0) return false
+
+    const name = _scene.env.config.exp
+    if (isString(name)) {
+        this.status = 'experiment'
+        const exp = this.exp[name]
+        if (isFun(exp)) {
+            this.log.sys('running experiment [' + name + '] in ' + this.name)
+            return !exp()
+        } else {
+            return false
+        }
+    }
+    return false
+}
+
 Mod.prototype._runTests = function() {
-    if (!isFrame(this.test)) return
-    if (this.test._ls.length === 0) return
+    if (!isFrame(this.test)) return false
+    if (this.test._ls.length === 0) return false
 
     if (isString(_scene.env.config.test)) {
         this.status = 'testing'
-        const test = this.test[_scene.env.config.test]
+        const name = _scene.env.config.test
+        const test = this.test[name]
         if (isFun(test)) {
-            _scene.log.sys('running test [' + _scene.env.config.test + '] in ' + this.name)
-            return test()
+            this.log.sys('running test [' + name + '] in ' + this.name)
+            try {
+                const res = test()
+                this._testLog.push({
+                    name: name,
+                    status: 'ok',
+                    result: res,
+                })
+                this.log.sys('[' + name + '] passed')
+                return 1
+            } catch (err) {
+                this._testLog.push({
+                    name: name,
+                    status: 'failed',
+                    result: err,
+                })
+                this.log.raw(err)
+                this.log.err('[' + name + '] failed!')
+                return 0
+            }
         }
         return false
 
     } else {
         _scene.log.sys('running tests in: ' + this.name)
         this.status = 'testing'
-        
+
         let passed = 0
         let failed = 0
         Object.keys(this.test._dir).forEach(name => {
@@ -1062,26 +1099,25 @@ Mod.prototype._runTests = function() {
                         status: 'ok',
                         result: res,
                     })
-                    this.log.sys('[' + name + '] Passed')
+                    this.log.sys('[' + name + '] passed')
 
                 } catch (err) {
-
                     failed ++
                     this._testLog.push({
                         name: name,
                         status: 'failed',
                         result: err,
                     })
-                    this.log.err(err)
-                    this.log.err('[' + name + '] Failed!')
+                    this.log.raw(err)
+                    this.log.err('[' + name + '] failed!')
                 }
 
             }
-            this.log.sys('=== Test of ' + this.name + ' ===')
-            this.log.sys('Passed: ' + passed)
-            this.log.sys('Failed: ' + failed)
         })
-        return false
+        this.log.sys('=== Test of ' + this.name + ' ===')
+        this.log.sys('Passed: ' + passed)
+        this.log.sys('Failed: ' + failed)
+        return true 
     }
 }
 
@@ -1091,11 +1127,13 @@ Mod.prototype.start = function() {
 
     this.env.started = true
 
+    if (_scene.env.config.test) this._runTests()
+
     let captured = false
-    if (_scene.env.config.test) captured = this._runTests()
-    
+    if (_scene.env.config.exp) captured = this._runExp()
+
     if (isFrame(this.mod)) this.mod._ls.forEach( mod => mod.start() )
-    
+
     if (!captured) {
         if (isFun(this.setup)) {
             this.setup()
@@ -1697,6 +1735,9 @@ function constructScene() {
     mod.log.attach(function sys(msg, post) {
         post? console.log('$ [' + msg + '] ' + post) : console.log('$ ' + msg) 
     }, 'sys')
+    mod.log.attach(function sys(msg) {
+        console.log(msg) 
+    }, 'raw')
     mod.log.attach(function dump(obj) {
         console.dir(obj)
     }, 'dump')
@@ -1776,6 +1817,7 @@ const preboot = function() {
             if (config) {
                 _scene.log.sys(' = Config =: ' + JSON.stringify(config));
                 augment(_scene.env.config, config)
+                updateHashConfig() // override #test or #exp config just in case
             }
             bootstrap()
         })
@@ -2040,9 +2082,40 @@ function handleKeyUp(e) {
     return true
 }
 
+function handleHashUpdate() {
+    _scene.env.config.test = false
+    _scene.env.config.exp = false
+    updateHashConfig()
+
+    _scene._runTests()
+    _scene._runExp()
+}
 
 // *****************
 // setup environment
+
+function updateHashConfig() {
+    if (location.hash) {
+        if (location.hash.startsWith('#test')) {
+            // determine test name
+            const testName = location.hash.substring(6)
+            if (testName.length === 0) {
+                _scene.env.config.test = true
+            } else {
+                _scene.env.config.test = testName
+            }
+        } else if (location.hash.startsWith('#exp')) {
+            // determine experiment name
+            const expName = location.hash.substring(5)
+            if (expName.length === 0) {
+                // TODO can we do something in this case?
+                _scene.env.config.exp = true
+            } else {
+                _scene.env.config.exp = expName
+            }
+        }
+    }
+}
 
 // determine system path
 let scripts = document.getElementsByTagName('script')
@@ -2063,16 +2136,7 @@ for (let i = 0; i < scripts.length; i++) {
         _scene.env.syspath = syspath
         _scene.env.title = document.title
 
-        // check out test hash
-        if (location.hash && location.hash.startsWith('#test')) {
-            // determine test name
-            const testName = location.hash.substring(6)
-            if (testName.length === 0) {
-                _scene.env.config.test = true
-            } else {
-                _scene.env.config.test = testName
-            }
-        }
+        updateHashConfig()
 
         _scene.log.sys('=== Environment ===')
         _scene.log.sys('basename: ' + _scene.env.basename)
@@ -2093,6 +2157,7 @@ function bindHandlers(target) {
     if (!target) return
     target.onresize = expandView
     target.onload = preboot
+    target.onhashchange = handleHashUpdate
     target.onmousedown = handleMouseDown
     target.onmouseup = handleMouseUp
     target.onclick = handleMouseClick
