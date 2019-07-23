@@ -1025,60 +1025,23 @@ Mod.prototype.init = function() {
     this.inherit()
 }
 
-Mod.prototype._runExp = function() {
-    if (!isFrame(this.exp)) return false
-    if (this.exp._ls.length === 0) return false
-
-    const name = _scene.env.config.exp
-    if (isString(name)) {
-        this.status = 'experiment'
-        const exp = this.exp[name]
-        if (isFun(exp)) {
-            this.log.sys('running experiment [' + name + '] in ' + this.name)
-            return !exp()
-        } else {
-            return false
-        }
-    }
-    return false
-}
-
 Mod.prototype._runTests = function() {
-    if (!isFrame(this.test)) return false
-    if (this.test._ls.length === 0) return false
+    if (!isFrame(this.test)) return
+    if (this.test._ls.length === 0) return
 
     if (isString(_scene.env.config.test)) {
         this.status = 'testing'
-        const name = _scene.env.config.test
-        const test = this.test[name]
+        const test = this.test[_scene.env.config.test]
         if (isFun(test)) {
-            this.log.sys('running test [' + name + '] in ' + this.name)
-            try {
-                const res = test()
-                this._testLog.push({
-                    name: name,
-                    status: 'ok',
-                    result: res,
-                })
-                this.log.sys('[' + name + '] passed')
-                return 1
-            } catch (err) {
-                this._testLog.push({
-                    name: name,
-                    status: 'failed',
-                    result: err,
-                })
-                this.log.raw(err)
-                this.log.err('[' + name + '] failed!')
-                return 0
-            }
+            _scene.log.sys('running test [' + _scene.env.config.test + '] in ' + this.name)
+            return test()
         }
         return false
 
     } else {
         _scene.log.sys('running tests in: ' + this.name)
         this.status = 'testing'
-
+        
         let passed = 0
         let failed = 0
         Object.keys(this.test._dir).forEach(name => {
@@ -1099,25 +1062,26 @@ Mod.prototype._runTests = function() {
                         status: 'ok',
                         result: res,
                     })
-                    this.log.sys('[' + name + '] passed')
+                    this.log.sys('[' + name + '] Passed')
 
                 } catch (err) {
+
                     failed ++
                     this._testLog.push({
                         name: name,
                         status: 'failed',
                         result: err,
                     })
-                    this.log.raw(err)
-                    this.log.err('[' + name + '] failed!')
+                    this.log.err(err)
+                    this.log.err('[' + name + '] Failed!')
                 }
 
             }
+            this.log.sys('=== Test of ' + this.name + ' ===')
+            this.log.sys('Passed: ' + passed)
+            this.log.sys('Failed: ' + failed)
         })
-        this.log.sys('=== Test of ' + this.name + ' ===')
-        this.log.sys('Passed: ' + passed)
-        this.log.sys('Failed: ' + failed)
-        return true 
+        return false
     }
 }
 
@@ -1127,13 +1091,11 @@ Mod.prototype.start = function() {
 
     this.env.started = true
 
-    if (_scene.env.config.test) this._runTests()
-
     let captured = false
-    if (_scene.env.config.exp) captured = this._runExp()
-
+    if (_scene.env.config.test) captured = this._runTests()
+    
     if (isFrame(this.mod)) this.mod._ls.forEach( mod => mod.start() )
-
+    
     if (!captured) {
         if (isFun(this.setup)) {
             this.setup()
@@ -1735,9 +1697,6 @@ function constructScene() {
     mod.log.attach(function sys(msg, post) {
         post? console.log('$ [' + msg + '] ' + post) : console.log('$ ' + msg) 
     }, 'sys')
-    mod.log.attach(function sys(msg) {
-        console.log(msg) 
-    }, 'raw')
     mod.log.attach(function dump(obj) {
         console.dir(obj)
     }, 'dump')
@@ -1817,7 +1776,6 @@ const preboot = function() {
             if (config) {
                 _scene.log.sys(' = Config =: ' + JSON.stringify(config));
                 augment(_scene.env.config, config)
-                updateHashConfig() // override #test or #exp config just in case
             }
             bootstrap()
         })
@@ -1843,11 +1801,11 @@ const bootstrap = function() {
         canvas.style.position = "absolute";
         canvas.style.display = "block";
         document.body.appendChild(canvas);
-
-        // style body
+        
+        // style the body
         document.body.style.margin = "0"
         document.body.style.padding = "0"
-        document.body.style.overflow = "hiddenq";
+        document.body.style.overflow = "hidden";
         document.body.setAttribute("scroll", "no");
     }
 
@@ -1923,24 +1881,92 @@ function startCycle() {
 }
 
 // > implement 'keepOriginalAspectRatio'&'aspectRatio' option
+// TODO what should we do in case of multiple canvases?
+//      maybe canvas should be defined within the mod?
 function expandCanvas(name) {
     var canvas = document.getElementById(name)
     if (!canvas) return
 
-    if (_scene.env.canvasStyle === 'preserve') {
-        _scene.env.width = _scene.ctx.width = canvas.width
-        _scene.env.height = _scene.ctx.height = canvas.height
-        _scene.draw() // it doesn't work without forced redraw
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+
+    const ctx = canvas.getContext("2d")
+
+    let mode = canvas.getAttribute('mode')
+    if (!mode) mode = 'fullscreen'
+
+    if (_scene.env.canvasStyle === 'preserve' || _scene.env.config.preserveCanvas) { 
+        _scene.ctx.width = canvas.width
+        _scene.ctx.height = canvas.height
+    } else if (mode === 'fix-aspect') {
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
+
+        const aspect = parseFloat(canvas.getAttribute('aspect'))
+        const minHBorder = parseFloat(canvas.getAttribute('minHBorder'))
+        const minVBorder = parseFloat(canvas.getAttribute('minVBorder'))
+        const portAspect = viewportWidth / viewportHeight
+
+        let targetWidth = viewportWidth
+        let targetHeight = viewportHeight
+        if (minHBorder > 0) targetWidth = targetWidth - minHBorder*2
+        if (minVBorder > 0) targetHeight = targetHeight - minVBorder*2
+
+        if (portAspect > aspect) {
+            // viewport is actually wider
+            targetWidth = Math.round(targetHeight * aspect)
+        } else {
+            // viewport is higher
+            targetHeight = Math.round(targetWidth / aspect)
+        }
+        const hborder = Math.round((viewportWidth - targetWidth)/2)
+        const vborder = Math.round((viewportHeight - targetHeight)/2)
+
+        canvas.width = ctx.width = targetWidth
+        canvas.height = ctx.height = targetHeight
+        canvas.style.width = targetWidth + 'px'
+        canvas.style.height = targetHeight + 'px'
+        canvas.style.left = hborder + 'px'
+        canvas.style.top = vborder + 'px'
+
+    } else if (mode === 'fix-res') {
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
+
+        let targetWidth = canvas.getAttribute('targetWidth')
+        let targetHeight = canvas.getAttribute('targetHeight')
+        // TODO maybe show an error that we are expecting custom attributes in here?
+        if (!targetWidth) targetWidth = viewportWidth
+        if (!targetHeight) targetHeight = viewportHeight
+
+        // calculate canvas scale respecting the aspect
+        const aspect = targetWidth / targetHeight
+        const vscale = viewportWidth / targetWidth
+        const hscale = viewportHeight / targetHeight
+        let scale = hscale
+        if (hscale > vscale) scale = vscale
+
+        const hborder = Math.round((viewportWidth - (targetWidth*scale))/2)
+        const vborder = Math.round((viewportHeight - (targetHeight*scale))/2)
+
+        canvas.width = ctx.width = targetWidth
+        canvas.height = ctx.height = targetHeight
+        canvas.style.width = Math.round(targetWidth * scale) + 'px'
+        canvas.style.height = Math.round(targetHeight * scale) + 'px'
+        canvas.style.left = hborder + 'px'
+        canvas.style.top = vborder + 'px'
+
     } else {
         // default full-screen canvas
-        var newWidth = window.innerWidth
-        var newHeight = window.innerHeight
-        _scene.env.width = _scene.ctx.width = canvas.width = newWidth
-        _scene.env.height = _scene.ctx.height = canvas.height = newHeight
-        canvas.style.width = newWidth + 'px'
-        canvas.style.height = newHeight + 'px'
-        _scene.draw() // it doesn't work without forced redraw
+        //_scene.ctx.width = canvas.width = viewportWidth
+        //_scene.ctx.height = canvas.height = viewportHeight
+        _scene.env.width = _scene.ctx.width = canvas.width = viewportWidth
+        _scene.env.height = _scene.ctx.height = canvas.height = viewportHeight
+        canvas.style.width = viewportWidth + 'px'
+        canvas.style.height = viewportHeight + 'px'
+
     }
+    _scene.draw() // it doesn't work without forced redraw
 }
 
 function expandView() {
@@ -2082,40 +2108,9 @@ function handleKeyUp(e) {
     return true
 }
 
-function handleHashUpdate() {
-    _scene.env.config.test = false
-    _scene.env.config.exp = false
-    updateHashConfig()
-
-    _scene._runTests()
-    _scene._runExp()
-}
 
 // *****************
 // setup environment
-
-function updateHashConfig() {
-    if (location.hash) {
-        if (location.hash.startsWith('#test')) {
-            // determine test name
-            const testName = location.hash.substring(6)
-            if (testName.length === 0) {
-                _scene.env.config.test = true
-            } else {
-                _scene.env.config.test = testName
-            }
-        } else if (location.hash.startsWith('#exp')) {
-            // determine experiment name
-            const expName = location.hash.substring(5)
-            if (expName.length === 0) {
-                // TODO can we do something in this case?
-                _scene.env.config.exp = true
-            } else {
-                _scene.env.config.exp = expName
-            }
-        }
-    }
-}
 
 // determine system path
 let scripts = document.getElementsByTagName('script')
@@ -2136,7 +2131,16 @@ for (let i = 0; i < scripts.length; i++) {
         _scene.env.syspath = syspath
         _scene.env.title = document.title
 
-        updateHashConfig()
+        // check out test hash
+        if (location.hash && location.hash.startsWith('#test')) {
+            // determine test name
+            const testName = location.hash.substring(6)
+            if (testName.length === 0) {
+                _scene.env.config.test = true
+            } else {
+                _scene.env.config.test = testName
+            }
+        }
 
         _scene.log.sys('=== Environment ===')
         _scene.log.sys('basename: ' + _scene.env.basename)
@@ -2157,7 +2161,6 @@ function bindHandlers(target) {
     if (!target) return
     target.onresize = expandView
     target.onload = preboot
-    target.onhashchange = handleHashUpdate
     target.onmousedown = handleMouseDown
     target.onmouseup = handleMouseUp
     target.onclick = handleMouseClick
