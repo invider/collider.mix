@@ -986,11 +986,26 @@ const Mod = function(dat) {
     augment(mod, new Frame())
 
     mod.touch = touchFun((name) => {
-        const mod = new Mod(name)
+        let mod
+        if (name.endsWith('-buf')) {
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d')
+            mod = new Mod({
+                name: name,
+                ctx: ctx,
+            })
+        } else {
+            mod = new Mod(name)
+        }
         mod._$ = _scene
         return mod
     })
     this.attach(mod)
+    /*
+    mod.touch = touchFun((name) => {
+        debugger
+    })
+    */
 
     // container for traps
     var trap = function trap(key, data, chain) {
@@ -1021,7 +1036,9 @@ Mod.prototype = new Frame()
 Mod.prototype.init = function() {
     this.___ = this._ // save node context as parent mod
     this._ = this // must be in init, since it is assigned during the regular node.attach()
-    if (!this.ctx) this.ctx = this.___.ctx // clone draw context from parent mod if not set explicitly
+    if (!this.ctx) {
+        this.ctx = this.___.ctx // clone draw context from parent mod if not set explicitly
+    }
     this.inherit()
 }
 
