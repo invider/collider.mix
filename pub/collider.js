@@ -2080,6 +2080,26 @@ function handleMouseOut(e) {
     _scene.trap('mouseOut', e, true)
 }
 
+function handleTouchStart(e) {
+    _scene.trap('touchStart', e, true)
+    return false;
+}
+
+function handleTouchEnd(e) {
+    _scene.trap('touchEnd', e, true)
+    return false;
+}
+
+function handleTouchMove(e) {
+    _scene.trap('touchMove', e, true)
+    return false;
+}
+
+function handleTouchCancel(e) {
+    _scene.trap('touchCancel', e, true)
+    return false;
+}
+
 function handleContextMenu(e) {
     _scene.trap('mouseContext', e, true)
     e.preventDefault()
@@ -2091,7 +2111,8 @@ function handleKeyDown(e) {
     var code = e.which || e.keyCode
 
     _scene.env.keys[code] = 1
-    let ename = e.code.toLowerCase() + 'Down'
+    let ename = e.code.substring(0, 1).toLowerCase()
+        + e.code.substring(1) + 'Down'
 
     let chain = _scene.trap(ename, e, true)
     if (chain) {
@@ -2187,7 +2208,12 @@ function bindHandlers(target) {
     target.onmousemove = handleMouseMove
     target.onkeydown = handleKeyDown
     target.onkeyup = handleKeyUp
+
     target.addEventListener('wheel', handleMouseWheel)
+    target.addEventListener('touchstart', handleTouchStart)
+    target.addEventListener('touchend', handleTouchEnd)
+    target.addEventListener('touchmove', handleTouchMove)
+    target.addEventListener('touchcancel', handleTouchCancel)
 }
 bindHandlers(window)
 
