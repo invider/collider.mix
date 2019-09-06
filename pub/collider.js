@@ -783,6 +783,15 @@ function evalLoadedContent(script, _) {
         case 'csv': _.patch(script.base, script.path, parseCSV(script.src, _)); break;
         case 'prop': _.patch(script.base, script.path, parseProp(script.src)); break;
         case 'fun': script.fun(); break;
+        default: {
+            // check out a custom parser for ext
+            if (isFun(_.lib.ext[script.ext])) {
+                _.log.sys('using custom parser for .' + script.ext)
+                _.patch(script.base, script.path, _.lib.ext[script.ext](script.src)); break;
+            } else {
+                _.patch(script.base, script.path, script.src); break;
+            }
+        }
     }
     _._patchLog.push(script)
     //} catch (e) {
@@ -1487,8 +1496,8 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
             break;
 
         default:
-            _.log.sys('loader-' + batch, 'ignoring resource by type: [' + url + ']')
-
+            //_.log.sys('loader-' + batch, 'ignoring resource by type: [' + url + ']')
+            scheduleLoad(_, batch + 1, url, base, path, ext)
     }
 }
 
