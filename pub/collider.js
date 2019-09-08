@@ -785,7 +785,7 @@ function evalLoadedContent(script, _) {
         case 'fun': script.fun(); break;
         default: {
             // check out a custom parser for ext
-            if (isFun(_.lib.ext[script.ext])) {
+            if (isFrame(_.lib) && isFrame(_.lib.ext) && isFun(_.lib.ext[script.ext])) {
                 _.log.sys('using custom parser for .' + script.ext)
                 _.patch(script.base, script.path, _.lib.ext[script.ext](script.src)); break;
             } else {
