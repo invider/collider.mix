@@ -1093,14 +1093,14 @@ Mod.prototype._runTests = function() {
 Mod.prototype.start = function() {
     if (this.env.started) return
     //this.inherit()
-
+    //
     this.env.started = true
 
     let captured = false
     if (_scene.env.config.test) captured = this._runTests()
-    
+
     if (isFrame(this.mod)) this.mod._ls.forEach( mod => mod.start() )
-    
+
     if (!captured) {
         if (isFun(this.setup)) {
             this.setup()
