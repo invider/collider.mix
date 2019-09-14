@@ -1010,11 +1010,6 @@ const Mod = function(dat) {
         return mod
     })
     this.attach(mod)
-    /*
-    mod.touch = touchFun((name) => {
-        debugger
-    })
-    */
 
     // container for traps
     var trap = function trap(key, data, chain) {
@@ -1546,6 +1541,7 @@ function fixUnitMountPoint(unit) {
     }
 }
 
+
 function isUnitAvailable(unitId, loadingQueue) {
     let available = false 
     loadingQueue.forEach(unit => {
@@ -1553,6 +1549,7 @@ function isUnitAvailable(unitId, loadingQueue) {
     })
     return available
 }
+
 function validateUnitRequirements(unit, loadingQueue) {
     if (!isArray(unit.require)) return true // no requirements
 
@@ -1562,6 +1559,7 @@ function validateUnitRequirements(unit, loadingQueue) {
     })
     return res 
 }
+
 function queueUnits(unitsToLoad, loadingQueue) {
     if (unitsToLoad.length === 0) return
 
