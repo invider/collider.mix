@@ -205,7 +205,7 @@ Frame.prototype.path = function() {
 Frame.prototype.touch = touchFun((name) => new Frame(name))
 
 Frame.prototype.attach = function(node, name) {
-    if (node === undefined) return
+    if (node === undefined || node === null) return
     if (isObj(node) || isFun(node)) {
         // attaching an object - inject mod, parent and name
         node._ = this._
@@ -521,13 +521,16 @@ LabFrame.prototype.onAttached = function(node, name, parent) {
 
     //this._.log.sys('spawned ' + node.name)
     // normalize and augment the node
-    if (!isFun(node.draw)) node.draw = false // ghost
-    if (!isFun(node.evo)) node.evo = false   // prop
+    if (isObj(node)) {
+        if (!isFun(node.draw)) node.draw = false // ghost
+        if (!isFun(node.evo)) node.evo = false   // prop
 
-    // TODO probably shouldn't be called here
-    //if (isFun(node.spawn)) node.spawn() // spawn handler
-    node._positional = (isNumber(node.x) && isNumber(node.y))
-    node._sizable = (node._positional && isNumber(node.w) && isNumber(node.h))
+        // TODO probably shouldn't be called here
+        //if (isFun(node.spawn)) node.spawn() // spawn handler
+        node._positional = (isNumber(node.x) && isNumber(node.y))
+        node._sizable = (node._positional && isNumber(node.w) && isNumber(node.h))
+    }
+
 
     // TODO make arbitrary augmentation and dependency injection possible
     //this._.aug._ls.forEach( function(aug) {
@@ -653,6 +656,39 @@ CueFrame.prototype.evo = function(dt) {
 // =============================================================
 //                          LOADER 
 // =============================================================
+function parseDefinitions(src) {
+    const res = []
+
+    const rx = /(function\s*(\w[\w\d]*)\s*\()/g
+    //const res = src.replace(rx, "module.def.$2 = $1")
+
+    let match = rx.exec(src)
+    while(match) {
+        res.push(match[2])
+        match = rx.exec(src)
+    }
+
+    return res
+}
+
+function generateSource(script, __) {
+
+    // define drawing context
+    let drawDef = '\n'
+    Object.keys(__.ctx.draw).forEach(k => {
+        drawDef += `let ${k} = ctx.draw.${k}\n`
+    })
+
+    // provide lexical scope for mod context and scope object for this. definitions
+    return '(function(_, ctx, _$, module, require, sys, lib, res, dna, env, lab, mod, pub, log, cue, trap) {'
+        + " /* path: " + script.path + "*/ "
+        + drawDef
+        + script.src
+        + script.def
+    + '}).call(scope, __, __.ctx, __._$, module, require, __.sys, __.lib, __.res, __.dna, __.env, __.lab, __.mod, __.pub, __.log, __.cue, __.trap)'
+    + '\n//# sourceURL=' + script.origin
+}
+
 function evalJS(script, _) {
     const scope = {}
     const module = {}
@@ -680,12 +716,8 @@ function evalJS(script, _) {
         }
     }
 
-    // provide lexical scope for mod context and scope object for this. definitions
-    let code = '(function ' + name + '(_, ctx, _$, module, require, sys, lib, res, dna, env, lab, mod, pub, log, cue, trap) {'
-        + " /* path: " + script.path + "*/ "
-        + script.src
-    + '}).call(scope, __, __.ctx, __._$, module, require, __.sys, __.lib, __.res, __.dna, __.env, __.lab, __.mod, __.pub, __.log, __.cue, __.trap)'
-    + '\n//# sourceURL=' + script.origin
+    script.def = ''
+    const code = generateSource(script, __)
 
     /*
     // TODO is there a better way to handle evaluation errors?
@@ -706,8 +738,26 @@ function evalJS(script, _) {
     if (val !== undefined) return val
     else if (module.exports !== undefined) return module.exports
     else {
-        _.log.sys('no value, exports or declarations from ' + script.path)
-        return "NO VALUE"
+        const defs = parseDefinitions(script.src)
+        if (defs.length > 0) {
+            _.log.sys('eval', 'no value - reevaluating to extract definitions' + script.path)
+
+            // definitions storage code
+            script.def = '\n\n// exporting definitions\n' + defs.map(d => `module.def.${d} = ${d}`).join('\n') + '\n'
+            const code = generateSource(script, __)
+
+            // execute once again with definition extraction code
+            const module = {
+                def: {},
+            }
+            const scope = module.def
+            eval(code)
+            return module.def
+
+        } else {
+            _.log.sys('no value, exports or declarations from ' + script.path, 'eval')
+            return null
+        }
     }
 }
 
@@ -855,6 +905,95 @@ const evalLoadedBatch = function(ibatch, batch, _) {
     })
 }
 
+function augmentCtx(ctx) {
+    let mode = 0
+    ctx.draw = {
+
+        save: function() {
+            ctx.save()
+        },
+        restore: function() {
+            ctx.restore()
+        },
+
+        scale: function(w, h) {
+            ctx.scale(w, h)
+        },
+        rotate: function(a) {
+            ctx.rotate(a)
+        },
+        translate: function(x, y) {
+            ctx.translate(x, y)
+        },
+        alpha: function(v) {
+            ctx.globalAlpha = v
+        },
+        stroke: function(color) {
+            mode = 0
+            ctx.strokeStyle = color
+        },
+        width: function(val) {
+            ctx.lineWidth = val 
+        },
+        fill: function(color, strokeColor) {
+            if (strokeColor) {
+                mode = 1
+                ctx.fillStyle = color
+                ctx.strokeStyle = strokeColor
+            } else {
+                mode = 2
+                ctx.fillStyle = color
+            }
+        },
+
+        background: function(color) {
+            ctx.fillStyle = color
+            ctx.fillRect(0, 0, ctx.width, ctx.height)
+        },
+
+        line: function(x1, y1, x2, y2) {
+            ctx.beginPath()
+            ctx.moveTo(x1, y1)
+            ctx.lineTo(x2, y2)
+            ctx.stroke()
+        },
+
+        plot: function(x, y) {
+            ctx.fillRect(x, y, ctx.lineWidth, ctx.lineWidth)
+        },
+        triangle: function(x1, y1, x2, y2, x3, y3) {
+            ctx.beginPath()
+            ctx.moveTo(x1, y1)
+            ctx.lineTo(x2, y2)
+            ctx.lineTo(x3, y3)
+            ctx.closePath()
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        },
+        quad: function(x1, y1, x2, y2, x3, y3, x4, y4) {
+            ctx.beginPath()
+            ctx.moveTo(x1, y1)
+            ctx.lineTo(x2, y2)
+            ctx.lineTo(x3, y3)
+            ctx.lineTo(x4, y4)
+            ctx.closePath()
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        },
+        rect: function(x, y, w, h) {
+            if (mode > 0) ctx.fillRect(x, y, w, h)
+            if (mode < 2) ctx.strokeRect(x, y, w, h)
+        },
+        circle: function(x, y, r) {
+            ctx.beginPath()
+            ctx.arc(x, y, r, 0, 2 * Math.PI)
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        },
+    }
+    return ctx
+}
+
 // Mod context container
 const Mod = function(dat) {
     this._patchLog = []
@@ -998,7 +1137,8 @@ const Mod = function(dat) {
         let mod
         if (name.endsWith('-buf')) {
             const canvas = document.createElement('canvas')
-            const ctx = canvas.getContext('2d')
+            const ctx = augmentCtx(canvas.getContext('2d'))
+
             mod = new Mod({
                 name: name,
                 ctx: ctx,
@@ -1253,7 +1393,7 @@ Mod.prototype.patch = function(target, path, node) {
         }
     }
 
-    if (node !== undefined) {
+    if (node !== undefined && node !== null) {
         // found the patch point - attach the node
         if (isFrame(target)) {
             if (path === '') {
@@ -1834,7 +1974,7 @@ const bootstrap = function() {
     }
 
     // bind context
-    _scene.ctx = canvas.getContext("2d")
+    _scene.ctx = augmentCtx(canvas.getContext("2d"))
 
     _scene.loadUnits(_scene, _scene.env.syspath)
 
