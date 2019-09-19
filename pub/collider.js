@@ -40,18 +40,18 @@ const isFrame = function(f) {
 }
 
 function mix() {
-    let mixin = {};
+    let mixin = {}
     for (let arg = 0; arg < arguments.length; arg++) {
         for (let prop in arguments[arg]) {
             if (arguments[arg].hasOwnProperty(prop)) {
-                mixin[prop] = arguments[arg][prop];
+                mixin[prop] = arguments[arg][prop]
             }
         }
     }
-    return mixin;
+    return mixin
 }
 function augment() {
-    let mixin = arguments[0];
+    let mixin = arguments[0]
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
         if (source && source !== mixin) for (let prop in source) {
@@ -63,10 +63,10 @@ function augment() {
             }
         }
     }
-    return mixin;
+    return mixin
 }
 function supplement() {
-    let mixin = arguments[0];
+    let mixin = arguments[0]
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
         for (let prop in source) {
@@ -79,7 +79,7 @@ function supplement() {
             }
         }
     }
-    return mixin;
+    return mixin
 }
 
 // TODO make into regular obj.fn = before(patch, obj.fn)
@@ -229,7 +229,7 @@ Frame.prototype.attach = function(node, name) {
     if (isFun(node.init)) node.init() // initialize node
 
     return node
-};
+}
 
 Frame.prototype.link = function(node, name) {
     if (node === undefined) return
@@ -247,11 +247,11 @@ Frame.prototype.link = function(node, name) {
     }
     this._ls.push(node)
     return node
-};
+}
 
 Frame.prototype.onAttached = function(node, name, parent) {
     this.__.onAttached(node, name, parent)
-};
+}
 
 Frame.prototype.detach = function(node) {
     if (!node) {
@@ -274,14 +274,14 @@ Frame.prototype.detach = function(node) {
             this.detachByName(node.name);
         }
     }
-};
+}
 
 Frame.prototype.detachAll = function() {
     while(this._ls.length){
         let node = this._ls[0];
         this.detach(node)
     }
-};
+}
 
 Frame.prototype.detachByName = function(name) {
     var obj = this[name];
@@ -308,7 +308,7 @@ Frame.prototype.detachByName = function(name) {
     if (index >= 0){
         this._ls.splice(index, 1);
     }
-};
+}
 
 Frame.prototype.apply = function(fn, predicate) {
     let i = 0
@@ -378,7 +378,7 @@ Frame.prototype.reduce = function(fn) {
 
 Frame.prototype.selectInstance = function(of) {
     return this.select(o => o instanceof of)
-};
+}
 
 Frame.prototype.select = function(predicate) {
 	if (isString(predicate)) {
@@ -474,7 +474,7 @@ Frame.prototype.selectOne = function(predicate) {
 	let list = this.select(predicate)
 	if (list.length > 0) return list[0]
 	return undefined
-};
+}
 
 Frame.prototype.selectOneNumber = function(predicate) {
     let list = this.select(predicate)
@@ -482,9 +482,9 @@ Frame.prototype.selectOneNumber = function(predicate) {
         if (isNaN(list[0])){
             throw new Error("Error parsing number:" + list[0])
         }
-        return parseFloat(list[0]);
+        return parseFloat(list[0])
     }
-    return 0;
+    return 0
 }
 
 Frame.prototype.kill = function() {
@@ -553,7 +553,7 @@ LabFrame.prototype.onAttached = function(node, name, parent) {
 LabFrame.prototype.evo = function(dt) {
     this._ls.forEach( e => {
         if (e.evo && !e.dead && !e.paused) e.evo(dt)
-    });
+    })
 }
 
 LabFrame.prototype.draw = function() {
@@ -651,8 +651,6 @@ CueFrame.prototype.evo = function(dt) {
 
 
 
-
-
 // =============================================================
 //                          LOADER 
 // =============================================================
@@ -726,7 +724,7 @@ function evalJS(script, _) {
     } catch (e) {
         console.error(`Error executing file: ${script.origin}`)
         console.log(code)
-        throw (e);
+        throw (e)
     }
     */
 
@@ -775,7 +773,7 @@ function parseLines(txt) {
 }
 
 function parseCSV(src, _) {
-    const lines = src.match(/[^\r\n]+/g);
+    const lines = src.match(/[^\r\n]+/g)
     // naming array
     const names = lines[0].split(',').map(e => e.trim())
     // parse objects
@@ -804,7 +802,7 @@ function parseCSV(src, _) {
 }
 
 function parseProp(src) {
-    const lines = src.match(/[^\r\n]+/g);
+    const lines = src.match(/[^\r\n]+/g)
     // parse definitions
     const prop = {}
     for (let i = 0; i < lines.length; i++) {
@@ -878,7 +876,7 @@ const sortLoadedBatch = function(batch) {
     //this._execList[batch].sort((a, b) => a.path.localeCompare(b.path))
     let res = []
 
-    var workBatch = batch.slice(); 
+    var workBatch = batch.slice()
     let check = function(script) {
         checkScriptDependencies(script, batch).forEach(e => check(e))
         let i = workBatch.indexOf(script)
@@ -906,8 +904,17 @@ const evalLoadedBatch = function(ibatch, batch, _) {
 }
 
 function augmentCtx(ctx) {
+
+    const TAU = Math.PI * 2
     let mode = 0
+    let shape = false
+
     ctx.draw = {
+
+        PI: Math.PI,
+        PI2: Math.PI * 2,
+        TAU: Math.PI * 2,
+        HALF_PI: Math.PI / 2,
 
         save: function() {
             ctx.save()
@@ -924,6 +931,21 @@ function augmentCtx(ctx) {
         },
         translate: function(x, y) {
             ctx.translate(x, y)
+        },
+        clip: function(x, y, w, h) {
+            ctx.beginPath()
+            ctx.moveTo(x, y)
+            ctx.lineTo(x + w, y)
+            ctx.lineTo(x + w, y + h)
+            ctx.lineTo(x, y + h)
+            ctx.closePath()
+            ctx.clip()
+        },
+        smooth: function() {
+            ctx.imageSmoothingEnabled = true
+        },
+        blocky: function() {
+            ctx.imageSmoothingEnabled = false
         },
         alpha: function(v) {
             ctx.globalAlpha = v
@@ -986,9 +1008,109 @@ function augmentCtx(ctx) {
         },
         circle: function(x, y, r) {
             ctx.beginPath()
-            ctx.arc(x, y, r, 0, 2 * Math.PI)
+            ctx.arc(x, y, r, 0, TAU)
             if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
+        },
+        ellipse: function(x, y, w, h, r) {
+            ctx.beginPath()
+            if (r) {
+                ctx.ellipse(x, y, w/2, h/2, 0, 0, 2 * TAU)
+            } else {
+                ctx.ellipse(x, y, w/2, h/2, r, 0, 2 * TAU)
+            }
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        },
+        arc: function(x, y, r, sa, fa) {
+            ctx.beginPath()
+            ctx.arc(x, y, r, sa, fa)
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        },
+        earc: function(x, y, xr, yr, ra, sa, fa) {
+            ctx.beginPath()
+            ctx.ellipse(x, y, xr, yr, ra, sa, fa)
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        },
+        polygon: function(points) {
+            ctx.beginPath()
+            ctx.moveTo(points[0], points[1])
+            for (let i = 2; i < points.length; i++) {
+                ctx.lineTo(points[i++], points[i])
+            }
+            ctx.closePath()
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        }, 
+
+        moveTo: function(x, y) {
+            if (!shape) {
+                ctx.beginPath()
+                shape = true
+            }
+            ctx.moveTo(x, y)
+        },
+        lineTo: function(x, y) {
+            ctx.lineTo(x, y)
+        },
+        arcTo: function(x1, y1, x2, y2, r) {
+            ctx.arcTo(x1, y1, x2, y2, r)
+        },
+        quadraticTo: function(cpx, cpy, ex, ey) {
+            ctx.quadraticCurveTo(cpx, cpy, ex, ey)
+        },
+        bezierTo: function(cp1x, cp1y, cp2x, cp2y, ex, ey) {
+            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, ex, ey)
+        },
+        close: function() {
+            ctx.closePath()
+        },
+        shape: function() {
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        },
+
+        font: function(font) {
+            ctx.font = font
+        },
+        alignLeft: function() {
+            ctx.textAlign = 'left'
+        },
+        alignCenter: function() {
+            ctx.textAlign = 'center'
+        },
+        alignRight: function() {
+            ctx.textAlign = 'right'
+        },
+        baseTop: function() {
+            ctx.textBaseline = 'top'
+        },
+        baseMiddle: function() {
+            ctx.textBaseline = 'middle'
+        },
+        baseBottom: function() {
+            ctx.textBaseline = 'bottom'
+        },
+        text: function(text, x, y) {
+            if (mode < 2) ctx.strokeText(text, x, y)
+            if (mode > 0) ctx.fillText(text, x, y)
+        },
+        image: function(img, x, y, w, h, dx, dy, dw, dh) {
+            ctx.drawImage(img, x, y, w, h, dx, dy, dw, dh)
+        },
+
+
+        // TODO should we change to determenistic one and introduce seed?
+        random: function(v1, v2) {
+            if (v2) {
+                return Math.floor(Math.random() * (v2 - v1))
+            } else if (v1) {
+                return Math.floor(Math.random() * v1)
+            } else {
+                return Math.random()
+            }
         },
     }
     return ctx
@@ -1305,12 +1427,12 @@ Mod.prototype.evo = function(dt) {
     this.lab.evo(dt)
     //this.lab._ls.forEach( e => {
     //    if (e.evo && !e.dead && !e.paused) e.evo(dt)
-    //});
+    //})
 
     // evolve all mods
     this.mod._ls.map( function(m) {
         if (m.evo && !m.paused) m.evo(dt)
-    });
+    })
 }
 
 Mod.prototype.draw = function() {
@@ -1465,22 +1587,22 @@ function removeExtention(url) {
 }
 
 function attachTTF(name, url) {
-    const fontStyle = document.createElement('style');
+    const fontStyle = document.createElement('style')
     fontStyle.appendChild(document.createTextNode("\n\
     @font-face {\n\
         font-family: '" + name + "';\n\
         src: url('" + url + "'); \n\
     }\
-    "));
+    "))
     return document.head.appendChild(fontStyle)
 }
 
 function attachWAV(url) {
     // TODO autoplay wav -> .auto.wav (with auto classifier)
-    const node = new Audio(url);
-    node.preload = true;
-    node.loop = false;
-    node.autoplay = false;
+    const node = new Audio(url)
+    node.preload = true
+    node.loop = false
+    node.autoplay = false
     return node
 }
 
@@ -1540,8 +1662,8 @@ function loadJson(url) {
                 }
             }
         }
-        ajax.open("GET", randomizeUrl(url), true);
-        ajax.send();
+        ajax.open("GET", randomizeUrl(url), true)
+        ajax.send()
     })
 
     return promise 
@@ -1577,8 +1699,8 @@ function scheduleLoad(_, batch, url, base, path, ext) {
             }
         }
     }
-    ajax.open("GET", randomizeUrl(url), true);
-    ajax.send();
+    ajax.open("GET", randomizeUrl(url), true)
+    ajax.send()
 }
 
 Mod.prototype.batchLoad = function(batch, url, base, path) {
@@ -1615,20 +1737,20 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
     switch (ext) {
         case 'png': case 'jpge': case 'jpg': case 'svg':
             patchImg(_, batch, url, base, path, classifier, onLoad)
-            break;
+            break
 
         case 'ttf':
             attachTTF(name, url)
-            break;
+            break
 
         case 'wav':
             if (base) _.patch(base, path, attachWAV(url))
-            break;
+            break
 
         case 'js': case 'json': case 'yaml':
         case 'txt': case 'prop': case 'lines': case 'csv':
             scheduleLoad(_, batch, url, base, path, ext)
-            break;
+            break
 
         default:
             //_.log.sys('loader-' + batch, 'ignoring resource by type: [' + url + ']')
@@ -1709,7 +1831,7 @@ function queueUnits(unitsToLoad, loadingQueue) {
         if (validateUnitRequirements(unitsToLoad[i], loadingQueue)) {
             nexti = i
             nextUnit = unitsToLoad[i]
-            break;
+            break
         }
     }
 
@@ -2156,9 +2278,9 @@ function cycle() {
     // to compensate possible lag due to rendering delays
     while(dt > 0) {
         if (dt > _scene.env.MAX_EVO_STEP) {
-            _scene.evo(_scene.env.MAX_EVO_STEP);
+            _scene.evo(_scene.env.MAX_EVO_STEP)
         } else {
-            _scene.evo(dt);
+            _scene.evo(dt)
         }
         dt -= _scene.env.MAX_EVO_STEP
     }
@@ -2184,40 +2306,40 @@ function handleMouseMove(e) {
     _scene.trap('mouseMove', e, true)
     e.preventDefault()
     e.stopPropagation()
-    return false;
+    return false
 }
 
 function handleMouseWheel(e) {
     _scene.trap('mouseWheel', e, true)
-    return false;
+    return false
 }
 
 function handleMouseDown(e) {
     _scene.trap('mouseDown', e, true)
     e.preventDefault()
     e.stopPropagation()
-    return false;
+    return false
 }
 
 function handleMouseUp(e) {
     _scene.trap('mouseUp', e, true)
     e.preventDefault()
     e.stopPropagation()
-    return false;
+    return false
 }
 
 function handleMouseClick(e) {
     _scene.trap('click', e, true)
     e.preventDefault()
     e.stopPropagation()
-    return false;
+    return false
 }
 
 function handleMouseDoubleClick(e) {
     _scene.trap('dblClick', e, true)
     e.preventDefault()
     e.stopPropagation()
-    return false;
+    return false
 }
 
 function handleMouseOut(e) {
@@ -2229,29 +2351,29 @@ function handleMouseOut(e) {
 
 function handleTouchStart(e) {
     _scene.trap('touchStart', e, true)
-    return false;
+    return false
 }
 
 function handleTouchEnd(e) {
     _scene.trap('touchEnd', e, true)
-    return false;
+    return false
 }
 
 function handleTouchMove(e) {
     _scene.trap('touchMove', e, true)
-    return false;
+    return false
 }
 
 function handleTouchCancel(e) {
     _scene.trap('touchCancel', e, true)
-    return false;
+    return false
 }
 
 function handleContextMenu(e) {
     _scene.trap('mouseContext', e, true)
     e.preventDefault()
     e.stopPropagation()
-    return false;
+    return false
 }
 
 function handleKeyDown(e) {
@@ -2288,7 +2410,7 @@ function handleKeyUp(e) {
     if (!chain)  {
         e.preventDefault()
         e.stopPropagation()
-        return false;
+        return false
     }
     return true
 }
@@ -2332,7 +2454,7 @@ for (let i = 0; i < scripts.length; i++) {
         _scene.log.sys('syspath: ' + _scene.env.syspath)
         _scene.log.sys('basepath: ' + _scene.env.basepath)
         _scene.log.sys('title: ' + _scene.env.title)
-        break;
+        break
     }
 }
 
@@ -2373,8 +2495,8 @@ window.requestAnimFrame = (function() {
          window.oRequestAnimationFrame ||
          window.msRequestAnimationFrame ||
          function(callback, element) {
-            window.setTimeout(callback, 1000/_scene.env.TARGET_FPS);
-         };
+            window.setTimeout(callback, 1000/_scene.env.TARGET_FPS)
+         }
 })();
 
 return _scene;
