@@ -8,10 +8,21 @@ $ = scene = (function(window) {
 
 // ***********
 // environment
-let SCRIPT_SRC = 'collider.mix/collider.js'
-let UNITS_MAP = 'units.map'
-let JAM_CONFIG = 'jam.config'
-let canvasName = 'canvas'
+const SCRIPT_SRC = 'collider.mix/collider.js'
+const UNITS_MAP = 'units.map'
+const JAM_CONFIG = 'jam.config'
+const canvasName = 'canvas'
+
+// *********
+// flags
+let _key = {}
+const _pad = {}
+const _mouse = {
+    x: 0,
+    y: 0,
+    lx: 0,
+    ly: 0,
+}
 
 // *********
 // utilities
@@ -88,7 +99,7 @@ const before = function(obj, fun, patch) {
     if (!orig) {
         obj[fun] = patch
     } else if (!isFun(orig)) {
-        throw new Error("Can't chain before [" + fun + " which is " + (typeof orig))
+        throw new Error("Can't chain before [" + fun + "] which is " + (typeof orig))
     } else {
         obj[fun] = function() {
             patch.apply(this, arguments)
@@ -105,7 +116,7 @@ const after = function(obj, fun, patch) {
     if (!orig) {
         obj[fun] = patch
     } else if (!isFun(orig)) {
-        throw new Error("Can't chain after [" + fun + " which is " + (typeof orig))
+        throw new Error("Can't chain after [" + fun + "] which is " + (typeof orig))
     } else {
         obj[fun] = function() {
             orig.apply(this, arguments)
@@ -671,20 +682,26 @@ function parseDefinitions(src) {
 
 function generateSource(script, __) {
 
-    // define drawing context
-    let drawDef = '\n'
-    Object.keys(__.ctx.draw).forEach(k => {
-        drawDef += `let ${k} = ctx.draw.${k}\n`
+    let def = ''
+
+    // declare scope
+    Object.keys(__._scope).forEach(f => {
+        def += `let ${f} = __._scope.${f};`
+    })
+
+    // declare drawing context
+    Object.keys(__.ctx.draw).forEach(f => {
+        def += `let ${f} = ctx.draw.${f};`
     })
 
     // provide lexical scope for mod context and scope object for this. definitions
     return '(function(_, ctx, _$, module, require, sys, lib, res, dna, env, lab, mod, pub, log, cue, trap) {'
-        + " /* path: " + script.path + "*/ "
-        + drawDef
+        + def 
         + script.src
         + script.def
     + '}).call(scope, __, __.ctx, __._$, module, require, __.sys, __.lib, __.res, __.dna, __.env, __.lab, __.mod, __.pub, __.log, __.cue, __.trap)'
     + '\n//# sourceURL=' + script.origin
+
 }
 
 function evalJS(script, _) {
@@ -741,7 +758,7 @@ function evalJS(script, _) {
             _.log.sys('eval', 'no value - reevaluating to extract definitions' + script.path)
 
             // definitions storage code
-            script.def = '\n\n// exporting definitions\n' + defs.map(d => `module.def.${d} = ${d}`).join('\n') + '\n'
+            script.def = '\n' + defs.map(d => `if (typeof ${d} !== 'undefined') module.def.${d} = ${d}`).join(';')
             const code = generateSource(script, __)
 
             // execute once again with definition extraction code
@@ -750,7 +767,17 @@ function evalJS(script, _) {
             }
             const scope = module.def
             eval(code)
-            return module.def
+
+            if (module.def) {
+                if (isFun(module.def[script.name])) {
+                    _.log.sys('found defining function for export ' + script.name + '()')
+                    return module.def[script.name]
+                }
+                return module.def
+            } else {
+                _.log.sys('no value, exports or declarations from ' + script.path, 'eval')
+                return null
+            }
 
         } else {
             _.log.sys('no value, exports or declarations from ' + script.path, 'eval')
@@ -857,16 +884,16 @@ const checkScriptDependencies = function(script, batch) {
 
     let match
     while(match = extendRegExp.exec(script.src)) {
-        let key = match[1]
+        let k = match[1]
         let dependency
         batch.forEach(s => {
-            if (s.path === key) dependency = s
+            if (s.path === k) dependency = s
         })
         if (dependency) depends.push(dependency)
         else {
             _scene.log.sys('current batch:')
             _scene.log.dump(batch)
-            throw '[' + script.origin + ']: dependency [' + key + '] is not found'
+            throw '[' + script.origin + ']: dependency [' + k + '] is not found'
         }
     }
     return depends
@@ -911,10 +938,18 @@ function augmentCtx(ctx) {
 
     ctx.draw = {
 
-        PI: Math.PI,
-        PI2: Math.PI * 2,
-        TAU: Math.PI * 2,
-        HALF_PI: Math.PI / 2,
+        width: function() {
+            return ctx.width
+        },
+        height: function() {
+            return ctx.height
+        },
+        rx:function(x) {
+            return ctx.width * x
+        },
+        ry: function(y) {
+            return ctx.height * y
+        },
 
         save: function() {
             ctx.save()
@@ -954,7 +989,7 @@ function augmentCtx(ctx) {
             mode = 0
             ctx.strokeStyle = color
         },
-        width: function(val) {
+        lineWidth: function(val) {
             ctx.lineWidth = val 
         },
         fill: function(color, strokeColor) {
@@ -1102,7 +1137,55 @@ function augmentCtx(ctx) {
         },
 
 
+    }
+    return ctx
+}
+
+// Mod context container
+const Mod = function(dat) {
+    this._patchLog = []
+    this._testLog = []
+    this._scope = {
+        key: _key,
+        pad: _pad,
+        mouse: _mouse,
+        mix: mix,
+        augment: augment,
+        supplement: supplement,
+        before: before,
+        after: after,
+        isFun: isFun,
+        isObj: isObj,
+        isString: isString,
+        isNumber: isNumber,
+        isFrame: isFrame,
+        isArray: isArray,
+
+        // math
+        E: Math.E,
+        PI: Math.PI,
+        PI2: Math.PI * 2,
+        TAU: Math.PI * 2,
+        HALF_PI: Math.PI / 2,
+
+        abs: Math.abs,
+        pow: Math.pow,
+        sqrt: Math.sqrt,
+        min: Math.min,
+        max: Math.max,
+        ceil: Math.ceil,
+        floor: Math.floor,
+        round: Math.round,
+        sin: Math.sin,
+        cos: Math.cos,
+        tan: Math.tan,
+        acos: Math.acos,
+        asin: Math.asin,
+        atan: Math.atan,
+        atan2: Math.atan2,
+
         // TODO should we change to determenistic one and introduce seed?
+        // TODO maybe have rndi as a separate one
         random: function(v1, v2) {
             if (v2) {
                 return Math.floor(Math.random() * (v2 - v1))
@@ -1112,16 +1195,27 @@ function augmentCtx(ctx) {
                 return Math.random()
             }
         },
-    }
-    return ctx
-}
 
-// Mod context container
-const Mod = function(dat) {
-    this._patchLog = []
-    this._testLog = []
+        lerp: function(start, stop, v, limitRange) {
+            const res = (stop - start) * v
+            if (limit) {
+                if (res < start) return start
+                if (res > stop) return stop
+            }
+            return res
+        },
+
+        map: function(origStart, origStop, targetStart, targetStop, orig, limit) {
+            let v = (orig - origStart) / (origStop - origStart)
+            if (limit) {
+                if (v < 0) v = 0
+                if (v > 1) v = 1
+            }
+            return (targetStop - targetStart) * v
+        },
+        
+    }
     this.ctx = false
-    this.focus = true
     this.paused = false
     this.hidden = false
 
@@ -1669,7 +1763,7 @@ function loadJson(url) {
     return promise 
 }
 
-function scheduleLoad(_, batch, url, base, path, ext) {
+function scheduleLoad(_, batch, url, base, path, name, ext) {
     _.res._included ++
 
     var ajax = new XMLHttpRequest()
@@ -1681,6 +1775,7 @@ function scheduleLoad(_, batch, url, base, path, ext) {
                     origin: url,
                     path: path,
                     base: base,
+                    name: name,
                     ext: ext,
                     src: this.responseText,
                 }
@@ -1749,12 +1844,12 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
 
         case 'js': case 'json': case 'yaml':
         case 'txt': case 'prop': case 'lines': case 'csv':
-            scheduleLoad(_, batch, url, base, path, ext)
+            scheduleLoad(_, batch, url, base, path, name, ext)
             break
 
         default:
             //_.log.sys('loader-' + batch, 'ignoring resource by type: [' + url + ']')
-            scheduleLoad(_, batch + 1, url, base, path, ext)
+            scheduleLoad(_, batch + 1, url, base, path, name, ext)
     }
 }
 
@@ -1992,11 +2087,13 @@ function constructScene() {
     mod.env.MAX_EVO_STEP = 0.01
     mod.env.MAX_EVO_PER_CYCLE = 0.3
     mod.env.lastFrame = Date.now()
-    mod.env.mouseX = 0
-    mod.env.mouseY = 0
-    mod.env.mouseLX = 0
-    mod.env.mouseLY = 0
-    mod.env.keys = {}  // down key set
+    //mod.env.mouseX = 0
+    //mod.env.mouseY = 0
+    //mod.env.mouseLX = 0
+    //mod.env.mouseLY = 0
+    mod.env.key = _key  // down key set
+    mod.env.pad = _pad
+    mod.env.mouse = _mouse
     mod.env.config = {}
 
     return mod
@@ -2298,10 +2395,16 @@ function cycle() {
 function handleMouseMove(e) {
     e = e || window.event
 
+    /*
     _scene.env.mouseLX = _scene.env.mouseX
     _scene.env.mouseLY = _scene.env.mouseY
     _scene.env.mouseX = e.pageX
     _scene.env.mouseY = e.pageY
+    */
+    _mouse.lx = _scene.env.mouseX
+    _mouse.ly = _scene.env.mouseY
+    _mouse.x = e.pageX
+    _mouse.y = e.pageY
 
     _scene.trap('mouseMove', e, true)
     e.preventDefault()
@@ -2343,9 +2446,14 @@ function handleMouseDoubleClick(e) {
 }
 
 function handleMouseOut(e) {
-    for (var k in _scene.env.keys) {
-        delete _scene.env.keys[k]
+    /*
+    for (var k in _scene.env.key) {
+        delete _scene.env.key[k]
     }
+    */
+    Object.keys(_key).forEach(k => {
+        delete _key[k]
+    })
     _scene.trap('mouseOut', e, true)
 }
 
@@ -2377,13 +2485,13 @@ function handleContextMenu(e) {
 }
 
 function handleKeyDown(e) {
-    var code = e.which || e.keyCode
+    let keyName = e.code.substring(0, 1).toLowerCase()
+        + e.code.substring(1)
 
-    _scene.env.keys[code] = 1
-    let ename = e.code.substring(0, 1).toLowerCase()
-        + e.code.substring(1) + 'Down'
+    _key[keyName] = true
+    _key[e.which] = true
 
-    let chain = _scene.trap(ename, e, true)
+    let chain = _scene.trap(keyName + 'Down', e, true)
     if (chain) {
         chain = _scene.trap('keyDown', e, true)
     }
@@ -2397,12 +2505,13 @@ function handleKeyDown(e) {
 }
 
 function handleKeyUp(e) {
-    var code = e.which || e.keyCode
-    delete _scene.env.keys[code]
+    let keyName = e.code.substring(0, 1).toLowerCase()
+        + e.code.substring(1)
 
-    let ename = e.code.toLowerCase() + 'Up'
+    delete _key[keyName]
+    delete _key[e.which]
 
-    let chain = _scene.trap(ename, e, true)
+    let chain = _scene.trap(keyName + 'Up', e, true)
     if (chain) {
         chain = _scene.trap('keyUp', e, true)
     }
