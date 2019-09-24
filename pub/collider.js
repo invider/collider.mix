@@ -13,10 +13,25 @@ const UNITS_MAP = 'units.map'
 const JAM_CONFIG = 'jam.config'
 const canvasName = 'canvas'
 
+const GAMEPADS = 4
+
 // *********
 // flags
 let _key = {}
-const _pad = {}
+const _pad = function(gamepad) {
+    if (gamepad === undefined) {
+        const res = []
+        for (let i = 0; i < GAMEPADS; i++) {
+            const p = navigator.getGamepads()[i]
+            if (p && p.connected) res.push(p)
+        }
+        return res
+
+    } else {
+        const pad = navigator.getGamepads()[gamepad]
+        if (pad && pad.connected) return pad
+    }
+}
 const _mouse = {
     x: 0,
     y: 0,
@@ -91,6 +106,54 @@ function supplement() {
         }
     }
     return mixin
+}
+
+function kill(e, s) {
+    if (e.__) {
+        if (isFun(e.kill)) e.kill(s)
+        else if (isFun(e.onKill)) e.onKill(s)
+        e.__.detach(e)
+    } else {
+        if (isFun(e.kill)) e.kill(s)
+        else _.log.warn("can't find kill function for " + e)
+    }
+}
+
+function limit(val, min, max) {
+    return val<min? min : val>max? max : val
+}
+
+function hue2rgb(p, q, t) {
+    if (t < 0) t += 1
+    if (t > 1) t -= 1
+    if (t < 1/6) return p + (q-p) * 6*t
+    if (t < 1/2) return q
+    if (t < 2/3) return p + (q-p) * (2/3 - t)*6
+    return p
+}
+
+function rgb(r, g, b) {
+    r = limit(Math.round(r * 255), 0, 255).toString(16)
+    g = limit(Math.round(g * 255), 0, 255).toString(16)
+    b = limit(Math.round(b * 255), 0, 255).toString(16)
+    if (r.length === 1) r = '0'+r
+    if (g.length === 1) g = '0'+g
+    if (b.length === 1) b = '0'+b
+
+    return '#' + r + g + b
+}
+
+function rgba(r, g, b, a) {
+    r = limit(Math.round(r * 255), 0, 255).toString(16)
+    g = limit(Math.round(g * 255), 0, 255).toString(16)
+    b = limit(Math.round(b * 255), 0, 255).toString(16)
+    a = limit(Math.round(a * 255), 0, 255).toString(16)
+    if (r.length === 1) r = '0'+r
+    if (g.length === 1) g = '0'+g
+    if (b.length === 1) b = '0'+b
+    if (a.length === 1) a = '0'+a
+
+    return '#' + r + g + b + a
 }
 
 // TODO make into regular obj.fn = before(patch, obj.fn)
@@ -219,8 +282,11 @@ Frame.prototype.attach = function(node, name) {
     if (node === undefined || node === null) return
     if (isObj(node) || isFun(node)) {
         // attaching an object - inject mod, parent and name
+
+        // TODO phase out mod reference for nodes - __ is enough
         node._ = this._
         node.__ = this
+
         // set name for the node if possible
         if (name && isObj(node)) node.name = name
         // take name from the node if not defined
@@ -1136,6 +1202,57 @@ function augmentCtx(ctx) {
             ctx.drawImage(img, x, y, w, h, dx, dy, dw, dh)
         },
 
+        rgb: rgb,
+
+        rgba: rgba,
+
+        RGB: function(r, g, b) {
+            r = limit(Math.round(r), 0, 255).toString(16)
+            g = limit(Math.round(g), 0, 255).toString(16)
+            b = limit(Math.round(b), 0, 255).toString(16)
+            if (r.length > 1) r = '0'+r
+            if (g.length > 1) g = '0'+g
+            if (b.length > 1) b = '0'+b
+
+            return '#' + r + g + b
+        },
+
+        RGBA: function(r, g, b, a) {
+            r = limit(Math.round(r), 0, 255).toString(16)
+            g = limit(Math.round(g), 0, 255).toString(16)
+            b = limit(Math.round(b), 0, 255).toString(16)
+            a = limit(Math.round(a), 0, 255).toString(16)
+            if (r.length > 1) r = '0'+r
+            if (g.length > 1) g = '0'+g
+            if (b.length > 1) b = '0'+b
+            if (a.length > 1) a = '0'+a
+
+            return '#' + r + g + b + a
+        },
+
+        hsl: function(h, s, l) {
+            if (s === 0) {
+                return rgb(l, l, l)
+            } 
+            const q = l < 0.5? l*(1+s) : l + s - l*s
+            const p = 2*l - q
+            const r = hue2rgb(p, q, h + 1/3)
+            const g = hue2rgb(p, q, h)
+            const b = hue2rgb(p, q, h - 1/3)
+            return rgb(r, g, b)
+        },
+
+        hsva: function(h, s, l, a) {
+            if (s === 0) {
+                return rgba(l, l, l, a)
+            } 
+            const q = l < 0.5? l*(1+s) : l + s - l*s
+            const p = 2*l - q
+            const r = hue2rgb(p, q, h + 1/3)
+            const g = hue2rgb(p, q, h)
+            const b = hue2rgb(p, q, h - 1/3)
+            return rgba(r, g, b, a)
+        },
 
     }
     return ctx
@@ -1186,15 +1303,26 @@ const Mod = function(dat) {
 
         // TODO should we change to determenistic one and introduce seed?
         // TODO maybe have rndi as a separate one
-        random: function(v1, v2) {
+        rnd: function(v1, v2) {
             if (v2) {
-                return Math.floor(Math.random() * (v2 - v1))
+                return v1 + Math.random() * (v2 - v1)
             } else if (v1) {
-                return Math.floor(Math.random() * v1)
+                return Math.random() * v1
             } else {
                 return Math.random()
             }
         },
+
+        RND: function(v1, v2) {
+            if (v2) {
+                return Math.floor(v1 + Math.random() * (v2 - v1 + 1))
+            } else if (v1) {
+                return Math.floor(Math.random() * (v1 + 1))
+            }
+            return 0
+        },
+
+        limit: limit,
 
         lerp: function(start, stop, v, limitRange) {
             const res = (stop - start) * v
@@ -1213,7 +1341,45 @@ const Mod = function(dat) {
             }
             return (targetStop - targetStart) * v
         },
-        
+
+        dist: function(x1, y1, x2, y2) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            return Math.sqrt(dx*dx + dy*dy)
+        },
+
+        length: function(x, y) {
+            return Math.sqrt(x*x + y*y)
+        },
+
+        angle: function(x, y) {
+            return Math.atan2(y, x)
+        },
+
+        // angle from source to target vectors
+        bearing: function(sx, sy, tx, ty) {
+            return Math.atan2(tx - sx, ty - sy)
+        },
+
+        kill: kill,
+
+        sfx: function(src, vol, pan) {
+            if (!pan) pan = 0
+            if (!vol) vol = 1
+            if (sys.isNumber(env.sfxVolume)) {
+                vol *= env.sfxVolume
+            }
+
+            if (!(src instanceof Audio)) {
+                // find by path in resources
+                src = res.selectOne(src)
+            }
+
+            if (src && src instanceof Audio && src.readyState === 4) {
+                src.volume = vol
+                src.play()
+            }
+        },
     }
     this.ctx = false
     this.paused = false

@@ -38,6 +38,7 @@ module.exports = {
             let name = element.name
             if (!name) throw "can't attach unnamed element to object!"
             target[name] = element
+            element.__ = target
         }
         return element
     },
