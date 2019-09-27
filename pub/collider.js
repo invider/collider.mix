@@ -1324,6 +1324,13 @@ const Mod = function(dat) {
 
         limit: limit,
 
+        warp: function(val, min, max) {
+            const range = max - min
+            if (range <= 0) return 0;
+            if (val < min) return max - Math.abs(min-val) % range
+            return min + (val - min) % range
+        },
+
         lerp: function(start, stop, v, limitRange) {
             const res = (stop - start) * v
             if (limit) {
