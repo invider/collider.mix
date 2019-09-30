@@ -1260,6 +1260,7 @@ function augmentCtx(ctx) {
 
 // Mod context container
 const Mod = function(dat) {
+    const _ = this
     this._patchLog = []
     this._testLog = []
     this._scope = {
@@ -1324,6 +1325,10 @@ const Mod = function(dat) {
 
         limit: limit,
 
+        within: function(val, min, max) {
+            return (val >= min && val <= max)
+        },
+
         warp: function(val, min, max) {
             const range = max - min
             if (range <= 0) return 0;
@@ -1373,13 +1378,13 @@ const Mod = function(dat) {
         sfx: function(src, vol, pan) {
             if (!pan) pan = 0
             if (!vol) vol = 1
-            if (sys.isNumber(env.sfxVolume)) {
-                vol *= env.sfxVolume
+            if (isNumber(_.env.sfxVolume)) {
+                vol *= _.env.sfxVolume
             }
 
             if (!(src instanceof Audio)) {
                 // find by path in resources
-                src = res.selectOne(src)
+                src = _.res.selectOne(src)
             }
 
             if (src && src instanceof Audio && src.readyState === 4) {
@@ -2592,6 +2597,7 @@ function handleMouseWheel(e) {
 
 function handleMouseDown(e) {
     _scene.trap('mouseDown', e, true)
+    _mouse.buttons = e.buttons
     e.preventDefault()
     e.stopPropagation()
     return false
@@ -2599,6 +2605,7 @@ function handleMouseDown(e) {
 
 function handleMouseUp(e) {
     _scene.trap('mouseUp', e, true)
+    _mouse.buttons = e.buttons
     e.preventDefault()
     e.stopPropagation()
     return false
