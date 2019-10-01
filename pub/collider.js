@@ -156,6 +156,61 @@ function rgba(r, g, b, a) {
     return '#' + r + g + b + a
 }
 
+function RGB(r, g, b) {
+    r = limit(Math.round(r), 0, 255).toString(16)
+    g = limit(Math.round(g), 0, 255).toString(16)
+    b = limit(Math.round(b), 0, 255).toString(16)
+    if (r.length === 1) r = '0'+r
+    if (g.length === 1) g = '0'+g
+    if (b.length === 1) b = '0'+b
+
+    return '#' + r + g + b
+}
+
+function RGBA(r, g, b, a) {
+    r = limit(Math.round(r), 0, 255).toString(16)
+    g = limit(Math.round(g), 0, 255).toString(16)
+    b = limit(Math.round(b), 0, 255).toString(16)
+    a = limit(Math.round(a), 0, 255).toString(16)
+    if (r.length === 1) r = '0'+r
+    if (g.length === 1) g = '0'+g
+    if (b.length === 1) b = '0'+b
+    if (a.length === 1) a = '0'+a
+
+    return '#' + r + g + b + a
+}
+
+function hsl(h, s, l) {
+    if (h > 1) h = 1
+    if (s > 1) s = 1
+    if (l > 1) l = 1
+    if (s === 0) {
+        return rgb(l, l, l)
+    } 
+    const q = l < 0.5? l*(1+s) : l + s - l*s
+    const p = 2*l - q
+    const r = hue2rgb(p, q, h + 1/3)
+    const g = hue2rgb(p, q, h)
+    const b = hue2rgb(p, q, h - 1/3)
+    return rgb(r, g, b)
+}
+
+function hsla(h, s, l, a) {
+    if (h > 1) h = 1
+    if (s > 1) s = 1
+    if (l > 1) l = 1
+    if (a > 1) a = 1
+    if (s === 0) {
+        return rgba(l, l, l, a)
+    } 
+    const q = l < 0.5? l*(1+s) : l + s - l*s
+    const p = 2*l - q
+    const r = hue2rgb(p, q, h + 1/3)
+    const g = hue2rgb(p, q, h)
+    const b = hue2rgb(p, q, h - 1/3)
+    return rgba(r, g, b, a)
+}
+
 // TODO make into regular obj.fn = before(patch, obj.fn)
 const before = function(obj, fun, patch) {
     var orig = obj[fun]
@@ -1051,27 +1106,116 @@ function augmentCtx(ctx) {
         alpha: function(v) {
             ctx.globalAlpha = v
         },
-        stroke: function(color) {
+
+        stroke: function(v1, v2, v3, v4) {
             mode = 0
-            ctx.strokeStyle = color
-        },
-        lineWidth: function(val) {
-            ctx.lineWidth = val 
-        },
-        fill: function(color, strokeColor) {
-            if (strokeColor) {
-                mode = 1
-                ctx.fillStyle = color
-                ctx.strokeStyle = strokeColor
-            } else {
-                mode = 2
-                ctx.fillStyle = color
+            if (arguments.length === 1) {
+                ctx.strokeStyle = v1
+
+            } else if (arguments.length === 3) {
+                if (Number.isInteger(v1+v2+v3)) {
+                    ctx.strokeStyle = RGB(v1, v2, v3)
+                } else {
+                    ctx.strokeStyle = hsl(v1, v2, v3)
+                }
+
+            } else if (arguments.length === 4) {
+                if (Number.isInteger(v1+v2+v3+v4)) {
+                    ctx.strokeStyle = RGBA(v1, v2, v3, v4)
+                } else {
+                    ctx.strokeStyle = hsla(v1, v2, v3, v4)
+                }
             }
         },
 
-        background: function(color) {
-            ctx.fillStyle = color
-            ctx.fillRect(0, 0, ctx.width, ctx.height)
+        lineWidth: function(val) {
+            ctx.lineWidth = val 
+        },
+
+        fill: function(v1, v2, v3, v4, v5, v6, v7, v8) {
+
+            if (arguments.length === 1) {
+                mode = 2
+                ctx.fillStyle = v1
+
+            } else if (arguments.length === 2) {
+                mode = 1
+                ctx.fillStyle = v1
+                ctx.strokeStyle = v1
+
+            } else if (arguments.length === 3) {
+                mode = 2
+                if (Number.isInteger(v1+v2+v3)) {
+                    ctx.fillStyle = RGB(v1, v2, v3)
+                } else {
+                    ctx.fillStyle = hsl(v1, v2, v3)
+                }
+
+            } else if (arguments.length === 4) {
+                mode = 2
+                if (Number.isInteger(v1+v2+v3+v4)) {
+                    ctx.fillStyle = RGBA(v1, v2, v3, v4)
+                } else {
+                    ctx.fillStyle = hsla(v1, v2, v3, v4)
+                }
+
+            } else if (arguments.length === 6) {
+                mode = 1
+                if (Number.isInteger(v1+v2+v3)) {
+                    ctx.fillStyle = RGB(v1, v2, v3)
+                } else {
+                    ctx.fillStyle = hsl(v1, v2, v3)
+                }
+                if (Number.isInteger(v4+v5+v6)) {
+                    ctx.strokeStyle = RGB(v4, v5, v6)
+                } else {
+                    ctx.strokeStyle = hsl(v4, v5, v6)
+                }
+
+            } else if (arguments.length === 8) {
+                mode = 1
+                if (Number.isInteger(v1+v2+v3+v4)) {
+                    ctx.fillStyle = RGBA(v1, v2, v3, v4)
+                } else {
+                    ctx.fillStyle = hsla(v1, v2, v3, v4)
+                }
+                if (Number.isInteger(v5+v6+v7+v8)) {
+                    ctx.strokeStyle = RGBA(v5, v6, v7, v8)
+                } else {
+                    ctx.strokeStyle = hsla(v5, v6, v7, v8)
+                }
+
+            } else {
+                throw 'wrong color arguments for fill()'
+            }
+        },
+
+        background: function(v1, v2, v3, v4) {
+            if (arguments.length === 1) {
+
+                if (isString(v1)) {
+                    ctx.fillStyle = v1
+                    ctx.fillRect(0, 0, ctx.width, ctx.height)
+                } else {
+                    ctx.drawImage(v1, 0, 0, ctx.width, ctx.height)
+                }
+
+            } else if (arguments.length === 3) {
+                if (Number.isInteger(v1+v2+v3)) {
+                    ctx.fillStyle = RGB(v1, v2, v3)
+                } else {
+                    ctx.fillStyle = hsl(v1, v2, v3)
+                }
+                ctx.fillRect(0, 0, ctx.width, ctx.height)
+
+            } else if (arguments.length === 4) {
+                if (Number.isInteger(v1+v2+v3+v4)) {
+                    ctx.fillStyle = RGBA(v1, v2, v3, v4)
+                } else {
+                    ctx.fillStyle = hsla(v1, v2, v3, v4)
+                }
+                ctx.fillRect(0, 0, ctx.width, ctx.height)
+            }
         },
 
         line: function(x1, y1, x2, y2) {
@@ -1203,56 +1347,11 @@ function augmentCtx(ctx) {
         },
 
         rgb: rgb,
-
         rgba: rgba,
-
-        RGB: function(r, g, b) {
-            r = limit(Math.round(r), 0, 255).toString(16)
-            g = limit(Math.round(g), 0, 255).toString(16)
-            b = limit(Math.round(b), 0, 255).toString(16)
-            if (r.length > 1) r = '0'+r
-            if (g.length > 1) g = '0'+g
-            if (b.length > 1) b = '0'+b
-
-            return '#' + r + g + b
-        },
-
-        RGBA: function(r, g, b, a) {
-            r = limit(Math.round(r), 0, 255).toString(16)
-            g = limit(Math.round(g), 0, 255).toString(16)
-            b = limit(Math.round(b), 0, 255).toString(16)
-            a = limit(Math.round(a), 0, 255).toString(16)
-            if (r.length > 1) r = '0'+r
-            if (g.length > 1) g = '0'+g
-            if (b.length > 1) b = '0'+b
-            if (a.length > 1) a = '0'+a
-
-            return '#' + r + g + b + a
-        },
-
-        hsl: function(h, s, l) {
-            if (s === 0) {
-                return rgb(l, l, l)
-            } 
-            const q = l < 0.5? l*(1+s) : l + s - l*s
-            const p = 2*l - q
-            const r = hue2rgb(p, q, h + 1/3)
-            const g = hue2rgb(p, q, h)
-            const b = hue2rgb(p, q, h - 1/3)
-            return rgb(r, g, b)
-        },
-
-        hsva: function(h, s, l, a) {
-            if (s === 0) {
-                return rgba(l, l, l, a)
-            } 
-            const q = l < 0.5? l*(1+s) : l + s - l*s
-            const p = 2*l - q
-            const r = hue2rgb(p, q, h + 1/3)
-            const g = hue2rgb(p, q, h)
-            const b = hue2rgb(p, q, h - 1/3)
-            return rgba(r, g, b, a)
-        },
+        RGB: RGB,
+        RGBA: RGBA,
+        hsl: hsl,
+        hsla: hsla,
 
     }
     return ctx
