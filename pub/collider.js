@@ -786,9 +786,7 @@ CueFrame.prototype.evo = function(dt) {
 // =============================================================
 //                          LOADER 
 // =============================================================
-function parseDefinitions(src) {
-    const res = []
-
+function parseFunctions(src, res) {
     const rx = /(function\s*(\w[\w\d]*)\s*\()/g
     //const res = src.replace(rx, "module.def.$2 = $1")
 
@@ -797,8 +795,16 @@ function parseDefinitions(src) {
         res.push(match[2])
         match = rx.exec(src)
     }
+}
 
-    return res
+function parseConstants(src, res) {
+    const rx = /(const\s*(\w[\w\d]*)\s*\=)/g
+
+    let match = rx.exec(src)
+    while(match) {
+        res.push(match[2])
+        match = rx.exec(src)
+    }
 }
 
 function generateSource(script, __) {
@@ -874,7 +880,10 @@ function evalJS(script, _) {
     if (val !== undefined) return val
     else if (module.exports !== undefined) return module.exports
     else {
-        const defs = parseDefinitions(script.src)
+        const defs = []
+        parseFunctions(script.src, defs)
+        parseConstants(script.src, defs)
+
         if (defs.length > 0) {
             _.log.sys('eval', 'no value - reevaluating to extract definitions' + script.path)
 
