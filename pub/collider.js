@@ -2687,8 +2687,8 @@ function handleMouseMove(e) {
     _scene.env.mouseX = e.pageX
     _scene.env.mouseY = e.pageY
     */
-    _mouse.lx = _scene.env.mouseX
-    _mouse.ly = _scene.env.mouseY
+    _mouse.lx = _mouse.x
+    _mouse.ly = _mouse.y
     _mouse.x = e.pageX
     _mouse.y = e.pageY
 
