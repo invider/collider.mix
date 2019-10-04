@@ -1,6 +1,5 @@
 /*
  * Collider.JAM Supervisor
- * TODO rename to collider.js?
  */
 $ = scene = (function(window) {
 
@@ -899,7 +898,7 @@ function evalJS(script, _) {
             eval(code)
 
             if (module.def) {
-                if (isFun(module.def[script.name])) {
+                if (isFun(module.def[script.name]) || isObj(module.def[script.name])) {
                     _.log.sys('found defining function for export ' + script.name + '()')
                     return module.def[script.name]
                 }
