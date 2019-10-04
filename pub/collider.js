@@ -1352,7 +1352,12 @@ function augmentCtx(ctx) {
             if (mode > 0) ctx.fillText(text, x, y)
         },
         image: function(img, x, y, w, h, dx, dy, dw, dh) {
-            ctx.drawImage(img, x, y, w, h, dx, dy, dw, dh)
+            switch(arguments.length) {
+            case 3: ctx.drawImage(img, x, y); break;
+            case 5: ctx.drawImage(img, x, y, w, h); break;
+            case 7: ctx.drawImage(img, x, y, w, h, dx, dy); break;
+            case 9: ctx.drawImage(img, x, y, w, h, dx, dy, dw, dh); break;
+            }
         },
 
         rgb: rgb,
@@ -2549,9 +2554,6 @@ function startCycle() {
     */
 }
 
-// > implement 'keepOriginalAspectRatio'&'aspectRatio' option
-// TODO what should we do in case of multiple canvases?
-//      maybe canvas should be defined within the mod?
 function expandCanvas(name) {
     var canvas = document.getElementById(name)
     if (!canvas) return
