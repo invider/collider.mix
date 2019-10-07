@@ -928,7 +928,8 @@ function parseLines(txt) {
     return lines.filter(l => l.length > 0)
 }
 
-function parseCSV(src, _) {
+function parseCSV(script, _) {
+    const src = script.src
     const lines = src.match(/[^\r\n]+/g)
     // naming array
     const names = lines[0].split(',').map(e => e.trim())
@@ -936,7 +937,7 @@ function parseCSV(src, _) {
     const objects = []
     for (let i = 1; i < lines.length; i++) {
         const l = lines[i].trim()
-        if (l.length > 0 && !l.startsWith('--')) {
+        if (l.length > 0 && !l.startsWith('--') && !l.startsWith('#')) {
             // TODO more intellectual parsing, so escaped string can be included (e.g. 'one,two')
             const ol = l.split(',').map(e => e.trim()).map(e => {
                 return matchType(e)
@@ -946,7 +947,7 @@ function parseCSV(src, _) {
                 if (j < names.length) {
                     obj[names[j]] = e
                 } else {
-                    _.log.warn('eval-'+batch, '=> '
+                    _.log.warn('eval-csv-' + script.batch, '=> '
                         + script.path + '@' + (i+1)
                         + ': excesive value [' + e + ']')
                 }
@@ -984,7 +985,7 @@ function evalLoadedContent(script, _) {
         case 'json': _.patch(script.base, script.path, JSON.parse(script.src)); break;
         case 'txt': _.patch(script.base, script.path, script.src); break;
         case 'lines': _.patch(script.base, script.path, parseLines(script.src)); break;
-        case 'csv': _.patch(script.base, script.path, parseCSV(script.src, _)); break;
+        case 'csv': _.patch(script.base, script.path, parseCSV(script, _)); break;
         case 'prop': _.patch(script.base, script.path, parseProp(script.src)); break;
         case 'fun': script.fun(); break;
         default: {
