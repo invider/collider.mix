@@ -1266,12 +1266,12 @@ function augmentCtx(ctx) {
             if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
         },
-        ellipse: function(x, y, w, h, r) {
+        ellipse: function(x, y, hr, vr, r) {
             ctx.beginPath()
             if (r) {
-                ctx.ellipse(x, y, w/2, h/2, 0, 0, 2 * TAU)
+                ctx.ellipse(x, y, hr, vr, r, 0, TAU * 2)
             } else {
-                ctx.ellipse(x, y, w/2, h/2, r, 0, 2 * TAU)
+                ctx.ellipse(x, y, hr, vr, 0, 0, TAU)
             }
             if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
@@ -1543,7 +1543,7 @@ const Mod = function(dat) {
         },
 
         _startTrigger: function() {
-            if (this._.env.started) return
+            if (this._.env._started) return // it looks like we already started
 
             if (this._included <= this._loaded) {
                 // OK - everything is loaded, call setup functions
@@ -1617,7 +1617,7 @@ const Mod = function(dat) {
     // static environment data entities
     this.attach(new Frame({
         name: "env",
-        started: false,
+        _started: false,
     }))
 
     // container for acting entities - actors, ghosts, props
@@ -1754,10 +1754,9 @@ Mod.prototype._runTests = function() {
 }
 
 Mod.prototype.start = function() {
-    if (this.env.started) return
+    if (this.env._started) return
+    this.env._started = true
     //this.inherit()
-
-    this.env.started = true
 
     let captured = false
     if (_scene.env.config.test) captured = this._runTests()
@@ -1797,10 +1796,10 @@ Mod.prototype.onAttached = function(node, name, parent) {
 
 Mod.prototype.evo = function(dt) {
     // boot logic
-    if (!this.env.started) {
+    if (!this.env._started || this.boot) {
         // try to find and evolve boot node or mod
         if (this.boot && isFun(this.boot.evo)) {
-            this.boot.evo()
+            this.boot.evo(dt)
         }
         return
     }
@@ -1821,10 +1820,10 @@ Mod.prototype.evo = function(dt) {
 }
 
 Mod.prototype.draw = function() {
-    if (!this.ctx || this.hidden) return
+    if (!this.ctx) return
 
     // boot logic
-    if (!this.env.started) {
+    if (!this.env._started || this.boot) {
         // try to find and draw boot node or mod
         if (isFun(this.boot)) {
             this.boot()
@@ -1833,6 +1832,8 @@ Mod.prototype.draw = function() {
         }
         return
     }
+
+    if (this.hidden) return
 
     // draw entities in the lab
     // we might integrate this mod display as a link in the mod list
