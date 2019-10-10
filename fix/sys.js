@@ -91,7 +91,7 @@ module.exports = {
             }
         } else if (sys.isObj(cons)) {
             if (isFun(cons.spawn)) {
-                // spawn() function
+                // spawn() factory function
                 return sys.attach(dest, cons.spawn(spawnData))
             } else {
                 return sys.attach(dest, this.clone(cons))
@@ -113,14 +113,20 @@ module.exports = {
         obj._ = null
         obj.__ = null
 
-        let res = JSON.parse(JSON.stringify(obj))
-        this.augment(res, meta)
+        const clone = Object.create(Object.getPrototypeOf(obj))
+        let data = JSON.parse(JSON.stringify(obj))
+        this.augment(clone, data)
+        Object.keys(obj).forEach(k => {
+            if (isFun(obj[k])) clone[k] = obj[k]
+        })
+
+        this.augment(clone, meta)
 
         // restore links on original object
         obj._ = _
         obj.__ = __
 
-        return res
+        return clone
     },
 
     extend: function(child, parent){
