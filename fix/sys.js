@@ -94,7 +94,7 @@ module.exports = {
                 // spawn() factory function
                 return sys.attach(dest, cons.spawn(spawnData))
             } else {
-                return sys.attach(dest, this.clone(cons))
+                return sys.attach(dest, this.clone(cons, spawnData))
             }
         } else {
             return false
