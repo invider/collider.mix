@@ -2644,8 +2644,8 @@ function expandCanvas(name) {
 function expandView() {
     // TODO modify to support multiple canvases and custom resize
     expandCanvas(canvasName)
+    if (_scene.trap) _scene.trap('resize')
 }
-
 
 // ******************************************************
 function cycle() {
