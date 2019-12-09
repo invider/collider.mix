@@ -2370,6 +2370,9 @@ function constructScene() {
     mod.log.attach(function sys(msg, post) {
         post? console.log('$ [' + msg + '] ' + post) : console.log('$ ' + msg) 
     }, 'sys')
+    mod.log.attach(function raw(msg) {
+        console.log(msg)
+    }, 'raw')
     mod.log.attach(function dump(obj) {
         console.dir(obj)
     }, 'dump')
