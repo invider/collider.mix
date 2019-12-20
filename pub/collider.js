@@ -532,7 +532,8 @@ Frame.prototype.select = function(predicate) {
 			let res = []
 			for (let k in this) {
 				let o = this[k]
-				if (o && nextName === '*' || k.includes(nextName) || (o.tag && o.tag.includes(nextName))) {
+				if (o && nextName === '*' || k.includes(nextName)
+                        || (o.tag && isString(o.tag) && o.tag.includes(nextName))) {
 					if (isFrame(o)) {
 						res = res.concat(o.select(nextPath))
 					} else if (isArray(o)) {
