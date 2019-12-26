@@ -244,6 +244,23 @@ const after = function(obj, fun, patch) {
     }
 }
 
+const chain = function(fn1, fn2) {
+    if (fn1 && !isFun(fn1)) throw (`Function is expected, but found [${fn1}] of ` + (typeof fn1))
+    if (fn2 && !isFun(fn2)) throw (`Function is expected, but found [${fn2}] of ` + (typeof fn2))
+
+    if (fn1 && !fn2) return fn1
+    if (!fn1 && fn2) return fn2
+    if (!fn1 && !fn2) return function() {}
+
+    const fn = function() {
+        fn1.apply(this, arguments)
+        fn2.apply(this, arguments)
+    }
+    fn.first = fn1
+    fn.second = fn2
+    return fn
+}
+
 const matchType = function(v) {
     v = v.trim()
     if ((v.startsWith("'") && v.endsWith("'"))
@@ -1390,6 +1407,7 @@ const Mod = function(dat) {
         supplement: supplement,
         before: before,
         after: after,
+        chain: chain,
         isFun: isFun,
         isObj: isObj,
         isString: isString,
@@ -2336,6 +2354,7 @@ function constructScene() {
     mod.sys.attach(supplement)
     mod.sys.attach(before)
     mod.sys.attach(after)
+    mod.sys.attach(chain)
 
     mod.sys.attach(Frame)
     mod.sys.attach(LabFrame)
