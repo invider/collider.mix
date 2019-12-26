@@ -643,13 +643,8 @@ LabFrame.prototype.spawn = function(dna, st) {
     return this._.sys.spawn(dna, st, this)
 }
 
-// TODO processing of attached node and event on attachment probably should be different functions
-LabFrame.prototype.onAttached = function(node, name, parent) {
-    if (!node) {
-        // current lab frame is attached
-        if (isFun(this.__.onAttached)) this.__.onAttached(this, this.name, this.__)
-        return
-    }
+LabFrame.prototype.attach = function(node) {
+    Frame.prototype.attach.call(this, node)
 
     //this._.log.sys('spawned ' + node.name)
     // normalize and augment the node
@@ -662,7 +657,6 @@ LabFrame.prototype.onAttached = function(node, name, parent) {
         node._positional = (isNumber(node.x) && isNumber(node.y))
         node._sizable = (node._positional && isNumber(node.w) && isNumber(node.h))
     }
-
 
     // TODO make arbitrary augmentation and dependency injection possible
     //this._.aug._ls.forEach( function(aug) {
@@ -679,6 +673,16 @@ LabFrame.prototype.onAttached = function(node, name, parent) {
             if (a.Z < b.Z) return -1;
             return 0;
         })
+    }
+}
+
+// TODO processing of attached node and event on attachment probably should be different functions
+LabFrame.prototype.onAttached = function(node, name, parent) {
+    // TODO attached to me and being attached to somebody should be different events!
+    if (!node) {
+        // current lab frame is attached
+        if (isFun(this.__.onAttached)) this.__.onAttached(this, this.name, this.__)
+        return
     }
 },
 
