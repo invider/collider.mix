@@ -691,6 +691,8 @@ LabFrame.prototype.attach = function(node, name) {
             return 0;
         })
     }
+
+    return node
 }
 
 // TODO processing of attached node and event on attachment probably should be different functions
@@ -793,6 +795,8 @@ CueFrame.prototype.attach = function(node, name) {
     } else {
         throw new Error('Wrong cue format [' + name + ']! Must be at... or each... (e.g. at1m, each5s)')
     }
+
+    return node
 }
 
 CueFrame.prototype.evo = function(dt) {
