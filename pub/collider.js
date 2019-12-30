@@ -660,8 +660,8 @@ LabFrame.prototype.spawn = function(dna, st) {
     return this._.sys.spawn(dna, st, this)
 }
 
-LabFrame.prototype.attach = function(node) {
-    Frame.prototype.attach.call(this, node)
+LabFrame.prototype.attach = function(node, name) {
+    Frame.prototype.attach.call(this, node, name)
 
     //this._.log.sys('spawned ' + node.name)
     // normalize and augment the node
