@@ -1808,13 +1808,17 @@ Mod.prototype.inherit = function() {
     this.link(this.___.pub)
     supplement(this.sys, this.___.sys)
 
-    // log
-    const log = function log(msg, post) {
+    /*
+        function log(msg, post) {
         log.out(msg, post)
     }
-    augment(log, new Frame())
-    this.attach(log)
-    supplement(this.log, this.___.log)
+    */
+
+    // log
+    const log = this.___.log
+    //augment(log, new Frame())
+    //this.attach(log, 'log')
+    //supplement(this.log, this.___.log)
 }
 
 Mod.prototype.onAttached = function(node, name, parent) {
@@ -2377,33 +2381,53 @@ function constructScene() {
     }))
 
     // log
+    const log = console.log.bind(window.console, '>')
+    augment(log, new Frame())
+    mod.attach(log, 'log')
+    /*
     const log = function log(msg, post) {
         log.out(msg, post)
     }
-    augment(log, new Frame())
-    mod.attach(log)
+    */ 
 
+    /*
     mod.log.attach(function err(msg, post) {
-        post? console.log('! [' + msg + '] ' + post) : console.log('! ' + msg) 
+        post? console.log.call(console, '! [' + msg + '] ' + post) : console.log('! ' + msg) 
     }, 'err')
     mod.log.attach(function warn(msg, post) {
-        post? console.log('? [' + msg + '] ' + post) : console.log('? ' + msg) 
+        post? console.log.call(console, '? [' + msg + '] ' + post) : console.log('? ' + msg) 
     }, 'warn')
     mod.log.attach(function out(msg, post) {
-        post? console.log('> [' + msg + '] ' + post) : console.log('> ' + msg) 
+        post? console.log.call(console, '> [' + msg + '] ' + post) : console.log('> ' + msg) 
     }, 'out')
     mod.log.attach(function debug(msg, post) {
-        post? console.log('# [' + msg + '] ' + post) : console.log('# ' + msg) 
+        post? console.log.call(console, '# [' + msg + '] ' + post) : console.log('# ' + msg) 
     }, 'debug')
     mod.log.attach(function sys(msg, post) {
-        post? console.log('$ [' + msg + '] ' + post) : console.log('$ ' + msg) 
+        post? console.log.call(console, '$ [' + msg + '] ' + post) : console.log.call(console, '$ ' + msg) 
     }, 'sys')
-    mod.log.attach(function raw(msg) {
-        console.log(msg)
-    }, 'raw')
     mod.log.attach(function dump(obj) {
-        console.dir(obj)
+        console.dir.call(console, obj)
     }, 'dump')
+    */
+    mod.log.attach(
+        console.log.bind(window.console, '!'),
+        'err')
+    mod.log.attach(
+        console.log.bind(window.console, '?'),
+        'warn')
+    mod.log.attach(
+        console.log.bind(window.console, '>'),
+        'out')
+    mod.log.attach(
+        console.log.bind(window.console, '$'),
+        'sys')
+    mod.log.attach(
+        console.log.bind(window.console),
+        'raw')
+    mod.log.attach(
+        console.dir.bind(window.console),
+        'dump')
 
     // setup env
     mod.env.TARGET_FPS = 60
