@@ -2708,6 +2708,7 @@ function cycle() {
     var dt = (now - _scene.env.lastFrame)/1000
 
     // show, react and update cycle
+    _scene.dt = dt
     _scene.draw()
 
     // max evolution threshold
