@@ -80,11 +80,13 @@ function augment() {
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
         if (source && source !== mixin) for (let prop in source) {
-            if (isObj(mixin[prop]) && isObj(arguments[arg][prop])) {
-                // property is already assigned - augment it
-                if (mixin !== source[prop]) augment(mixin[prop], source[prop])
-            } else {
-                mixin[prop] = source[prop];
+            if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
+                if (isObj(mixin[prop]) && isObj(arguments[arg][prop])) {
+                    // property is already assigned - augment it
+                    if (mixin !== source[prop]) augment(mixin[prop], source[prop])
+                } else {
+                    mixin[prop] = source[prop];
+                }
             }
         }
     }
