@@ -1379,6 +1379,10 @@ function augmentCtx(ctx) {
             if (mode < 2) ctx.strokeText(text, x, y)
             if (mode > 0) ctx.fillText(text, x, y)
         },
+        textWidth: function(txt) {
+            if (!txt) return 0
+            else return ctx.measureText(txt).width
+        },
         image: function(img, x, y, w, h, dx, dy, dw, dh) {
             switch(arguments.length) {
             case 3: ctx.drawImage(img, x, y); break;
