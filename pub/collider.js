@@ -553,8 +553,10 @@ Frame.prototype.select = function(predicate) {
 				let o = this[k]
 				if (o && nextName === '*' || k.includes(nextName)
                         || (o.tag && isString(o.tag) && o.tag.includes(nextName))) {
+
 					if (isFrame(o)) {
 						res = res.concat(o.select(nextPath))
+
 					} else if (isArray(o)) {
 						if (nextPath === '' || nextPath === '*') res = res.concat(o)
 						// TODO maybe handle index identifiers?
@@ -1711,6 +1713,13 @@ const Mod = function(dat) {
         return true
     }
 
+    trap.on = function(key, fn) {
+        if (!key) throw 'key is expected on trap'
+        if (!isFun(fn)) throw 'function is expected on trap'
+
+        this[key] = chain(this[key], fn)
+    }
+
     augment(trap, new Frame())
     this.attach(trap)
 }
@@ -1788,6 +1797,8 @@ Mod.prototype._runTests = function() {
 
 Mod.prototype.start = function() {
     if (this.env._started) return
+
+    this.trap('preSetup')
     this.env._started = true
     //this.inherit()
 
@@ -1799,11 +1810,13 @@ Mod.prototype.start = function() {
     if (!captured) {
         if (isFun(this.setup)) {
             this.setup()
-        } if (isFrame(this.setup)) {
+        }
+        if (isFrame(this.setup)) {
             this.setup._ls.forEach( f => f() )
         }
         this.status = 'started'
     }
+    this.trap('postSetup')
 
     _scene.log.sys('starting evolution of [' + this.path() + ']')
 }

@@ -24,10 +24,13 @@ module.exports = {
         return list.length
     },
 
+    /*
+    // and what can we do with name shaddowing? select is already in Fram
     // select from arbitrary object
     select: function(target, path) {
         // TODO select from any object recursively
     },
+    */
 
     attach: function(target, element) {
         if (isFrame(target)) {
