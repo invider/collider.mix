@@ -851,11 +851,11 @@ function generateSource(script, __) {
     })
 
     // provide lexical scope for mod context and scope object for this. definitions
-    return '(function(_, ctx, _$, module, require, sys, lib, res, dna, env, lab, mod, pub, log, cue, trap) {'
+    return '(function(_, ctx, _$, module, require, sys, lib, res, dna, env, lab, mod, pub, log, cue, job, trap) {'
         + def 
         + script.src
         + script.def
-    + '}).call(scope, __, __.ctx, __._$, module, require, __.sys, __.lib, __.res, __.dna, __.env, __.lab, __.mod, __.pub, __.log, __.cue, __.trap)'
+    + '}).call(scope, __, __.ctx, __._$, module, require, __.sys, __.lib, __.res, __.dna, __.env, __.lab, __.mod, __.pub, __.log, __.cue, __.job, __.trap)'
     + '\n//# sourceURL=' + script.origin
 }
 
@@ -1661,6 +1661,8 @@ const Mod = function(dat) {
 
     this.attach(new CueFrame(), 'cue')
 
+    this.attach(new Frame(), 'job')
+
     // container for mods
     // TODO what to do with this autoloading?
     var mod = function mod(path, name) {
@@ -2384,7 +2386,7 @@ function constructLog() {
         post? console.log.call(console, '> [' + msg + '] ' + post) : console.log('> ' + msg) 
     }, 'out')
     mod.log.attach(function debug(msg, post) {
-        post? console.log.call(console, '# [' + msg + '] ' + post) : console.log('# ' + msg) 
+        post? console.log.call(console, '. [' + msg + '] ' + post) : console.log('# ' + msg) 
     }, 'debug')
     mod.log.attach(function sys(msg, post) {
         post? console.log.call(console, '$ [' + msg + '] ' + post) : console.log.call(console, '$ ' + msg) 
@@ -2394,14 +2396,17 @@ function constructLog() {
     }, 'dump')
     */
     log.attach(
-        console.log.bind(window.console, '!'),
+        console.error.bind(window.console, '!'),
         'err')
     log.attach(
-        console.log.bind(window.console, '?'),
+        console.warn.bind(window.console, '?'),
         'warn')
     log.attach(
         console.log.bind(window.console, '>'),
         'out')
+    log.attach(
+        console.log.bind(window.console, '.'),
+        'debug')
     log.attach(
         console.log.bind(window.console, '$'),
         'sys')
@@ -2411,6 +2416,9 @@ function constructLog() {
     log.attach(
         console.dir.bind(window.console),
         'dump')
+    log.attach(
+        console.table.bind(window.console),
+        'tab')
 
     return log
 }
