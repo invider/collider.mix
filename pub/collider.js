@@ -400,7 +400,7 @@ Frame.prototype.link = function(node, name) {
 }
 
 Frame.prototype.onAttached = function(node, name, parent) {
-    this.__.onAttached(node, name, parent)
+    if (this.__) this.__.onAttached(node, name, parent)
 }
 
 Frame.prototype.detach = function(node) {
@@ -552,7 +552,7 @@ Frame.prototype.select = function(predicate) {
 			for (let k in this) {
 				let o = this[k]
 				if (o && nextName === '*' || k.includes(nextName)
-                        || (o.tag && isString(o.tag) && o.tag.includes(nextName))) {
+                        || (o && o.tag && isString(o.tag) && o.tag.includes(nextName))) {
 
 					if (isFrame(o)) {
 						res = res.concat(o.select(nextPath))
@@ -857,7 +857,6 @@ function generateSource(script, __) {
         + script.def
     + '}).call(scope, __, __.ctx, __._$, module, require, __.sys, __.lib, __.res, __.dna, __.env, __.lab, __.mod, __.pub, __.log, __.cue, __.trap)'
     + '\n//# sourceURL=' + script.origin
-
 }
 
 function evalJS(script, _) {
@@ -1643,7 +1642,9 @@ const Mod = function(dat) {
     //this.attach(new Frame("log"))
 
     // prototypes/constructors
-    //this.attach(new Frame(), 'dna')
+    this.attach(new Frame(), 'dna')
+
+    this.attach(new LabFrame(), 'lib')
 
     // augment functions
     // TODO remove in favor of .aug
@@ -1826,7 +1827,6 @@ Mod.prototype.inherit = function() {
 
     this.link(this.___.pub)
     supplement(this.sys, this.___.sys)
-
     /*
         function log(msg, post) {
         log.out(msg, post)
@@ -1834,7 +1834,10 @@ Mod.prototype.inherit = function() {
     */
 
     // log
-    const log = this.___.log
+    this.log = this.___.log
+    this._ls.push(this.log)
+    this._dir['log'] = this.log
+    //const log = this.___.log
     //augment(log, new Frame())
     //this.attach(log, 'log')
     //supplement(this.log, this.___.log)
@@ -2361,6 +2364,57 @@ Mod.prototype.loadUnits = function(baseMod, target) {
         })
 }
 
+function constructLog() {
+    const log = console.log.bind(window.console, '>')
+    augment(log, new Frame())
+    /*
+    const log = function log(msg, post) {
+        log.out(msg, post)
+    }
+    */ 
+
+    /*
+    mod.log.attach(function err(msg, post) {
+        post? console.log.call(console, '! [' + msg + '] ' + post) : console.log('! ' + msg) 
+    }, 'err')
+    mod.log.attach(function warn(msg, post) {
+        post? console.log.call(console, '? [' + msg + '] ' + post) : console.log('? ' + msg) 
+    }, 'warn')
+    mod.log.attach(function out(msg, post) {
+        post? console.log.call(console, '> [' + msg + '] ' + post) : console.log('> ' + msg) 
+    }, 'out')
+    mod.log.attach(function debug(msg, post) {
+        post? console.log.call(console, '# [' + msg + '] ' + post) : console.log('# ' + msg) 
+    }, 'debug')
+    mod.log.attach(function sys(msg, post) {
+        post? console.log.call(console, '$ [' + msg + '] ' + post) : console.log.call(console, '$ ' + msg) 
+    }, 'sys')
+    mod.log.attach(function dump(obj) {
+        console.dir.call(console, obj)
+    }, 'dump')
+    */
+    log.attach(
+        console.log.bind(window.console, '!'),
+        'err')
+    log.attach(
+        console.log.bind(window.console, '?'),
+        'warn')
+    log.attach(
+        console.log.bind(window.console, '>'),
+        'out')
+    log.attach(
+        console.log.bind(window.console, '$'),
+        'sys')
+    log.attach(
+        console.log.bind(window.console),
+        'raw')
+    log.attach(
+        console.dir.bind(window.console),
+        'dump')
+
+    return log
+}
+
 // ***********************
 // collider scene construction
 function constructScene() {
@@ -2400,53 +2454,8 @@ function constructScene() {
     }))
 
     // log
-    const log = console.log.bind(window.console, '>')
-    augment(log, new Frame())
+    const log = constructLog()
     mod.attach(log, 'log')
-    /*
-    const log = function log(msg, post) {
-        log.out(msg, post)
-    }
-    */ 
-
-    /*
-    mod.log.attach(function err(msg, post) {
-        post? console.log.call(console, '! [' + msg + '] ' + post) : console.log('! ' + msg) 
-    }, 'err')
-    mod.log.attach(function warn(msg, post) {
-        post? console.log.call(console, '? [' + msg + '] ' + post) : console.log('? ' + msg) 
-    }, 'warn')
-    mod.log.attach(function out(msg, post) {
-        post? console.log.call(console, '> [' + msg + '] ' + post) : console.log('> ' + msg) 
-    }, 'out')
-    mod.log.attach(function debug(msg, post) {
-        post? console.log.call(console, '# [' + msg + '] ' + post) : console.log('# ' + msg) 
-    }, 'debug')
-    mod.log.attach(function sys(msg, post) {
-        post? console.log.call(console, '$ [' + msg + '] ' + post) : console.log.call(console, '$ ' + msg) 
-    }, 'sys')
-    mod.log.attach(function dump(obj) {
-        console.dir.call(console, obj)
-    }, 'dump')
-    */
-    mod.log.attach(
-        console.log.bind(window.console, '!'),
-        'err')
-    mod.log.attach(
-        console.log.bind(window.console, '?'),
-        'warn')
-    mod.log.attach(
-        console.log.bind(window.console, '>'),
-        'out')
-    mod.log.attach(
-        console.log.bind(window.console, '$'),
-        'sys')
-    mod.log.attach(
-        console.log.bind(window.console),
-        'raw')
-    mod.log.attach(
-        console.dir.bind(window.console),
-        'dump')
 
     // setup env
     mod.env.TARGET_FPS = 60
