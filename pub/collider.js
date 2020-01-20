@@ -1006,11 +1006,41 @@ function extractMeta(script) {
         }
     }
 
-    function defMeta(name, comment) {
+    function defMeta(type, name, comment, params) {
         if (comment && comment.l + 2 > line) {
-            meta[name] = comment.v
+            meta[name] = {
+                head: comment.v,
+            }
             metaCount ++
+
+        } 
+        // define usage for functions
+        if (type === 'function' && isString(params)) {
+            if (!meta[name]) meta[name] = {}
+            meta[name].usage = `${name}(${params})`
         }
+    }
+
+    function parseFunctionParams(expectName) {
+        let params = ''
+        let token = nextToken()
+
+        if (expectName && token.t === ID) token = nextToken()
+        if (token.t !== SPECIAL || token.v !== '(') return
+
+        while(token) {
+            token = nextToken()
+            if (token.t === SPECIAL && token.v === ')') {
+                return params
+            } else {
+                if (params && token.t !== SPECIAL) {
+                    params += ' ' + token.v
+                } else {
+                    params += token.v
+                }
+            }
+        }
+        return params
     }
 
     function parse() {
@@ -1031,14 +1061,6 @@ function extractMeta(script) {
                 lastComment = token
             }
 
-            /*
-            if (token.t === LINE_COMMENT
-                    || token.t === BLOCK_COMMENT
-                    || token.t === STRING) {
-                console.log(`@${line}: #${token.t}[${token.v}]`)
-            }
-            */
-
             lastToken = token
             token = nextToken()
 
@@ -1050,15 +1072,37 @@ function extractMeta(script) {
                 } else if (token.t === ID
                         && token.v === 'function'
                         && lastName) {
-                    defMeta(lastName, lastComment)
-                    //console.log(line + ': [def] function ' + lastName + '()')
+                    // <name>: function
+                    const params = parseFunctionParams(true)
+                    defMeta('function', lastName, lastComment, params)
+                    lastName = undefined
+
+                } else if (token.t === SPECIAL
+                        && token.v === '{'
+                        && lastName) {
+                    // <name>: {...}
+                    defMeta('object', lastName, lastComment)
+                    lastName = undefined
+
+                } else if (token.t === SPECIAL
+                        && token.v === '['
+                        && lastName) {
+                    // <name>: [...]
+                    defMeta('array', lastName, lastComment)
                     lastName = undefined
 
                 } else if (lastToken.t === ID
                         && lastToken.v === 'function'
                         && token.t === ID) {
-                    defMeta(token.v, lastComment)
-                    //console.log(line + ': [def] function ' + token.v + '()')
+                    // function <name>
+                    const params = parseFunctionParams(false)
+                    defMeta('function', token.v, lastComment, params)
+
+                } else if (lastToken.t === ID
+                        && lastToken.v === 'const'
+                        && token.t === ID) {
+                    // const <name>
+                    defMeta('const', token.v, lastComment)
                     
                 } else {
                     lastName = undefined
@@ -1120,16 +1164,13 @@ function injectMeta(val, meta) {
     if (!meta) return val
 
     if (isFun(val) && meta[val.name]) {
-        val._meta = {
-            head: meta[val.name]
-        }
+        val._meta = meta[val.name]
+
     } else {
         Object.keys(meta).forEach(k => {
             const subVal = val[k]
-            if (subVal && isFun(subVal)) {
-                subVal._meta = {
-                    head: meta[k]
-                }
+            if (subVal) {
+                subVal._meta = meta[k]
             }
         })
     }
