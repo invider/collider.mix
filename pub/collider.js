@@ -927,6 +927,12 @@ function extractMeta(script) {
         let c = getc()
         let prevc
 
+        if (type === '/' && isNewLine(c)) return {
+            t: LINE_COMMENT,
+            v: '',
+            l: line,
+        }
+
         while(c) {
 
             prevc = c
@@ -979,7 +985,7 @@ function extractMeta(script) {
         return { t: STRING, v: str }
     }
 
-    function nextToken() {
+    function getToken() {
         skipWhitespaces()
 
         let c = getc()
@@ -1008,18 +1014,38 @@ function extractMeta(script) {
         }
     }
 
+    const tokenBuffer = {
+        buffered: false,
+    }
+
+    function nextToken() {
+        if (tokenBuffer.buffered) {
+            tokenBuffer.buffered = false
+            return tokenBuffer.token
+        } else {
+            tokenBuffer.token = getToken()
+            return tokenBuffer.token
+        }
+    }
+
+    function lookupToken() {
+        const token = nextToken()
+        tokenBuffer.buffered = true
+        return token
+    }
+
     function defMeta(type, name, comment, params) {
         if (name === 'exports') name = script.name
 
         //if (comment && comment.v.includes('sound')) debugger
 
         if (comment && comment.l + 2 > line) {
-            let head = comment.v
+            let head = comment.v.trim()
             let details
 
             const inextLine = head.indexOf('\n')
             if (inextLine > 0) {
-                details = head.substring(inextLine)
+                details = head.substring(inextLine).trim()
                 head = head.substring(0, inextLine)
             }
 
@@ -1069,15 +1095,21 @@ function extractMeta(script) {
 
             if (token.t === BLOCK_COMMENT) {
                 lastComment = token
-                if (commentCount === 1) defMeta('module', '__', token)
+                if (commentCount === 1) defMeta('module', script.name, token)
 
             } else if (token.t === LINE_COMMENT) {
                 if (lastComment && lastComment.l + 1 >= token.l) {
                     // join with previous comment
                     token.v = lastComment.v + '\n' + token.v
+                    commentCount --
                 }
                 lastComment = token
-                if (commentCount === 1) defMeta('module', '__', token)
+                if (commentCount === 1) {
+                    const next = lookupToken()
+                    if (next.t !== LINE_COMMENT) {
+                        defMeta('module', script.name, token)
+                    }
+                }
             }
 
             lastToken = token

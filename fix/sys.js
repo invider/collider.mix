@@ -1,8 +1,10 @@
 /**
+ * core system functions
  * @alias sys
  */
 module.exports = {
-    _info: 'system functions',
+
+    // copy source nodes to the target destination
     cp: function(source, target) {
         _.log.sys('copying ' + source + ' -> ' + target)
 
@@ -32,6 +34,7 @@ module.exports = {
     },
     */
 
+    // attach an element to the specified target
     attach: function(target, element) {
         if (isFrame(target)) {
             target.attach(element)
@@ -46,6 +49,7 @@ module.exports = {
         return element
     },
 
+    // spawn an entity with provided constructor data
     spawn: function(source, spawnData, target, sbase, tbase) {
         if (!sbase) sbase = 'dna/'
         if (!tbase) tbase = 'lab/'
@@ -104,6 +108,9 @@ module.exports = {
         }
     },
 
+    //
+    // clone the object and augment it with metadata
+    //
     // TODO maybe work on tree instead of generic?
     clone: function(obj, meta) {
         if (!this.isObj(obj)) return
@@ -132,6 +139,7 @@ module.exports = {
         return clone
     },
 
+    // extend a child object from the parent prototype
     extend: function(child, parent){
         child.prototype = Object.create(parent.prototype);
         child.prototype.constructor = child;
@@ -139,12 +147,19 @@ module.exports = {
         child.prototype.__superProto__ = parent.prototype
     },
 
+    // find absolute path of the node
     path: function(node) {
         if (!node || !this.isObj(node) || !this.isObj(node.__)) return ''
         if (node.__.name === '/') return this.getName(node)
         return this.path(node.__) + '/' + this.getName(node)
     },
 
+    // determine node's name
+    //
+    // Node's own ['name'] property is considered as a priority.
+    // Otherwise returns an index in the parent _ls (???)
+    // TODO maybe try to locate in _dir first?
+    //
     getName: function(node) {
         if (!node || !this.isObj(node)) return '?'
         if (this.isString(node.name)) return node.name
