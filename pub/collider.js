@@ -1009,9 +1009,23 @@ function extractMeta(script) {
     }
 
     function defMeta(type, name, comment, params) {
+        if (name === 'exports') name = script.name
+
+        //if (comment && comment.v.includes('sound')) debugger
+
         if (comment && comment.l + 2 > line) {
+            let head = comment.v
+            let details
+
+            const inextLine = head.indexOf('\n')
+            if (inextLine > 0) {
+                details = head.substring(inextLine)
+                head = head.substring(0, inextLine)
+            }
+
             meta[name] = {
-                head: comment.v,
+                head: head,
+                details: details,
             }
             metaCount ++
 
@@ -1072,8 +1086,9 @@ function extractMeta(script) {
             if (token && lastToken) {
                 if (lastToken.t === ID
                         && token.t === SPECIAL
-                        && token.v === ':') {
+                        && (token.v === ':' || token.v === '=')) {
                     lastName = lastToken.v
+
                 } else if (token.t === ID
                         && token.v === 'function'
                         && lastName) {
@@ -1170,14 +1185,15 @@ function generateSource(script, __) {
     + '\n//# sourceURL=' + script.origin
 }
 
-function injectMeta(val, meta) {
+function injectMeta(val, meta, name) {
     if (!val) return
     if (!meta) return val
 
+
     if (isFun(val) && meta[val.name]) {
         val._meta = meta[val.name]
-    } else if (meta['__']) {
-        val._meta = meta['__']
+    } else if (meta[name]) {
+        val._meta = meta[name]
     }
 
     Object.keys(meta).forEach(k => {
@@ -1242,10 +1258,10 @@ function evalJS(script, _) {
     const val = eval(code)
 
     if (val !== undefined) {
-        return injectMeta(val, meta)
+        return injectMeta(val, meta, script.name)
 
     } else if (module.exports !== undefined) {
-        return injectMeta(module.exports, meta)
+        return injectMeta(module.exports, meta, script.name)
 
     } else {
         const defs = []
@@ -1271,7 +1287,7 @@ function evalJS(script, _) {
                     _.log.sys('found defining function for export ' + script.name + '()')
                     return module.def[script.name]
                 }
-                return injectMeta(module.def, meta)
+                return injectMeta(module.def, meta, script.name)
             } else {
                 _.log.sys('no value, exports or declarations from ' + script.path, 'eval')
                 return null
