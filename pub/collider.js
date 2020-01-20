@@ -823,6 +823,7 @@ function extractMeta(script) {
     let bufc
     let buffered = false
     let metaCount = 0
+    let commentCount = 0
 
     // parsing utils
     function isSpace(c) {
@@ -920,6 +921,7 @@ function extractMeta(script) {
     }
 
     function matchComment(type) {
+        commentCount ++
         let comment = ''
 
         let c = getc()
@@ -1053,12 +1055,15 @@ function extractMeta(script) {
 
             if (token.t === BLOCK_COMMENT) {
                 lastComment = token
+                if (commentCount === 1) defMeta('module', '__', token)
+
             } else if (token.t === LINE_COMMENT) {
                 if (lastComment && lastComment.l + 1 >= token.l) {
                     // join with previous comment
                     token.v = lastComment.v + '\n' + token.v
                 }
                 lastComment = token
+                if (commentCount === 1) defMeta('module', '__', token)
             }
 
             lastToken = token
@@ -1089,6 +1094,12 @@ function extractMeta(script) {
                         && lastName) {
                     // <name>: [...]
                     defMeta('array', lastName, lastComment)
+                    lastName = undefined
+
+                } else if (token.t === ID
+                        && lastName) {
+                    // <name>: <value>
+                    defMeta('value', lastName, lastComment)
                     lastName = undefined
 
                 } else if (lastToken.t === ID
@@ -1165,15 +1176,17 @@ function injectMeta(val, meta) {
 
     if (isFun(val) && meta[val.name]) {
         val._meta = meta[val.name]
-
-    } else {
-        Object.keys(meta).forEach(k => {
-            const subVal = val[k]
-            if (subVal) {
-                subVal._meta = meta[k]
-            }
-        })
+    } else if (meta['__']) {
+        val._meta = meta['__']
     }
+
+    Object.keys(meta).forEach(k => {
+        const subVal = val[k]
+        if (subVal) {
+            subVal._meta = meta[k]
+        }
+    })
+
     return val
 }
 
