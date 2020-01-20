@@ -815,6 +815,262 @@ CueFrame.prototype.evo = function(dt) {
 // =============================================================
 //                          LOADER 
 // =============================================================
+function extractMeta(script) {
+    const meta = {}
+
+    let pos = 0
+    let line = 0
+    let bufc
+    let buffered = false
+    let metaCount = 0
+
+    // parsing utils
+    function isSpace(c) {
+        return c === ' ' || c === '\t'
+    }
+
+    function isNewLine(c) {
+        return c === '\r' || c === '\n'
+    }
+
+    function isWhitespace(c) {
+        return isSpace(c) || isNewLine(c)
+    }
+
+    function isDigit(c) {
+        const code = c.charCodeAt(0) - 48
+        return code >= 0 && code < 10
+    }
+
+    function isAlpha(c) {
+        const d = c.chatCodeAt(0)
+        return ((d >= 65 && d <= 90)
+            || (d >= 97 && d <= 122)
+            || (d >= 161)
+        );
+    }
+
+    function isAlphaNum(c) {
+        return isDigit(c) || isAlpha(c)
+    }
+
+    function isSpecial(c) {
+        switch(c) {
+            case "'": case '"': case '`':
+            case '/':
+
+            case ':': case ';':
+            case '.': case ',':
+            case '{': case '}':
+            case '[': case ']':
+            case '(': case ')':
+            case '=': case '!':
+            case '<': case '>':
+            case '-': case '+':
+            case '*': case '/':
+            case '|': case '&':
+            case '^': case '%':
+                return true
+
+        default:
+                return false
+        }
+    }
+
+    function isIdentifier(c) {
+        return c === '_' || c === '$' || isAlphaNum(c)
+    }
+
+    // stream
+    function getc() {
+        if (buffered && bufc) {
+            buffered = false
+            return bufc
+        }
+        if (pos < script.src.length) {
+            bufc = script.src.charAt(pos++)
+            if (bufc === '\n') line++
+            return bufc
+        }
+        bufc = undefined
+    }
+
+    function retc() {
+        if (buffered) throw 'double buffering is not supported!'
+        buffered = true
+    }
+
+    function ahead() {
+        const c = getc()
+        retc()
+        return c
+    }
+
+    // tokenizer
+    const ID = 1
+    const SPECIAL = 2
+    const STRING = 3
+    const LINE_COMMENT = 4
+    const BLOCK_COMMENT = 5
+
+    function skipWhitespaces() {
+        let c = getc()
+        while (c && isWhitespace(c)) c = getc()
+        retc()
+    }
+
+    function matchComment(type) {
+        let comment = ''
+
+        let c = getc()
+        let prevc
+
+        while(c) {
+
+            prevc = c
+            c = getc()
+
+            if (type === '*') {
+                if (prevc === '*' && c === '/') {
+                    return {
+                        t: BLOCK_COMMENT,
+                        v: comment.trim(),
+                        l: line,
+                    }
+                }
+            } else {
+                if (isNewLine(c)) {
+                    return {
+                        t: LINE_COMMENT,
+                        v: (comment + prevc).trim(),
+                        l: line,
+                    }
+                }
+            }
+            comment += prevc
+        }
+    }
+
+    function matchString(type) {
+        let c = getc()
+        let prevc
+
+        let str = ''
+        let open = true
+        while(c && open) {
+            str += c
+
+            prevc = c
+            c = getc()
+
+            if (c === type) {
+                if (prevc !== '\\') {
+                    c = getc()
+                    if (c !== type) {
+                        retc()
+                        open = false
+                    }
+                }
+            }
+        }
+
+        return { t: STRING, v: str }
+    }
+
+    function nextToken() {
+        skipWhitespaces()
+
+        let c = getc()
+        if (!c) return // no more tokens
+
+        if (isSpecial(c)) {
+            if (c === "'" || c === '"' || c === '`') {
+                return matchString(c)
+            } else if (c === '/') {
+                c = getc()
+                if (c === '/') return matchComment('/')
+                else if (c === '*') return matchComment('*')
+                else retc()
+            }
+            return { t: SPECIAL, v: c }
+
+        } else {
+
+            let token = ''
+            while(c && !isWhitespace(c) && !isSpecial(c)) {
+                token += c
+                c = getc()
+            }
+            retc()
+            return { t: ID, v: token }
+        }
+    }
+
+    function defMeta(name, comment) {
+        if (comment && comment.l + 2 > line) {
+            meta[name] = comment.v
+            metaCount ++
+        }
+    }
+
+    function parse() {
+        let token = nextToken()
+        let lastToken
+        let lastName
+        let lastComment
+
+        while(token) {
+
+            if (token.t === BLOCK_COMMENT) {
+                lastComment = token
+            } else if (token.t === LINE_COMMENT) {
+                if (lastComment && lastComment.l + 1 >= token.l) {
+                    // join with previous comment
+                    token.v = lastComment.v + '\n' + token.v
+                }
+                lastComment = token
+            }
+
+            /*
+            if (token.t === LINE_COMMENT
+                    || token.t === BLOCK_COMMENT
+                    || token.t === STRING) {
+                console.log(`@${line}: #${token.t}[${token.v}]`)
+            }
+            */
+
+            lastToken = token
+            token = nextToken()
+
+            if (token && lastToken) {
+                if (lastToken.t === ID
+                        && token.t === SPECIAL
+                        && token.v === ':') {
+                    lastName = lastToken.v
+                } else if (token.t === ID
+                        && token.v === 'function'
+                        && lastName) {
+                    defMeta(lastName, lastComment)
+                    //console.log(line + ': [def] function ' + lastName + '()')
+                    lastName = undefined
+
+                } else if (lastToken.t === ID
+                        && lastToken.v === 'function'
+                        && token.t === ID) {
+                    defMeta(token.v, lastComment)
+                    //console.log(line + ': [def] function ' + token.v + '()')
+                    
+                } else {
+                    lastName = undefined
+                }
+            }
+        }
+    }
+
+    parse()
+    if (metaCount > 0) return meta
+}
+
 function parseFunctions(src, res) {
     const rx = /(function\s*(\w[\w\d]*)\s*\()/g
     //const res = src.replace(rx, "module.def.$2 = $1")
@@ -859,6 +1115,27 @@ function generateSource(script, __) {
     + '\n//# sourceURL=' + script.origin
 }
 
+function injectMeta(val, meta) {
+    if (!val) return
+    if (!meta) return val
+
+    if (isFun(val) && meta[val.name]) {
+        val._meta = {
+            head: meta[val.name]
+        }
+    } else {
+        Object.keys(meta).forEach(k => {
+            const subVal = val[k]
+            if (subVal && isFun(subVal)) {
+                subVal._meta = {
+                    head: meta[k]
+                }
+            }
+        })
+    }
+    return val
+}
+
 function evalJS(script, _) {
     const scope = {}
     const module = {}
@@ -887,6 +1164,11 @@ function evalJS(script, _) {
     }
 
     script.def = ''
+
+    let meta
+    if (_scene.env.config.debug) {
+        meta = extractMeta(script)
+    }
     const code = generateSource(script, __)
 
     /*
@@ -905,9 +1187,13 @@ function evalJS(script, _) {
     //      if not resolved - postpone the evaluation until later in the batch
     const val = eval(code)
 
-    if (val !== undefined) return val
-    else if (module.exports !== undefined) return module.exports
-    else {
+    if (val !== undefined) {
+        return injectMeta(val, meta)
+
+    } else if (module.exports !== undefined) {
+        return injectMeta(module.exports, meta)
+
+    } else {
         const defs = []
         parseFunctions(script.src, defs)
         parseConstants(script.src, defs)
@@ -931,7 +1217,7 @@ function evalJS(script, _) {
                     _.log.sys('found defining function for export ' + script.name + '()')
                     return module.def[script.name]
                 }
-                return module.def
+                return injectMeta(module.def, meta)
             } else {
                 _.log.sys('no value, exports or declarations from ' + script.path, 'eval')
                 return null
