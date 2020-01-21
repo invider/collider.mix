@@ -1482,6 +1482,7 @@ function augmentCtx(ctx) {
     const TAU = Math.PI * 2
     let mode = 0
     let shape = false
+    let lastFont
 
     ctx.draw = {
 
@@ -1744,6 +1745,7 @@ function augmentCtx(ctx) {
         },
 
         font: function(font) {
+            lastFont = font
             ctx.font = font
         },
         alignLeft: function() {
@@ -1771,6 +1773,10 @@ function augmentCtx(ctx) {
         textWidth: function(txt) {
             if (!txt) return 0
             else return ctx.measureText(txt).width
+        },
+        textHeight: function() {
+            if (!lastFont) return 0
+            return parseInt(lastFont)
         },
         image: function(img, x, y, w, h, dx, dy, dw, dh) {
             switch(arguments.length) {
