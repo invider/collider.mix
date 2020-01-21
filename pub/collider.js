@@ -1230,7 +1230,7 @@ function injectMeta(val, meta, name) {
 
     Object.keys(meta).forEach(k => {
         const subVal = val[k]
-        if (subVal) {
+        if (subVal && (isObj(subVal) || isFun(subVal))) {
             subVal._meta = meta[k]
         }
     })

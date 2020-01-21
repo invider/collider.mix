@@ -57,6 +57,7 @@ module.exports = {
         let cons = source
         if (this._.sys.isString(source)) {
             cons = this._.selectOne(sbase + source)
+
             if (!isFun(cons) && !isObj(cons)) {
                 // look up in the root mod
                 cons = this._._$.selectOne(sbase + source)
