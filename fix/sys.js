@@ -90,11 +90,13 @@ module.exports = {
             if (/[A-Z]/.test(cons.name[0])) {
                 // uppercase means constructor
                 let res = new cons(spawnData)
+                res._dna = cons.name
                 sys.attach(dest, res)
                 return res
             } else {
                 // lowercase means factory
                 let res = cons(spawnData)
+                res._dna = cons.name
                 return sys.attach(dest, res)
             }
         } else if (sys.isObj(cons)) {
