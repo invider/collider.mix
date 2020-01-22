@@ -65,6 +65,7 @@ module.exports = {
             if (!isFun(cons) && !isObj(cons)) throw "can't find the spawn dna: "
                 + this._.name + '/' + sbase + source
         }
+        if (!cons) throw `can't find the spawn dna: ${source}`
 
         let dest = target
         if (!target || target === '') {
