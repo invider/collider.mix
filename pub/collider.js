@@ -44,7 +44,7 @@ const isObj = function(o) {
     return !!(o && typeof o === 'object')
 }
 const isFun = function(f) {
-    return !!(f && f.constructor && f.call && f.apply);
+    return !!(f && f.constructor && f.call && f.apply)
 }
 const isString = function(s) {
     return toString.call(s) == "[object String]"
@@ -926,6 +926,7 @@ function extractMeta(script) {
 
         let c = getc()
         let prevc
+        let lineChars = 0
 
         if (type === '/' && isNewLine(c)) return {
             t: LINE_COMMENT,
@@ -942,10 +943,23 @@ function extractMeta(script) {
                 if (prevc === '*' && c === '/') {
                     return {
                         t: BLOCK_COMMENT,
-                        v: comment.trim(),
+                        v: comment,
                         l: line,
                     }
                 }
+
+                if (isNewLine(prevc)) {
+                    lineChars = 0
+                } else if (lineChars === 0 && isWhitespace(prevc)) {
+                    // don't count in whitespaces in the beginning of a line
+                } else if (lineChars === 0 && prevc === '*') {
+                    // skip
+                    prevc = ''
+
+                } else {
+                    lineChars ++
+                }
+
             } else {
                 if (isNewLine(c)) {
                     return {
