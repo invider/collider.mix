@@ -1211,8 +1211,11 @@ function parseConstants(src, res) {
 function generateSource(script, __) {
 
     let def = ''
-
+    Object.keys(__.alt._dir).forEach(f => {
+        def += `let ${f} = __.alt._dir.${f};`
+    })
     // declare scope
+    /*
     Object.keys(__._scope).forEach(f => {
         def += `let ${f} = __._scope.${f};`
     })
@@ -1221,6 +1224,7 @@ function generateSource(script, __) {
     Object.keys(__.ctx.draw).forEach(f => {
         def += `let ${f} = ctx.draw.${f};`
     })
+    */
 
     // provide lexical scope for mod context and scope object for this. definitions
     return '(function(_, ctx, _$, module, require, sys, lib, res, dna, env, lab, mod, pub, log, cue, job, trap) {'
@@ -2049,6 +2053,8 @@ const Mod = function(dat) {
     // log functions
     //this.attach(new Frame("log"))
 
+    this.attach(new Frame(), 'alt')
+
     // prototypes/constructors
     this.attach(new Frame(), 'dna')
 
@@ -2137,12 +2143,29 @@ const Mod = function(dat) {
 
 Mod.prototype = new Frame()
 
+Mod.prototype.populateAlt = function() {
+    // declare scope
+    const _ = this
+    Object.keys(this._scope).forEach(name => {
+        const fn = _._scope[name]
+        _.alt.attach(fn, name)
+    })
+
+    // declare drawing context
+    Object.keys(this.ctx.draw).forEach(name => {
+        const fn = _.ctx.draw[name]
+        _.alt.attach(fn, name)
+    })
+}
+
 Mod.prototype.init = function() {
     this.___ = this._ // save node context as parent mod
     this._ = this // must be in init, since it is assigned during the regular node.attach()
     if (!this.ctx) {
         this.ctx = this.___.ctx // clone draw context from parent mod if not set explicitly
     }
+    this.populateAlt()
+
     this.inherit()
 }
 
@@ -2173,6 +2196,7 @@ Mod.prototype._runTests = function() {
                 try {
                     const mod = constructScene()
                     mod.ctx = _scene.ctx
+                    mod.populateAlt()
                     repatchScene(mod, _scene)
 
                     const res = mod.test[name]()
@@ -2985,6 +3009,7 @@ const bootstrap = function() {
 
     // bind context
     _scene.ctx = augmentCtx(canvas.getContext("2d"))
+    _scene.populateAlt()
 
     _scene.loadUnits(_scene, _scene.env.syspath)
 
