@@ -77,6 +77,8 @@ function mix() {
 }
 function augment() {
     let mixin = arguments[0]
+    if (!isObj(mixin) && !isFun(mixin)) mixin = {}
+
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
         if (source && source !== mixin) for (let prop in source) {
@@ -94,14 +96,18 @@ function augment() {
 }
 function supplement() {
     let mixin = arguments[0]
+    if (!isObj(mixin) && !isFun(mixin)) mixin = {}
+
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
-        for (let prop in source) {
-            if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
-                if (isObj(mixin[prop]) && isObj(source[prop])) {
-                    if (mixin !== source[prop]) supplement(mixin[prop], source[prop])
-                } else if (mixin[prop] === undefined) {
-                    mixin[prop] = source[prop];
+        if (isObj(source)) {
+            for (let prop in source) {
+                if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
+                    if (isObj(mixin[prop]) && isObj(source[prop])) {
+                        if (mixin !== source[prop]) supplement(mixin[prop], source[prop])
+                    } else if (mixin[prop] === undefined) {
+                        mixin[prop] = source[prop];
+                    }
                 }
             }
         }
@@ -978,7 +984,8 @@ function extractMeta(script) {
         let prevc
 
         let str = ''
-        let open = true
+        let open = c !== type
+
         while(c && open) {
             str += c
 
@@ -987,15 +994,11 @@ function extractMeta(script) {
 
             if (c === type) {
                 if (prevc !== '\\') {
-                    c = getc()
-                    if (c !== type) {
-                        retc()
-                        open = false
-                    }
+                    retc()
+                    open = false
                 }
             }
         }
-
         return { t: STRING, v: str }
     }
 
@@ -1050,8 +1053,6 @@ function extractMeta(script) {
 
     function defMeta(type, name, comment, params) {
         if (name === 'exports') name = script.name
-
-        //if (comment && comment.v.includes('sound')) debugger
 
         if (comment && comment.l + 2 > line) {
             let head = comment.v.trim()
@@ -1175,6 +1176,12 @@ function extractMeta(script) {
                         && token.t === ID) {
                     // const <name>
                     defMeta('const', token.v, lastComment)
+
+                } else if (lastToken.t === ID
+                        && lastToken.v === 'class'
+                        && token.t === ID) {
+                    // const <name>
+                    defMeta('class', token.v, lastComment)
                     
                 } else {
                     lastName = undefined
@@ -1239,9 +1246,21 @@ function injectMeta(val, meta, name) {
     if (!val) return
     if (!meta) return val
 
-
     if (isFun(val) && meta[val.name]) {
+        // metadata on the function itself
         val._meta = meta[val.name]
+
+        const submetas = Object.keys(meta)
+        if (submetas.length > 1) {
+            // looks like we have other definitions - could be a constructor
+            val._meta.dir = {}
+            for (const subName of submetas) {
+                if (subName !== name) { 
+                    val._meta.dir[subName] = meta[subName]
+                }
+            }
+        }
+
     } else if (meta[name]) {
         val._meta = meta[name]
     }
@@ -2144,14 +2163,12 @@ const Mod = function(dat) {
 Mod.prototype = new Frame()
 
 Mod.prototype.populateAlt = function() {
-    // declare scope
     const _ = this
     Object.keys(this._scope).forEach(name => {
         const fn = _._scope[name]
         _.alt.attach(fn, name)
     })
 
-    // declare drawing context
     Object.keys(this.ctx.draw).forEach(name => {
         const fn = _.ctx.draw[name]
         _.alt.attach(fn, name)
