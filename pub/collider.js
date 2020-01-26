@@ -1194,6 +1194,16 @@ function extractMeta(script) {
     if (metaCount > 0) return meta
 }
 
+function parseClasses(src, res) {
+    const rx = /(class\s*(\w[\w\d]*)\s*)/g
+
+    let match = rx.exec(src)
+    while(match) {
+        res.push(match[2])
+        match = rx.exec(src)
+    }
+}
+
 function parseFunctions(src, res) {
     const rx = /(function\s*(\w[\w\d]*)\s*\()/g
     //const res = src.replace(rx, "module.def.$2 = $1")
@@ -1334,6 +1344,7 @@ function evalJS(script, _) {
 
     } else {
         const defs = []
+        parseClasses(script.src, defs)
         parseFunctions(script.src, defs)
         parseConstants(script.src, defs)
 
@@ -1353,7 +1364,7 @@ function evalJS(script, _) {
 
             if (module.def) {
                 if (isFun(module.def[script.name]) || isObj(module.def[script.name])) {
-                    _.log.sys('found defining function for export ' + script.name + '()')
+                    _.log.sys('found defining node for export ' + script.name + '()')
                     return module.def[script.name]
                 }
                 return injectMeta(module.def, meta, script.name)
