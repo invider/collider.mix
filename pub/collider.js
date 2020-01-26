@@ -1195,7 +1195,7 @@ function extractMeta(script) {
 }
 
 function parseClasses(src, res) {
-    const rx = /(class\s*(\w[\w\d]*)\s*)/g
+    const rx = /(class\s*(\w[\w\d]*))/g
 
     let match = rx.exec(src)
     while(match) {
