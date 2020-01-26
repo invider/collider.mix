@@ -31,11 +31,14 @@ const _pad = function(gamepad) {
         if (pad && pad.connected) return pad
     }
 }
+
 const _mouse = {
     x: 0,
     y: 0,
     lx: 0,
     ly: 0,
+    out: false,
+    buttons: 0,
 }
 
 // *********
@@ -591,7 +594,8 @@ Frame.prototype.select = function(predicate) {
 			let res = []
 			for (let k in this._dir) {
 				let o = this._dir[k]
-				if (k.includes(predicate) || (o.tag && o.tag.includes(predicate))) res.push(o)
+                // TODO make possible * matching and direct #tag specifiers
+				if (k === predicate || (o.tag && o.tag.includes(predicate))) res.push(o)
 			}
 			return res
 		}
@@ -1074,7 +1078,7 @@ function extractMeta(script) {
         // define usage for functions
         if (type === 'function' && isString(params)) {
             if (!meta[name]) meta[name] = {}
-            meta[name].usage = `${name}(${params})`
+            meta[name].usage = `(${params})`
         }
     }
 
@@ -3295,10 +3299,16 @@ function handleMouseOut(e) {
         delete _scene.env.key[k]
     }
     */
+    _mouse.out = true
     Object.keys(_key).forEach(k => {
         delete _key[k]
     })
     _scene.trap('mouseOut', e, true)
+}
+
+function handleMouseOver(e) {
+    _mouse.out = false
+    _scene.trap('mouseOver', e, true)
 }
 
 function handleTouchStart(e) {
@@ -3333,7 +3343,7 @@ function handleKeyDown(e) {
         + e.code.substring(1)
 
     _key[keyName] = true
-    _key[e.which] = true
+    _key[e.key] = true
 
     let chain = _scene.trap(keyName + 'Down', e, true)
     if (chain) {
@@ -3353,7 +3363,7 @@ function handleKeyUp(e) {
         + e.code.substring(1)
 
     delete _key[keyName]
-    delete _key[e.which]
+    delete _key[e.key]
 
     let chain = _scene.trap(keyName + 'Up', e, true)
     if (chain) {
@@ -3425,6 +3435,7 @@ function bindHandlers(target) {
     target.onmouseup = handleMouseUp
     target.onclick = handleMouseClick
     target.onmouseout = handleMouseOut
+    target.onmouseover = handleMouseOver
     target.ondblclick = handleMouseDoubleClick
     target.oncontextmenu = handleContextMenu
     target.onmousemove = handleMouseMove
