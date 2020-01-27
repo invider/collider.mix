@@ -66,6 +66,19 @@ const isMutable = function(obj) {
 const isFrame = function(f) {
     return !!(f && f._frame)
 }
+const isEmpty = function(o) {
+    if (!o) return true
+    if (isObj(o)) {
+        for (let prop in o) {
+            if (o.hasOwnProperty(prop)) return false
+        }
+        return true
+
+    } else if (isArray(o)) {
+        return o.length === 0
+    }
+    return false
+}
 
 function mix() {
     let mixin = {}
@@ -315,7 +328,7 @@ const touchFun = function(nodeFactory) {
             let nextNode = this[nextName]
             if (!nextNode) {
                 // no existing node, provide a new one
-                return this.attach(nodeFactory(nextName)).touch(nextPath)
+                return this.attach(nodeFactory(nextName, this)).touch(nextPath)
             } else {
                 if (isFun(nextNode.touch)) {
                     return nextNode.touch(nextPath)
@@ -332,7 +345,7 @@ const touchFun = function(nodeFactory) {
             // we got the name of the final frame in the path
             if (this[path]) return this[path]
             // node seems to be missing - create a new one
-            return this.attach(nodeFactory(path))
+            return this.attach(nodeFactory(path, this))
         }
     }
 }
@@ -354,10 +367,15 @@ const Frame = function(dat) {
 }
 Frame.prototype._frame = true
 Frame.prototype.type = "frame"
+
 Frame.prototype.path = function() {
     if (this.__) return addPath(this.__.path(), this.name)
     return this.name
 }
+Frame.prototype.path._meta = {
+    head: 'returns the path of the node',
+}
+
 Frame.prototype.touch = touchFun((name) => new Frame(name))
 
 Frame.prototype.attach = function(node, name) {
@@ -540,6 +558,27 @@ Frame.prototype.selectInstance = function(of) {
 }
 
 Frame.prototype.select = function(predicate) {
+
+    function selectFromObject(node, path, res) {
+        if (!path) return
+
+		let i = path.indexOf('/')
+		if (i > 0) {
+			let nextName = path.substring(0, i)
+			let nextPath = path.substring(i + 1)
+
+            const subNode = node[nextName]
+            if (subNode) {
+                selectFromObject(subNode, nextPath, res)
+            }
+
+        } else {
+            // got the property!
+            const subNode = node[path]
+            if (subNode) res.push(subNode)
+        }
+    }
+
 	if (isString(predicate)) {
 		// select by path
 		if (predicate === '') {
@@ -549,6 +588,7 @@ Frame.prototype.select = function(predicate) {
 
 		let i = predicate.indexOf('/')
 		if (i > 0) {
+
 			let nextName = predicate.substring(0, i)
 			let nextPath = predicate.substring(i + 1)
 			if (nextName == '..') {
@@ -569,12 +609,15 @@ Frame.prototype.select = function(predicate) {
 					} else if (isArray(o)) {
 						if (nextPath === '' || nextPath === '*') res = res.concat(o)
 						// TODO maybe handle index identifiers?
-					} else if (isObj(o)) {
+					} else if (isObj(o) || isFun(o)) {
+                        selectFromObject(o, nextPath, res)
+                        /*
 						for (let j in o) {
 							if (nextPath === '*' || j.includes(nextPath)) {
 								res.push(o[j])
 							}
 						}
+                        */
 					}
 				}
 				
@@ -627,8 +670,8 @@ Frame.prototype.select = function(predicate) {
         }
     }
     */
-
 	} else if (isFun(predicate)) {
+        // TODO shouldn't we search deep?
         return this._ls.filter(predicate)
 	} else return []
 }
@@ -651,6 +694,8 @@ Frame.prototype.selectOneNumber = function(predicate) {
 }
 
 Frame.prototype.kill = function() {
+    // TODO shouldn't it be killThemAll?
+    // kill() probably should be only on LabFrame
     this._ls.forEach(node => {
         if (isFun(node.kill)) node.kill()
     })
@@ -1871,6 +1916,7 @@ const Mod = function(dat) {
         isNumber: isNumber,
         isFrame: isFrame,
         isArray: isArray,
+        isEmpty: isEmpty,
 
         // math
         E: Math.E,
@@ -2113,6 +2159,7 @@ const Mod = function(dat) {
 
     // container for mods
     // TODO what to do with this autoloading?
+    //      doesn't make any sense to me
     var mod = function mod(path, name) {
         if (!name) {
             let i = path.lastIndexOf('/')
@@ -2129,6 +2176,7 @@ const Mod = function(dat) {
     mod.touch = touchFun((name) => {
         let mod
         if (name.endsWith('-buf')) {
+            // find different convention for buffered?
             const canvas = document.createElement('canvas')
             const ctx = augmentCtx(canvas.getContext('2d'))
 
@@ -2175,7 +2223,16 @@ const Mod = function(dat) {
     this.attach(trap)
 }
 
-Mod.prototype = new Frame()
+Mod.prototype = Object.create(Frame.prototype)
+
+Mod.prototype.touch = touchFun((name, dir) => {
+    const node = new Frame(name)
+    if (name === 'box') {
+        // mod/box should create mods on touch
+        node.touch = dir.mod.touch
+    }
+    return node
+})
 
 Mod.prototype.populateAlt = function() {
     const _ = this
@@ -2201,16 +2258,43 @@ Mod.prototype.init = function() {
     this.inherit()
 }
 
+function doBox(mod, boxName, start) {
+    const box = mod.selectOne(boxName)
+    if (box) {
+        mod.mod.link(box)
+        if (start) box.start()
+        return true
+    } else {
+        _scene.log.sys(
+            `unable to find box [${boxName}] in [${mod.name}]`)
+    }
+}
+
+function doTest(mod, testName) {
+    const test = mod.selectOne(testName)
+    if (isFun(test)) {
+        _scene.log.sys(`running test [${testName}] in [${mod.name}]`)
+        return test()
+
+    } else {
+        _scene.log.sys(
+            `unable to find test [${testName}] in [${mod.name}]`)
+    }
+}
+
 Mod.prototype._runTests = function() {
     if (!isFrame(this.test)) return
     if (this.test._ls.length === 0) return
 
     if (isString(_scene.env.config.test)) {
         this.status = 'testing'
-        const test = this.test[_scene.env.config.test]
+        const testName = _scene.env.config.test
+        const test = this.test.selectOne(_scene.env.config.test)
         if (isFun(test)) {
             _scene.log.sys('running test [' + _scene.env.config.test + '] in ' + this.name)
             return test()
+        } else {
+            _scene.log.sys(`no test [${testName}] in ${this.name}`)
         }
         return false
 
@@ -2223,7 +2307,7 @@ Mod.prototype._runTests = function() {
         Object.keys(this.test._dir).forEach(name => {
             const test = this.test[name]
 
-            if (isFun(test) && !test.manual) {
+            if (isFun(test)) {
                 //_scene.log.sys('test [' + name + ']')
                 try {
                     const mod = constructScene()
@@ -2271,7 +2355,18 @@ Mod.prototype.start = function() {
 
     let captured = false
     if (_scene.env.config.test) captured = this._runTests()
-    
+
+    if (this === _scene && _scene.env.config.box) {
+        captured = doBox(_scene, 'box/' + _scene.env.config.box, false)
+        if (captured) {
+            this.status = 'started'
+            if (isFrame(this.mod)) this.mod._ls.forEach( mod => mod.start() )
+            _scene.log.sys('starting evolution of ['
+                + this.path() + '/box/' + _scene.env.config.box + ']')
+            return
+        }
+    }
+
     if (isFrame(this.mod)) this.mod._ls.forEach( mod => mod.start() )
     
     if (!captured) {
@@ -2919,6 +3014,7 @@ function constructScene() {
     mod.sys.attach(isArray)
     mod.sys.attach(isMutable)
     mod.sys.attach(isFrame)
+    mod.sys.attach(isEmpty)
 
     // pub
     mod.attach(new Frame({
@@ -3378,6 +3474,16 @@ function handleKeyUp(e) {
     return true
 }
 
+function handleHashChange() {
+    if (location.hash.startsWith('#test')) {
+        doTest(_scene, location.hash.substring(1))
+    } else if (location.hash.startsWith('#box')) {
+        doBox(_scene, location.hash.substring(1), true)
+    } else {
+        _scene.trap('hash', location.hash)
+    }
+}
+
 
 // *****************
 // setup environment
@@ -3402,15 +3508,20 @@ for (let i = 0; i < scripts.length; i++) {
         _scene.env.title = document.title
 
         // check out test hash
-        if (location.hash && location.hash.startsWith('#test')) {
-            // determine test name
-            const testName = location.hash.substring(6)
-            if (testName.length === 0) {
-                _scene.env.config.test = true
-            } else {
-                _scene.env.config.test = testName
+        if (location.hash) {
+            if (location.hash.startsWith('#test')) {
+                // determine test name
+                const testName = location.hash.substring(6)
+                if (testName.length === 0) {
+                    _scene.env.config.test = true
+                } else {
+                    _scene.env.config.test = testName
+                }
+            } else if (location.hash.startsWith('#box')) {
+                // determine box name
+                _scene.env.config.box = location.hash.substring(5)
             }
-        }
+        } 
 
         _scene.log.sys('=== Environment ===')
         _scene.log.sys('basename: ' + _scene.env.basename)
@@ -3441,6 +3552,7 @@ function bindHandlers(target) {
     target.onmousemove = handleMouseMove
     target.onkeydown = handleKeyDown
     target.onkeyup = handleKeyUp
+    target.onhashchange = handleHashChange
 
     target.addEventListener('wheel', handleMouseWheel)
     target.addEventListener('touchstart', handleTouchStart)

@@ -27,7 +27,7 @@ module.exports = {
     },
 
     /*
-    // and what can we do with name shaddowing? select is already in Fram
+    // and what can we do with name shaddowing? select is already in Frame
     // select from arbitrary object
     select: function(target, path) {
         // TODO select from any object recursively
