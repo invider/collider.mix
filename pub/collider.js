@@ -2704,6 +2704,17 @@ function scheduleLoad(_, batch, url, base, path, name, ext) {
     ajax.send()
 }
 
+Mod.prototype.patchNode = function(unitId, unitUrl, path) {
+    _scene.log.sys('[patch]', 'patching ' + addPath(unitUrl, path))
+    const unit = _scene._units[unitId]
+    if (unit) {
+        _scene.batchLoad(0, addPath(unit.id, path), _scene, addPath(unit.mount, path))
+    } else {
+        _scene.log.err('[patch]', 'unable to patch ' + addPath(unitUrl, path))
+    }
+}
+
+
 Mod.prototype.batchLoad = function(batch, url, base, path) {
     const _ = this
     //_.log.sys('batch-#' + batch, 'url: ' + url + ' base: ' + base.name + ' path: ' + path)
@@ -2900,7 +2911,7 @@ Mod.prototype.loadUnits = function(baseMod, target) {
             // schedule the loading
             let batch = 2 // 0 is for boot, 1 is for static resources
             loadQueue.forEach(unit => {
-                const ls = unit.ls
+                const ls = unit.ls || []
                 ls.forEach(resLocalUrl => {
                     // remove ext and classifier and add unit mount point to get mod path
                     const targetPath = addPath(unit.mount, removeExtention(removeExtention(resLocalUrl)))
@@ -3187,6 +3198,7 @@ const bootstrap = function() {
         if (isFun(canvas.requestFullscreen)) canvas.requestFullscreen()
     }
     startCycle()
+    startFlow()
 }
 
 function startCycle() {
@@ -3205,6 +3217,42 @@ function startCycle() {
         setInterval(cycle, 1000/_scene.env.TARGET_FPS)
     }
     */
+}
+
+function openSocket(url, retry) {
+    const TAG = '[flow]'
+    const socket = new WebSocket(url)
+
+    socket.onopen = function() {
+        _scene.log.sys(TAG, `started the flow at: ${url}`)
+    }
+
+    socket.onclose = function(err) {
+        const timeout = Math.min(retry * 2, 60) || 5
+        _scene.log.sys(TAG, `flow is closed, trying to reestablish in ${timeout}s...`)
+        setTimeout(() => openSocket(url, timeout), timeout * 1000)
+    }
+
+    socket.onmessage = function(msg) {
+        //_scene.log(TAG, msg.data.toString())
+        if (isString(msg.data)) {
+            const parts = msg.data.split(':')
+            _scene.patchNode(parts[0], parts[1], parts[2])
+        }
+    }
+
+    _scene.flow = function(msg) {
+        console.dir(socket)
+        if (socket.readyState !== 1) return
+        socket.send(msg)
+    }
+}
+
+function startFlow(url) {
+    if (!_scene.env.config.flow) return
+
+    const socketProtocol = (window.location.protocol === 'https:'? 'wss:' : 'ws:')
+    openSocket(`${socketProtocol}//${window.location.host}/flow/`)
 }
 
 function expandCanvas(name) {
