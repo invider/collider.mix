@@ -1398,7 +1398,7 @@ function evalJS(script, _) {
         parseConstants(script.src, defs)
 
         if (defs.length > 0) {
-            _.log.sys('eval', 'no value - reevaluating to extract definitions' + script.path)
+            _.log.sys('[eval]', 'no value - reevaluating to extract definitions: ' + script.path)
 
             // definitions storage code
             script.def = '\n' + defs.map(d => `if (typeof ${d} !== 'undefined') module.def.${d} = ${d}`).join(';')
@@ -1418,12 +1418,12 @@ function evalJS(script, _) {
                 }
                 return injectMeta(module.def, meta, script.name)
             } else {
-                _.log.sys('no value, exports or declarations from ' + script.path, 'eval')
+                _.log.sys('no value, exports or declarations from ' + script.path, '[eval]')
                 return null
             }
 
         } else {
-            _.log.sys('no value, exports or declarations from ' + script.path, 'eval')
+            _.log.sys('no value, exports or declarations from ' + script.path, '[eval]')
             return null
         }
     }
@@ -1514,7 +1514,7 @@ function evalLoadedContent(script, _) {
     }
     _._patchLog.push(script)
     //} catch (e) {
-    //    _scene.log.err('jam-loader', 'error in [' + script.path + ']' + e)
+    //    _scene.log.err('[loader]', 'error in [' + script.path + ']' + e)
     //    throw e
     //}
 }
@@ -2074,7 +2074,7 @@ const Mod = function(dat) {
             if (this._included <= this._loaded) {
                 // OK - everything is loaded, call setup functions
                 // TODO how to deal with mods with no res? how start would be triggered?
-                this._.log.sys('loader', 'Total ' + this._loaded + ' resources are loaded in ' + this._.name)
+                this._.log.sys('[loader]', 'Total ' + this._loaded + ' resources are loaded in ' + this._.name)
                 this._exec()
 
                 this._.start()
@@ -2705,12 +2705,14 @@ function scheduleLoad(_, batch, url, base, path, name, ext) {
 }
 
 Mod.prototype.patchNode = function(unitId, unitUrl, path) {
-    _scene.log.sys('[patch]', 'patching ' + addPath(unitUrl, path))
     const unit = _scene._units[unitId]
     if (unit) {
-        _scene.batchLoad(0, addPath(unit.id, path), _scene, addPath(unit.mount, path))
+        const targetPath = addPath(unit.mount,
+                    removeExtention(removeExtention(path)))
+        _scene.log.sys('[patch]', 'patching ' + targetPath)
+        _scene.batchLoad(0, addPath(unit.id, path), _scene, addPath(unit.mount, targetPath))
     } else {
-        _scene.log.err('[patch]', 'unable to patch ' + addPath(unitUrl, path))
+        _scene.log.err('[patch]', `unable to patch ${targetPath}`)
     }
 }
 
@@ -2875,7 +2877,7 @@ function isIgnored(url, ignoreList) {
 
 Mod.prototype.loadUnits = function(baseMod, target) {
     target = normalizeDirPath(target)
-    this.log.sys('loader', '[' + this.name + '] loading: [' + baseMod.name + '] <= [' + target + ']') 
+    this.log.sys('[loader]', '[' + this.name + '] loading: [' + baseMod.name + '] <= [' + target + ']') 
     // TODO check that baseMod is actually a mod?
     let currentMod = baseMod
     let loaderMod = this
@@ -2932,7 +2934,7 @@ Mod.prototype.loadUnits = function(baseMod, target) {
         })
         .catch(err => {
             console.log(err)
-            _scene.log.err('loader', 'errors on units loading')
+            _scene.log.err('[loader]', 'errors on units loading')
         })
 }
 
@@ -3106,7 +3108,7 @@ _scene.packDeclarations = function(target) {
 // main scene lifecycle - bootstrap, cycle[evo, draw]
 //
 const preboot = function() {
-    _scene.log.sys('loader', 'loading config: ' + JAM_CONFIG)
+    _scene.log.sys('[loader]', 'loading config: ' + JAM_CONFIG)
 
     loadJson(JAM_CONFIG)
         .then(function(config) {
@@ -3117,7 +3119,7 @@ const preboot = function() {
             bootstrap()
         })
         .catch((err) => {
-            _scene.log.sys('loader', 'unable to get [' + JAM_CONFIG + ']: ' + err)
+            _scene.log.sys('[loader]', 'unable to get [' + JAM_CONFIG + ']: ' + err)
             bootstrap()
         })
 }
