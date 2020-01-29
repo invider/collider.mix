@@ -386,6 +386,8 @@ Frame.prototype.attach = function(node, name) {
         // TODO phase out mod reference for nodes - __ is enough
         node._ = this._
         node.__ = this
+        Object.defineProperty(node, '_', { enumerable: false })
+        Object.defineProperty(node, '__', { enumerable: false })
 
         // set name for the node if possible
         if (name && isObj(node)) node.name = name
@@ -2250,6 +2252,9 @@ Mod.prototype.populateAlt = function() {
 Mod.prototype.init = function() {
     this.___ = this._ // save node context as parent mod
     this._ = this // must be in init, since it is assigned during the regular node.attach()
+    Object.defineProperty(this, '___', { enumerable: false })
+    Object.defineProperty(this, '_', { enumerable: false })
+
     if (!this.ctx) {
         this.ctx = this.___.ctx // clone draw context from parent mod if not set explicitly
     }
@@ -3000,10 +3005,15 @@ function constructLog() {
 function constructScene() {
     const mod = new Mod()
     mod.name = '/'
+
     mod._ = mod // set the context
     mod._$ = mod // root context
     mod.__ = false // don't have any parents
     mod.___ = mod // parent context
+    Object.defineProperty(mod, '_', { enumerable: false })
+    Object.defineProperty(mod, '_$', { enumerable: false })
+    Object.defineProperty(mod, '__', { enumerable: false })
+    Object.defineProperty(mod, '___', { enumerable: false })
     mod.inherit = function() {}
 
     // sys
