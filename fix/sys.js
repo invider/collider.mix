@@ -122,10 +122,11 @@ module.exports = {
 
         // buffer and replace mod and parent links
         // to avoid circular links
-        let _ = obj._
-        let __ = obj.__
-        obj._ = null
-        obj.__ = null
+        // these links are non-enumerable now
+        //let _ = obj._
+        //let __ = obj.__
+        //obj._ = null
+        //obj.__ = null
 
         const clone = Object.create(Object.getPrototypeOf(obj))
         let data = JSON.parse(JSON.stringify(obj))
@@ -134,11 +135,16 @@ module.exports = {
             if (isFun(obj[k])) clone[k] = obj[k]
         })
 
-        this.augment(clone, meta)
+        if (isFun(clone.onSpawn)) {
+            clone.onSpawn(meta)
+        } else {
+            this.augment(clone, meta)
+            console.dir(clone)
+        }
 
         // restore links on original object
-        obj._ = _
-        obj.__ = __
+        //obj._ = _
+        //obj.__ = __
 
         return clone
     },
