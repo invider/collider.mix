@@ -3261,7 +3261,7 @@ function openSocket(url, retry) {
 }
 
 function startFlow(url) {
-    if (!_scene.env.config.flow) return
+    if (!_scene.env.config.debug && !_scene.env.config.flow) return
 
     const socketProtocol = (window.location.protocol === 'https:'? 'wss:' : 'ws:')
     openSocket(`${socketProtocol}//${window.location.host}/flow/`)
