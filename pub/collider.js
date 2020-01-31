@@ -2373,7 +2373,7 @@ Mod.prototype.start = function() {
     }
 
     if (isFrame(this.mod)) this.mod._ls.forEach( mod => mod.start() )
-    
+
     if (!captured) {
         if (isFun(this.setup)) {
             this.setup()
