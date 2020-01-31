@@ -1,6 +1,5 @@
 /*
  * Collider.JAM Supervisor
- * TODO rename to collider.js?
  */
 $ = scene = (function(window) {
 
@@ -8,10 +7,39 @@ $ = scene = (function(window) {
 
 // ***********
 // environment
-let SCRIPT_SRC = 'collider.mix/collider.js'
-let UNITS_MAP = 'units.map'
-let JAM_CONFIG = 'jam.config'
-let canvasName = 'canvas'
+const SCRIPT_SRC = 'collider.mix/collider.js'
+const UNITS_MAP = 'units.map'
+const JAM_CONFIG = 'jam.config'
+const canvasName = 'canvas'
+
+const GAMEPADS = 4
+
+// *********
+// flags
+let _key = {}
+const _pad = function(gamepad) {
+    if (gamepad === undefined) {
+        const res = []
+        for (let i = 0; i < GAMEPADS; i++) {
+            const p = navigator.getGamepads()[i]
+            if (p && p.connected) res.push(p)
+        }
+        return res
+
+    } else {
+        const pad = navigator.getGamepads()[gamepad]
+        if (pad && pad.connected) return pad
+    }
+}
+
+const _mouse = {
+    x: 0,
+    y: 0,
+    lx: 0,
+    ly: 0,
+    out: false,
+    buttons: 0,
+}
 
 // *********
 // utilities
@@ -19,7 +47,7 @@ const isObj = function(o) {
     return !!(o && typeof o === 'object')
 }
 const isFun = function(f) {
-    return !!(f && f.constructor && f.call && f.apply);
+    return !!(f && f.constructor && f.call && f.apply)
 }
 const isString = function(s) {
     return toString.call(s) == "[object String]"
@@ -38,48 +66,172 @@ const isMutable = function(obj) {
 const isFrame = function(f) {
     return !!(f && f._frame)
 }
+const isEmpty = function(o) {
+    if (!o) return true
+    if (isObj(o)) {
+        for (let prop in o) {
+            if (o.hasOwnProperty(prop)) return false
+        }
+        return true
+
+    } else if (isArray(o)) {
+        return o.length === 0
+    }
+    return false
+}
 
 function mix() {
-    let mixin = {};
+    let mixin = {}
     for (let arg = 0; arg < arguments.length; arg++) {
         for (let prop in arguments[arg]) {
             if (arguments[arg].hasOwnProperty(prop)) {
-                mixin[prop] = arguments[arg][prop];
+                mixin[prop] = arguments[arg][prop]
             }
         }
     }
-    return mixin;
+    return mixin
 }
 function augment() {
-    let mixin = arguments[0];
+    let mixin = arguments[0]
+    if (!isObj(mixin) && !isFun(mixin)) mixin = {}
+
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
         if (source && source !== mixin) for (let prop in source) {
-            if (isObj(mixin[prop]) && isObj(arguments[arg][prop])) {
-                // property is already assigned - augment it
-                if (mixin !== source[prop]) augment(mixin[prop], source[prop])
-            } else {
-                mixin[prop] = source[prop];
-            }
-        }
-    }
-    return mixin;
-}
-function supplement() {
-    let mixin = arguments[0];
-    for (let arg = 1; arg < arguments.length; arg++) {
-        const source = arguments[arg]
-        for (let prop in source) {
             if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
-                if (isObj(mixin[prop]) && isObj(source[prop])) {
-                    if (mixin !== source[prop]) supplement(mixin[prop], source[prop])
-                } else if (mixin[prop] === undefined) {
+                if (isObj(mixin[prop]) && isObj(arguments[arg][prop])) {
+                    // property is already assigned - augment it
+                    if (mixin !== source[prop]) augment(mixin[prop], source[prop])
+                } else {
                     mixin[prop] = source[prop];
                 }
             }
         }
     }
-    return mixin;
+    return mixin
+}
+function supplement() {
+    let mixin = arguments[0]
+    if (!isObj(mixin) && !isFun(mixin)) mixin = {}
+
+    for (let arg = 1; arg < arguments.length; arg++) {
+        const source = arguments[arg]
+        if (isObj(source)) {
+            for (let prop in source) {
+                if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
+                    if (isObj(mixin[prop]) && isObj(source[prop])) {
+                        if (mixin !== source[prop]) supplement(mixin[prop], source[prop])
+                    } else if (mixin[prop] === undefined) {
+                        mixin[prop] = source[prop];
+                    }
+                }
+            }
+        }
+    }
+    return mixin
+}
+
+function kill(e, s) {
+    if (e.__) {
+        if (isFun(e.kill)) e.kill(s)
+        else if (isFun(e.onKill)) e.onKill(s)
+        e.__.detach(e)
+    } else {
+        if (isFun(e.kill)) e.kill(s)
+        else _.log.warn("can't find kill function for " + e)
+    }
+}
+
+function limit(val, min, max) {
+    return val<min? min : val>max? max : val
+}
+
+function hue2rgb(p, q, t) {
+    if (t < 0) t += 1
+    if (t > 1) t -= 1
+    if (t < 1/6) return p + (q-p) * 6*t
+    if (t < 1/2) return q
+    if (t < 2/3) return p + (q-p) * (2/3 - t)*6
+    return p
+}
+
+function rgb(r, g, b) {
+    r = limit(Math.round(r * 255), 0, 255).toString(16)
+    g = limit(Math.round(g * 255), 0, 255).toString(16)
+    b = limit(Math.round(b * 255), 0, 255).toString(16)
+    if (r.length === 1) r = '0'+r
+    if (g.length === 1) g = '0'+g
+    if (b.length === 1) b = '0'+b
+
+    return '#' + r + g + b
+}
+
+function rgba(r, g, b, a) {
+    r = limit(Math.round(r * 255), 0, 255).toString(16)
+    g = limit(Math.round(g * 255), 0, 255).toString(16)
+    b = limit(Math.round(b * 255), 0, 255).toString(16)
+    a = limit(Math.round(a * 255), 0, 255).toString(16)
+    if (r.length === 1) r = '0'+r
+    if (g.length === 1) g = '0'+g
+    if (b.length === 1) b = '0'+b
+    if (a.length === 1) a = '0'+a
+
+    return '#' + r + g + b + a
+}
+
+function RGB(r, g, b) {
+    r = limit(Math.round(r), 0, 255).toString(16)
+    g = limit(Math.round(g), 0, 255).toString(16)
+    b = limit(Math.round(b), 0, 255).toString(16)
+    if (r.length === 1) r = '0'+r
+    if (g.length === 1) g = '0'+g
+    if (b.length === 1) b = '0'+b
+
+    return '#' + r + g + b
+}
+
+function RGBA(r, g, b, a) {
+    r = limit(Math.round(r), 0, 255).toString(16)
+    g = limit(Math.round(g), 0, 255).toString(16)
+    b = limit(Math.round(b), 0, 255).toString(16)
+    a = limit(Math.round(a), 0, 255).toString(16)
+    if (r.length === 1) r = '0'+r
+    if (g.length === 1) g = '0'+g
+    if (b.length === 1) b = '0'+b
+    if (a.length === 1) a = '0'+a
+
+    return '#' + r + g + b + a
+}
+
+function hsl(h, s, l) {
+    if (h > 1) h = 1
+    if (s > 1) s = 1
+    if (l > 1) l = 1
+    if (s === 0) {
+        return rgb(l, l, l)
+    } 
+    const q = l < 0.5? l*(1+s) : l + s - l*s
+    const p = 2*l - q
+    const r = hue2rgb(p, q, h + 1/3)
+    const g = hue2rgb(p, q, h)
+    const b = hue2rgb(p, q, h - 1/3)
+    return rgb(r, g, b)
+}
+
+function hsla(h, s, l, a) {
+    if (h > 1) h = 1
+    if (s > 1) s = 1
+    if (l > 1) l = 1
+    if (a > 1) a = 1
+    if (s === 0) {
+        return rgba(l, l, l, a)
+    } 
+    const q = l < 0.5? l*(1+s) : l + s - l*s
+    const p = 2*l - q
+    const r = hue2rgb(p, q, h + 1/3)
+    const g = hue2rgb(p, q, h)
+    const b = hue2rgb(p, q, h - 1/3)
+    return rgba(r, g, b, a)
 }
 
 // TODO make into regular obj.fn = before(patch, obj.fn)
@@ -88,7 +240,7 @@ const before = function(obj, fun, patch) {
     if (!orig) {
         obj[fun] = patch
     } else if (!isFun(orig)) {
-        throw new Error("Can't chain before [" + fun + " which is " + (typeof orig))
+        throw new Error("Can't chain before [" + fun + "] which is " + (typeof orig))
     } else {
         obj[fun] = function() {
             patch.apply(this, arguments)
@@ -105,7 +257,7 @@ const after = function(obj, fun, patch) {
     if (!orig) {
         obj[fun] = patch
     } else if (!isFun(orig)) {
-        throw new Error("Can't chain after [" + fun + " which is " + (typeof orig))
+        throw new Error("Can't chain after [" + fun + "] which is " + (typeof orig))
     } else {
         obj[fun] = function() {
             orig.apply(this, arguments)
@@ -114,6 +266,23 @@ const after = function(obj, fun, patch) {
         obj[fun].first = orig 
         obj[fun].after = patch
     }
+}
+
+const chain = function(fn1, fn2) {
+    if (fn1 && !isFun(fn1)) throw (`Function is expected, but found [${fn1}] of ` + (typeof fn1))
+    if (fn2 && !isFun(fn2)) throw (`Function is expected, but found [${fn2}] of ` + (typeof fn2))
+
+    if (fn1 && !fn2) return fn1
+    if (!fn1 && fn2) return fn2
+    if (!fn1 && !fn2) return function() {}
+
+    const fn = function() {
+        fn1.apply(this, arguments)
+        fn2.apply(this, arguments)
+    }
+    fn.first = fn1
+    fn.second = fn2
+    return fn
 }
 
 const matchType = function(v) {
@@ -159,7 +328,7 @@ const touchFun = function(nodeFactory) {
             let nextNode = this[nextName]
             if (!nextNode) {
                 // no existing node, provide a new one
-                return this.attach(nodeFactory(nextName)).touch(nextPath)
+                return this.attach(nodeFactory(nextName, this)).touch(nextPath)
             } else {
                 if (isFun(nextNode.touch)) {
                     return nextNode.touch(nextPath)
@@ -176,7 +345,7 @@ const touchFun = function(nodeFactory) {
             // we got the name of the final frame in the path
             if (this[path]) return this[path]
             // node seems to be missing - create a new one
-            return this.attach(nodeFactory(path))
+            return this.attach(nodeFactory(path, this))
         }
     }
 }
@@ -198,18 +367,28 @@ const Frame = function(dat) {
 }
 Frame.prototype._frame = true
 Frame.prototype.type = "frame"
+
 Frame.prototype.path = function() {
     if (this.__) return addPath(this.__.path(), this.name)
     return this.name
 }
+Frame.prototype.path._meta = {
+    head: 'returns the path of the node',
+}
+
 Frame.prototype.touch = touchFun((name) => new Frame(name))
 
 Frame.prototype.attach = function(node, name) {
-    if (node === undefined) return
+    if (node === undefined || node === null) return
     if (isObj(node) || isFun(node)) {
         // attaching an object - inject mod, parent and name
+
+        // TODO phase out mod reference for nodes - __ is enough
         node._ = this._
         node.__ = this
+        Object.defineProperty(node, '_', { enumerable: false })
+        Object.defineProperty(node, '__', { enumerable: false })
+
         // set name for the node if possible
         if (name && isObj(node)) node.name = name
         // take name from the node if not defined
@@ -229,7 +408,7 @@ Frame.prototype.attach = function(node, name) {
     if (isFun(node.init)) node.init() // initialize node
 
     return node
-};
+}
 
 Frame.prototype.link = function(node, name) {
     if (node === undefined) return
@@ -247,11 +426,11 @@ Frame.prototype.link = function(node, name) {
     }
     this._ls.push(node)
     return node
-};
+}
 
 Frame.prototype.onAttached = function(node, name, parent) {
-    this.__.onAttached(node, name, parent)
-};
+    if (this.__) this.__.onAttached(node, name, parent)
+}
 
 Frame.prototype.detach = function(node) {
     if (!node) {
@@ -274,14 +453,14 @@ Frame.prototype.detach = function(node) {
             this.detachByName(node.name);
         }
     }
-};
+}
 
 Frame.prototype.detachAll = function() {
     while(this._ls.length){
         let node = this._ls[0];
         this.detach(node)
     }
-};
+}
 
 Frame.prototype.detachByName = function(name) {
     var obj = this[name];
@@ -308,7 +487,7 @@ Frame.prototype.detachByName = function(name) {
     if (index >= 0){
         this._ls.splice(index, 1);
     }
-};
+}
 
 Frame.prototype.apply = function(fn, predicate) {
     let i = 0
@@ -378,9 +557,30 @@ Frame.prototype.reduce = function(fn) {
 
 Frame.prototype.selectInstance = function(of) {
     return this.select(o => o instanceof of)
-};
+}
 
 Frame.prototype.select = function(predicate) {
+
+    function selectFromObject(node, path, res) {
+        if (!path) return
+
+		let i = path.indexOf('/')
+		if (i > 0) {
+			let nextName = path.substring(0, i)
+			let nextPath = path.substring(i + 1)
+
+            const subNode = node[nextName]
+            if (subNode) {
+                selectFromObject(subNode, nextPath, res)
+            }
+
+        } else {
+            // got the property!
+            const subNode = node[path]
+            if (subNode) res.push(subNode)
+        }
+    }
+
 	if (isString(predicate)) {
 		// select by path
 		if (predicate === '') {
@@ -390,6 +590,7 @@ Frame.prototype.select = function(predicate) {
 
 		let i = predicate.indexOf('/')
 		if (i > 0) {
+
 			let nextName = predicate.substring(0, i)
 			let nextPath = predicate.substring(i + 1)
 			if (nextName == '..') {
@@ -401,18 +602,24 @@ Frame.prototype.select = function(predicate) {
 			let res = []
 			for (let k in this) {
 				let o = this[k]
-				if (o && nextName === '*' || k.includes(nextName) || (o.tag && o.tag.includes(nextName))) {
+				if (o && nextName === '*' || k.includes(nextName)
+                        || (o && o.tag && isString(o.tag) && o.tag.includes(nextName))) {
+
 					if (isFrame(o)) {
 						res = res.concat(o.select(nextPath))
+
 					} else if (isArray(o)) {
 						if (nextPath === '' || nextPath === '*') res = res.concat(o)
 						// TODO maybe handle index identifiers?
-					} else if (isObj(o)) {
+					} else if (isObj(o) || isFun(o)) {
+                        selectFromObject(o, nextPath, res)
+                        /*
 						for (let j in o) {
 							if (nextPath === '*' || j.includes(nextPath)) {
 								res.push(o[j])
 							}
 						}
+                        */
 					}
 				}
 				
@@ -432,7 +639,8 @@ Frame.prototype.select = function(predicate) {
 			let res = []
 			for (let k in this._dir) {
 				let o = this._dir[k]
-				if (k.includes(predicate) || (o.tag && o.tag.includes(predicate))) res.push(o)
+                // TODO make possible * matching and direct #tag specifiers
+				if (k === predicate || (o.tag && o.tag.includes(predicate))) res.push(o)
 			}
 			return res
 		}
@@ -464,8 +672,8 @@ Frame.prototype.select = function(predicate) {
         }
     }
     */
-
 	} else if (isFun(predicate)) {
+        // TODO shouldn't we search deep?
         return this._ls.filter(predicate)
 	} else return []
 }
@@ -474,7 +682,7 @@ Frame.prototype.selectOne = function(predicate) {
 	let list = this.select(predicate)
 	if (list.length > 0) return list[0]
 	return undefined
-};
+}
 
 Frame.prototype.selectOneNumber = function(predicate) {
     let list = this.select(predicate)
@@ -482,12 +690,14 @@ Frame.prototype.selectOneNumber = function(predicate) {
         if (isNaN(list[0])){
             throw new Error("Error parsing number:" + list[0])
         }
-        return parseFloat(list[0]);
+        return parseFloat(list[0])
     }
-    return 0;
+    return 0
 }
 
 Frame.prototype.kill = function() {
+    // TODO shouldn't it be killThemAll?
+    // kill() probably should be only on LabFrame
     this._ls.forEach(node => {
         if (isFun(node.kill)) node.kill()
     })
@@ -511,23 +721,20 @@ LabFrame.prototype.spawn = function(dna, st) {
     return this._.sys.spawn(dna, st, this)
 }
 
-// TODO processing of attached node and event on attachment probably should be different functions
-LabFrame.prototype.onAttached = function(node, name, parent) {
-    if (!node) {
-        // current lab frame is attached
-        if (isFun(this.__.onAttached)) this.__.onAttached(this, this.name, this.__)
-        return
-    }
+LabFrame.prototype.attach = function(node, name) {
+    Frame.prototype.attach.call(this, node, name)
 
     //this._.log.sys('spawned ' + node.name)
     // normalize and augment the node
-    if (!isFun(node.draw)) node.draw = false // ghost
-    if (!isFun(node.evo)) node.evo = false   // prop
+    if (isObj(node)) {
+        if (!isFun(node.draw)) node.draw = false // ghost
+        if (!isFun(node.evo)) node.evo = false   // prop
 
-    // TODO probably shouldn't be called here
-    //if (isFun(node.spawn)) node.spawn() // spawn handler
-    node._positional = (isNumber(node.x) && isNumber(node.y))
-    node._sizable = (node._positional && isNumber(node.w) && isNumber(node.h))
+        // TODO probably shouldn't be called here
+        //if (isFun(node.spawn)) node.spawn() // spawn handler
+        node._positional = (isNumber(node.x) && isNumber(node.y))
+        node._sizable = (node._positional && isNumber(node.w) && isNumber(node.h))
+    }
 
     // TODO make arbitrary augmentation and dependency injection possible
     //this._.aug._ls.forEach( function(aug) {
@@ -545,12 +752,24 @@ LabFrame.prototype.onAttached = function(node, name, parent) {
             return 0;
         })
     }
+
+    return node
+}
+
+// TODO processing of attached node and event on attachment probably should be different functions
+LabFrame.prototype.onAttached = function(node, name, parent) {
+    // TODO attached to me and being attached to somebody should be different events!
+    if (!node) {
+        // current lab frame is attached
+        if (isFun(this.__.onAttached)) this.__.onAttached(this, this.name, this.__)
+        return
+    }
 },
 
 LabFrame.prototype.evo = function(dt) {
     this._ls.forEach( e => {
         if (e.evo && !e.dead && !e.paused) e.evo(dt)
-    });
+    })
 }
 
 LabFrame.prototype.draw = function() {
@@ -637,6 +856,8 @@ CueFrame.prototype.attach = function(node, name) {
     } else {
         throw new Error('Wrong cue format [' + name + ']! Must be at... or each... (e.g. at1m, each5s)')
     }
+
+    return node
 }
 
 CueFrame.prototype.evo = function(dt) {
@@ -648,11 +869,473 @@ CueFrame.prototype.evo = function(dt) {
 
 
 
-
-
 // =============================================================
 //                          LOADER 
 // =============================================================
+function extractMeta(script) {
+    const meta = {}
+
+    let pos = 0
+    let line = 0
+    let bufc
+    let buffered = false
+    let metaCount = 0
+    let commentCount = 0
+
+    // parsing utils
+    function isSpace(c) {
+        return c === ' ' || c === '\t'
+    }
+
+    function isNewLine(c) {
+        return c === '\r' || c === '\n'
+    }
+
+    function isWhitespace(c) {
+        return isSpace(c) || isNewLine(c)
+    }
+
+    function isDigit(c) {
+        const code = c.charCodeAt(0) - 48
+        return code >= 0 && code < 10
+    }
+
+    function isAlpha(c) {
+        const d = c.chatCodeAt(0)
+        return ((d >= 65 && d <= 90)
+            || (d >= 97 && d <= 122)
+            || (d >= 161)
+        );
+    }
+
+    function isAlphaNum(c) {
+        return isDigit(c) || isAlpha(c)
+    }
+
+    function isSpecial(c) {
+        switch(c) {
+            case "'": case '"': case '`':
+            case '/':
+
+            case ':': case ';':
+            case '.': case ',':
+            case '{': case '}':
+            case '[': case ']':
+            case '(': case ')':
+            case '=': case '!':
+            case '<': case '>':
+            case '-': case '+':
+            case '*': case '/':
+            case '|': case '&':
+            case '^': case '%':
+                return true
+
+        default:
+                return false
+        }
+    }
+
+    function isIdentifier(c) {
+        return c === '_' || c === '$' || isAlphaNum(c)
+    }
+
+    // stream
+    function getc() {
+        if (buffered && bufc) {
+            buffered = false
+            return bufc
+        }
+        if (pos < script.src.length) {
+            bufc = script.src.charAt(pos++)
+            if (bufc === '\n') line++
+            return bufc
+        }
+        bufc = undefined
+    }
+
+    function retc() {
+        if (buffered) throw 'double buffering is not supported!'
+        buffered = true
+    }
+
+    function ahead() {
+        const c = getc()
+        retc()
+        return c
+    }
+
+    // tokenizer
+    const ID = 1
+    const SPECIAL = 2
+    const STRING = 3
+    const LINE_COMMENT = 4
+    const BLOCK_COMMENT = 5
+
+    function skipWhitespaces() {
+        let c = getc()
+        while (c && isWhitespace(c)) c = getc()
+        retc()
+    }
+
+    function matchComment(type) {
+        commentCount ++
+        let comment = ''
+
+        let c = getc()
+        let prevc
+        let lineChars = 0
+
+        if (type === '/' && isNewLine(c)) return {
+            t: LINE_COMMENT,
+            v: '',
+            l: line,
+        }
+
+        while(c) {
+
+            prevc = c
+            c = getc()
+
+            if (type === '*') {
+                if (prevc === '*' && c === '/') {
+                    return {
+                        t: BLOCK_COMMENT,
+                        v: comment,
+                        l: line,
+                    }
+                }
+
+                if (isNewLine(prevc)) {
+                    lineChars = 0
+                } else if (lineChars === 0 && isWhitespace(prevc)) {
+                    // don't count in whitespaces in the beginning of a line
+                } else if (lineChars === 0 && prevc === '*') {
+                    // skip
+                    prevc = ''
+
+                } else {
+                    lineChars ++
+                }
+
+            } else {
+                if (isNewLine(c)) {
+                    return {
+                        t: LINE_COMMENT,
+                        v: (comment + prevc).trim(),
+                        l: line,
+                    }
+                }
+            }
+            comment += prevc
+        }
+    }
+
+    function matchString(type) {
+        let c = getc()
+        let prevc
+
+        let str = ''
+        let open = c !== type
+
+        while(c && open) {
+            str += c
+
+            prevc = c
+            c = getc()
+
+            if (c === type) {
+                if (prevc !== '\\') {
+                    retc()
+                    open = false
+                }
+            }
+        }
+        return { t: STRING, v: str }
+    }
+
+    function getToken() {
+        skipWhitespaces()
+
+        let c = getc()
+        if (!c) return // no more tokens
+
+        if (isSpecial(c)) {
+            if (c === "'" || c === '"' || c === '`') {
+                return matchString(c)
+            } else if (c === '/') {
+                c = getc()
+                if (c === '/') return matchComment('/')
+                else if (c === '*') return matchComment('*')
+                else retc()
+            }
+            return { t: SPECIAL, v: c }
+
+        } else {
+
+            let token = ''
+            while(c && !isWhitespace(c) && !isSpecial(c)) {
+                token += c
+                c = getc()
+            }
+            retc()
+            return { t: ID, v: token }
+        }
+    }
+
+    const tokenBuffer = {
+        buffered: false,
+    }
+
+    function nextToken() {
+        if (tokenBuffer.buffered) {
+            tokenBuffer.buffered = false
+            return tokenBuffer.token
+        } else {
+            tokenBuffer.token = getToken()
+            return tokenBuffer.token
+        }
+    }
+
+    function lookupToken() {
+        const token = nextToken()
+        tokenBuffer.buffered = true
+        return token
+    }
+
+    function defMeta(type, name, comment, params) {
+        if (name === 'exports') name = script.name
+
+        if (comment && comment.l + 2 > line) {
+            let head = comment.v.trim()
+            let details
+
+            const inextLine = head.indexOf('\n')
+            if (inextLine > 0) {
+                details = head.substring(inextLine).trim()
+                head = head.substring(0, inextLine)
+            }
+
+            meta[name] = {
+                head: head,
+                details: details,
+            }
+            metaCount ++
+
+        } 
+        // define usage for functions
+        if (type === 'function' && isString(params)) {
+            if (!meta[name]) meta[name] = {}
+            meta[name].usage = `(${params})`
+        }
+    }
+
+    function parseFunctionParams(expectName) {
+        let params = ''
+        let token = nextToken()
+
+        if (expectName && token.t === ID) token = nextToken()
+        if (token.t !== SPECIAL || token.v !== '(') return
+
+        while(token) {
+            token = nextToken()
+            if (token.t === SPECIAL && token.v === ')') {
+                return params
+            } else {
+                if (params && token.t !== SPECIAL) {
+                    params += ' ' + token.v
+                } else {
+                    params += token.v
+                }
+            }
+        }
+        return params
+    }
+
+    function parse() {
+        let token = nextToken()
+        let lastToken
+        let lastName
+        let lastComment
+
+        while(token) {
+
+            if (token.t === BLOCK_COMMENT) {
+                lastComment = token
+                if (commentCount === 1) defMeta('module', script.name, token)
+
+            } else if (token.t === LINE_COMMENT) {
+                if (lastComment && lastComment.l + 1 >= token.l) {
+                    // join with previous comment
+                    token.v = lastComment.v + '\n' + token.v
+                    commentCount --
+                }
+                lastComment = token
+                if (commentCount === 1) {
+                    const next = lookupToken()
+                    if (next.t !== LINE_COMMENT) {
+                        defMeta('module', script.name, token)
+                    }
+                }
+            }
+
+            lastToken = token
+            token = nextToken()
+
+            if (token && lastToken) {
+                if (lastToken.t === ID
+                        && token.t === SPECIAL
+                        && (token.v === ':' || token.v === '=')) {
+                    lastName = lastToken.v
+
+                } else if (token.t === ID
+                        && token.v === 'function'
+                        && lastName) {
+                    // <name>: function
+                    const params = parseFunctionParams(true)
+                    defMeta('function', lastName, lastComment, params)
+                    lastName = undefined
+
+                } else if (token.t === SPECIAL
+                        && token.v === '{'
+                        && lastName) {
+                    // <name>: {...}
+                    defMeta('object', lastName, lastComment)
+                    lastName = undefined
+
+                } else if (token.t === SPECIAL
+                        && token.v === '['
+                        && lastName) {
+                    // <name>: [...]
+                    defMeta('array', lastName, lastComment)
+                    lastName = undefined
+
+                } else if (token.t === ID
+                        && lastName) {
+                    // <name>: <value>
+                    defMeta('value', lastName, lastComment)
+                    lastName = undefined
+
+                } else if (lastToken.t === ID
+                        && lastToken.v === 'function'
+                        && token.t === ID) {
+                    // function <name>
+                    const params = parseFunctionParams(false)
+                    defMeta('function', token.v, lastComment, params)
+
+                } else if (lastToken.t === ID
+                        && lastToken.v === 'const'
+                        && token.t === ID) {
+                    // const <name>
+                    defMeta('const', token.v, lastComment)
+
+                } else if (lastToken.t === ID
+                        && lastToken.v === 'class'
+                        && token.t === ID) {
+                    // const <name>
+                    defMeta('class', token.v, lastComment)
+                    
+                } else {
+                    lastName = undefined
+                }
+            }
+        }
+    }
+
+    parse()
+    if (metaCount > 0) return meta
+}
+
+function parseClasses(src, res) {
+    const rx = /(class\s*(\w[\w\d]*))/g
+
+    let match = rx.exec(src)
+    while(match) {
+        res.push(match[2])
+        match = rx.exec(src)
+    }
+}
+
+function parseFunctions(src, res) {
+    const rx = /(function\s*(\w[\w\d]*)\s*\()/g
+    //const res = src.replace(rx, "module.def.$2 = $1")
+
+    let match = rx.exec(src)
+    while(match) {
+        res.push(match[2])
+        match = rx.exec(src)
+    }
+}
+
+function parseConstants(src, res) {
+    const rx = /(const\s*(\w[\w\d]*)\s*\=)/g
+
+    let match = rx.exec(src)
+    while(match) {
+        res.push(match[2])
+        match = rx.exec(src)
+    }
+}
+
+function generateSource(script, __) {
+
+    let def = ''
+    Object.keys(__.alt._dir).forEach(f => {
+        def += `let ${f} = __.alt._dir.${f};`
+    })
+    // declare scope
+    /*
+    Object.keys(__._scope).forEach(f => {
+        def += `let ${f} = __._scope.${f};`
+    })
+
+    // declare drawing context
+    Object.keys(__.ctx.draw).forEach(f => {
+        def += `let ${f} = ctx.draw.${f};`
+    })
+    */
+
+    // provide lexical scope for mod context and scope object for this. definitions
+    return '(function(_, ctx, _$, module, require, sys, lib, res, dna, env, lab, mod, pub, log, cue, job, trap) {'
+        + def 
+        + script.src
+        + script.def
+    + '}).call(scope, __, __.ctx, __._$, module, require, __.sys, __.lib, __.res, __.dna, __.env, __.lab, __.mod, __.pub, __.log, __.cue, __.job, __.trap)'
+    + '\n//# sourceURL=' + script.origin
+}
+
+function injectMeta(val, meta, name) {
+    if (!val) return
+    if (!meta) return val
+
+    if (isFun(val) && meta[val.name]) {
+        // metadata on the function itself
+        val._meta = meta[val.name]
+
+        const submetas = Object.keys(meta)
+        if (submetas.length > 1) {
+            // looks like we have other definitions - could be a constructor
+            val._meta.dir = {}
+            for (const subName of submetas) {
+                if (subName !== name) { 
+                    val._meta.dir[subName] = meta[subName]
+                }
+            }
+        }
+
+    } else if (meta[name]) {
+        val._meta = meta[name]
+    }
+
+    Object.keys(meta).forEach(k => {
+        const subVal = val[k]
+        if (subVal && (isObj(subVal) || isFun(subVal))) {
+            subVal._meta = meta[k]
+        }
+    })
+
+    return val
+}
+
 function evalJS(script, _) {
     const scope = {}
     const module = {}
@@ -680,12 +1363,13 @@ function evalJS(script, _) {
         }
     }
 
-    // provide lexical scope for mod context and scope object for this. definitions
-    let code = '(function ' + name + '(_, ctx, _$, module, require, sys, lib, res, dna, env, lab, mod, pub, log, cue, trap) {'
-        + " /* path: " + script.path + "*/ "
-        + script.src
-    + '}).call(scope, __, __.ctx, __._$, module, require, __.sys, __.lib, __.res, __.dna, __.env, __.lab, __.mod, __.pub, __.log, __.cue, __.trap)'
-    + '\n//# sourceURL=' + script.origin
+    script.def = ''
+
+    let meta
+    if (_scene.env.config.debug) {
+        meta = extractMeta(script)
+    }
+    const code = generateSource(script, __)
 
     /*
     // TODO is there a better way to handle evaluation errors?
@@ -694,7 +1378,7 @@ function evalJS(script, _) {
     } catch (e) {
         console.error(`Error executing file: ${script.origin}`)
         console.log(code)
-        throw (e);
+        throw (e)
     }
     */
 
@@ -703,11 +1387,47 @@ function evalJS(script, _) {
     //      if not resolved - postpone the evaluation until later in the batch
     const val = eval(code)
 
-    if (val !== undefined) return val
-    else if (module.exports !== undefined) return module.exports
-    else {
-        _.log.sys('no value, exports or declarations from ' + script.path)
-        return "NO VALUE"
+    if (val !== undefined) {
+        return injectMeta(val, meta, script.name)
+
+    } else if (module.exports !== undefined) {
+        return injectMeta(module.exports, meta, script.name)
+
+    } else {
+        const defs = []
+        parseClasses(script.src, defs)
+        parseFunctions(script.src, defs)
+        parseConstants(script.src, defs)
+
+        if (defs.length > 0) {
+            _.log.sys('[eval]', 'no value - reevaluating to extract definitions: ' + script.path)
+
+            // definitions storage code
+            script.def = '\n' + defs.map(d => `if (typeof ${d} !== 'undefined') module.def.${d} = ${d}`).join(';')
+            const code = generateSource(script, __)
+
+            // execute once again with definition extraction code
+            const module = {
+                def: {},
+            }
+            const scope = module.def
+            eval(code)
+
+            if (module.def) {
+                if (isFun(module.def[script.name]) || isObj(module.def[script.name])) {
+                    _.log.sys('found defining node for export ' + script.name + '()')
+                    return module.def[script.name]
+                }
+                return injectMeta(module.def, meta, script.name)
+            } else {
+                _.log.sys('no value, exports or declarations from ' + script.path, '[eval]')
+                return null
+            }
+
+        } else {
+            _.log.sys('no value, exports or declarations from ' + script.path, '[eval]')
+            return null
+        }
     }
 }
 
@@ -724,15 +1444,16 @@ function parseLines(txt) {
     return lines.filter(l => l.length > 0)
 }
 
-function parseCSV(src, _) {
-    const lines = src.match(/[^\r\n]+/g);
+function parseCSV(script, _) {
+    const src = script.src
+    const lines = src.match(/[^\r\n]+/g)
     // naming array
     const names = lines[0].split(',').map(e => e.trim())
     // parse objects
     const objects = []
     for (let i = 1; i < lines.length; i++) {
         const l = lines[i].trim()
-        if (l.length > 0 && !l.startsWith('--')) {
+        if (l.length > 0 && !l.startsWith('--') && !l.startsWith('#')) {
             // TODO more intellectual parsing, so escaped string can be included (e.g. 'one,two')
             const ol = l.split(',').map(e => e.trim()).map(e => {
                 return matchType(e)
@@ -742,7 +1463,7 @@ function parseCSV(src, _) {
                 if (j < names.length) {
                     obj[names[j]] = e
                 } else {
-                    _.log.warn('eval-'+batch, '=> '
+                    _.log.warn('eval-csv-' + script.batch, '=> '
                         + script.path + '@' + (i+1)
                         + ': excesive value [' + e + ']')
                 }
@@ -754,7 +1475,7 @@ function parseCSV(src, _) {
 }
 
 function parseProp(src) {
-    const lines = src.match(/[^\r\n]+/g);
+    const lines = src.match(/[^\r\n]+/g)
     // parse definitions
     const prop = {}
     for (let i = 0; i < lines.length; i++) {
@@ -780,13 +1501,22 @@ function evalLoadedContent(script, _) {
         case 'json': _.patch(script.base, script.path, JSON.parse(script.src)); break;
         case 'txt': _.patch(script.base, script.path, script.src); break;
         case 'lines': _.patch(script.base, script.path, parseLines(script.src)); break;
-        case 'csv': _.patch(script.base, script.path, parseCSV(script.src, _)); break;
+        case 'csv': _.patch(script.base, script.path, parseCSV(script, _)); break;
         case 'prop': _.patch(script.base, script.path, parseProp(script.src)); break;
         case 'fun': script.fun(); break;
+        default: {
+            // check out a custom parser for ext
+            if (isFrame(_.lib) && isFrame(_.lib.ext) && isFun(_.lib.ext[script.ext])) {
+                _.log.sys('using custom parser for .' + script.ext)
+                _.patch(script.base, script.path, _.lib.ext[script.ext](script.src)); break;
+            } else {
+                _.patch(script.base, script.path, script.src); break;
+            }
+        }
     }
     _._patchLog.push(script)
     //} catch (e) {
-    //    _scene.log.err('jam-loader', 'error in [' + script.path + ']' + e)
+    //    _scene.log.err('[loader]', 'error in [' + script.path + ']' + e)
     //    throw e
     //}
 }
@@ -800,16 +1530,16 @@ const checkScriptDependencies = function(script, batch) {
 
     let match
     while(match = extendRegExp.exec(script.src)) {
-        let key = match[1]
+        let k = match[1]
         let dependency
         batch.forEach(s => {
-            if (s.path === key) dependency = s
+            if (s.path === k) dependency = s
         })
         if (dependency) depends.push(dependency)
         else {
             _scene.log.sys('current batch:')
             _scene.log.dump(batch)
-            throw '[' + script.origin + ']: dependency [' + key + '] is not found'
+            throw '[' + script.origin + ']: dependency [' + k + '] is not found'
         }
     }
     return depends
@@ -819,7 +1549,7 @@ const sortLoadedBatch = function(batch) {
     //this._execList[batch].sort((a, b) => a.path.localeCompare(b.path))
     let res = []
 
-    var workBatch = batch.slice(); 
+    var workBatch = batch.slice()
     let check = function(script) {
         checkScriptDependencies(script, batch).forEach(e => check(e))
         let i = workBatch.indexOf(script)
@@ -846,12 +1576,465 @@ const evalLoadedBatch = function(ibatch, batch, _) {
     })
 }
 
+function augmentCtx(ctx) {
+
+    const TAU = Math.PI * 2
+    let mode = 0
+    let shape = false
+    let lastFont
+
+    ctx.draw = {
+
+        width: function() {
+            return ctx.width
+        },
+        height: function() {
+            return ctx.height
+        },
+        rx:function(x) {
+            return ctx.width * x
+        },
+        ry: function(y) {
+            return ctx.height * y
+        },
+
+        save: function() {
+            ctx.save()
+        },
+        restore: function() {
+            ctx.restore()
+        },
+
+        scale: function(w, h) {
+            ctx.scale(w, h)
+        },
+        rotate: function(a) {
+            ctx.rotate(a)
+        },
+        translate: function(x, y) {
+            ctx.translate(x, y)
+        },
+        clip: function(x, y, w, h) {
+            ctx.beginPath()
+            ctx.moveTo(x, y)
+            ctx.lineTo(x + w, y)
+            ctx.lineTo(x + w, y + h)
+            ctx.lineTo(x, y + h)
+            ctx.closePath()
+            ctx.clip()
+        },
+        smooth: function() {
+            ctx.imageSmoothingEnabled = true
+        },
+        blocky: function() {
+            ctx.imageSmoothingEnabled = false
+        },
+        alpha: function(v) {
+            ctx.globalAlpha = v
+        },
+
+        stroke: function(v1, v2, v3, v4) {
+            mode = 0
+            if (arguments.length === 1) {
+                ctx.strokeStyle = v1
+
+            } else if (arguments.length === 3) {
+                if (Number.isInteger(v1+v2+v3)) {
+                    ctx.strokeStyle = RGB(v1, v2, v3)
+                } else {
+                    ctx.strokeStyle = hsl(v1, v2, v3)
+                }
+
+            } else if (arguments.length === 4) {
+                if (Number.isInteger(v1+v2+v3+v4)) {
+                    ctx.strokeStyle = RGBA(v1, v2, v3, v4)
+                } else {
+                    ctx.strokeStyle = hsla(v1, v2, v3, v4)
+                }
+            }
+        },
+
+        lineWidth: function(val) {
+            ctx.lineWidth = val 
+        },
+
+        fill: function(v1, v2, v3, v4, v5, v6, v7, v8) {
+
+            if (arguments.length === 1) {
+                mode = 2
+                ctx.fillStyle = v1
+
+            } else if (arguments.length === 2) {
+                mode = 1
+                ctx.fillStyle = v1
+                ctx.strokeStyle = v1
+
+            } else if (arguments.length === 3) {
+                mode = 2
+                if (Number.isInteger(v1+v2+v3)) {
+                    ctx.fillStyle = RGB(v1, v2, v3)
+                } else {
+                    ctx.fillStyle = hsl(v1, v2, v3)
+                }
+
+            } else if (arguments.length === 4) {
+                mode = 2
+                if (Number.isInteger(v1+v2+v3+v4)) {
+                    ctx.fillStyle = RGBA(v1, v2, v3, v4)
+                } else {
+                    ctx.fillStyle = hsla(v1, v2, v3, v4)
+                }
+
+            } else if (arguments.length === 6) {
+                mode = 1
+                if (Number.isInteger(v1+v2+v3)) {
+                    ctx.fillStyle = RGB(v1, v2, v3)
+                } else {
+                    ctx.fillStyle = hsl(v1, v2, v3)
+                }
+                if (Number.isInteger(v4+v5+v6)) {
+                    ctx.strokeStyle = RGB(v4, v5, v6)
+                } else {
+                    ctx.strokeStyle = hsl(v4, v5, v6)
+                }
+
+            } else if (arguments.length === 8) {
+                mode = 1
+                if (Number.isInteger(v1+v2+v3+v4)) {
+                    ctx.fillStyle = RGBA(v1, v2, v3, v4)
+                } else {
+                    ctx.fillStyle = hsla(v1, v2, v3, v4)
+                }
+                if (Number.isInteger(v5+v6+v7+v8)) {
+                    ctx.strokeStyle = RGBA(v5, v6, v7, v8)
+                } else {
+                    ctx.strokeStyle = hsla(v5, v6, v7, v8)
+                }
+
+            } else {
+                throw 'wrong color arguments for fill()'
+            }
+        },
+
+        background: function(v1, v2, v3, v4) {
+            if (arguments.length === 1) {
+
+                if (isString(v1)) {
+                    ctx.fillStyle = v1
+                    ctx.fillRect(0, 0, ctx.width, ctx.height)
+                } else {
+                    ctx.drawImage(v1, 0, 0, ctx.width, ctx.height)
+                }
+
+            } else if (arguments.length === 3) {
+                if (Number.isInteger(v1+v2+v3)) {
+                    ctx.fillStyle = RGB(v1, v2, v3)
+                } else {
+                    ctx.fillStyle = hsl(v1, v2, v3)
+                }
+                ctx.fillRect(0, 0, ctx.width, ctx.height)
+
+            } else if (arguments.length === 4) {
+                if (Number.isInteger(v1+v2+v3+v4)) {
+                    ctx.fillStyle = RGBA(v1, v2, v3, v4)
+                } else {
+                    ctx.fillStyle = hsla(v1, v2, v3, v4)
+                }
+                ctx.fillRect(0, 0, ctx.width, ctx.height)
+            }
+        },
+
+        line: function(x1, y1, x2, y2) {
+            ctx.beginPath()
+            ctx.moveTo(x1, y1)
+            ctx.lineTo(x2, y2)
+            ctx.stroke()
+        },
+
+        plot: function(x, y) {
+            ctx.fillRect(x, y, ctx.lineWidth, ctx.lineWidth)
+        },
+        triangle: function(x1, y1, x2, y2, x3, y3) {
+            ctx.beginPath()
+            ctx.moveTo(x1, y1)
+            ctx.lineTo(x2, y2)
+            ctx.lineTo(x3, y3)
+            ctx.closePath()
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        },
+        quad: function(x1, y1, x2, y2, x3, y3, x4, y4) {
+            ctx.beginPath()
+            ctx.moveTo(x1, y1)
+            ctx.lineTo(x2, y2)
+            ctx.lineTo(x3, y3)
+            ctx.lineTo(x4, y4)
+            ctx.closePath()
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        },
+        rect: function(x, y, w, h) {
+            if (mode > 0) ctx.fillRect(x, y, w, h)
+            if (mode < 2) ctx.strokeRect(x, y, w, h)
+        },
+        circle: function(x, y, r) {
+            ctx.beginPath()
+            ctx.arc(x, y, r, 0, TAU)
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        },
+        ellipse: function(x, y, hr, vr, r) {
+            ctx.beginPath()
+            if (r) {
+                ctx.ellipse(x, y, hr, vr, r, 0, TAU * 2)
+            } else {
+                ctx.ellipse(x, y, hr, vr, 0, 0, TAU)
+            }
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        },
+        arc: function(x, y, r, sa, fa) {
+            ctx.beginPath()
+            ctx.arc(x, y, r, sa, fa)
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        },
+        earc: function(x, y, xr, yr, ra, sa, fa) {
+            ctx.beginPath()
+            ctx.ellipse(x, y, xr, yr, ra, sa, fa)
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        },
+        polygon: function(points) {
+            ctx.beginPath()
+            ctx.moveTo(points[0], points[1])
+            for (let i = 2; i < points.length; i++) {
+                ctx.lineTo(points[i++], points[i])
+            }
+            ctx.closePath()
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        }, 
+
+        moveTo: function(x, y) {
+            if (!shape) {
+                ctx.beginPath()
+                shape = true
+            }
+            ctx.moveTo(x, y)
+        },
+        lineTo: function(x, y) {
+            ctx.lineTo(x, y)
+        },
+        arcTo: function(x1, y1, x2, y2, r) {
+            ctx.arcTo(x1, y1, x2, y2, r)
+        },
+        quadraticTo: function(cpx, cpy, ex, ey) {
+            ctx.quadraticCurveTo(cpx, cpy, ex, ey)
+        },
+        bezierTo: function(cp1x, cp1y, cp2x, cp2y, ex, ey) {
+            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, ex, ey)
+        },
+        close: function() {
+            ctx.closePath()
+        },
+        shape: function() {
+            if (mode < 2) ctx.stroke()
+            if (mode > 0) ctx.fill()
+        },
+
+        font: function(font) {
+            lastFont = font
+            ctx.font = font
+        },
+        alignLeft: function() {
+            ctx.textAlign = 'left'
+        },
+        alignCenter: function() {
+            ctx.textAlign = 'center'
+        },
+        alignRight: function() {
+            ctx.textAlign = 'right'
+        },
+        baseTop: function() {
+            ctx.textBaseline = 'top'
+        },
+        baseMiddle: function() {
+            ctx.textBaseline = 'middle'
+        },
+        baseBottom: function() {
+            ctx.textBaseline = 'bottom'
+        },
+        text: function(text, x, y) {
+            if (mode < 2) ctx.strokeText(text, x, y)
+            if (mode > 0) ctx.fillText(text, x, y)
+        },
+        textWidth: function(txt) {
+            if (!txt) return 0
+            else return ctx.measureText(txt).width
+        },
+        textHeight: function() {
+            if (!lastFont) return 0
+            return parseInt(lastFont)
+        },
+        image: function(img, x, y, w, h, dx, dy, dw, dh) {
+            switch(arguments.length) {
+            case 3: ctx.drawImage(img, x, y); break;
+            case 5: ctx.drawImage(img, x, y, w, h); break;
+            case 7: ctx.drawImage(img, x, y, w, h, dx, dy); break;
+            case 9: ctx.drawImage(img, x, y, w, h, dx, dy, dw, dh); break;
+            }
+        },
+
+        rgb: rgb,
+        rgba: rgba,
+        RGB: RGB,
+        RGBA: RGBA,
+        hsl: hsl,
+        hsla: hsla,
+
+    }
+    return ctx
+}
+
 // Mod context container
 const Mod = function(dat) {
+    const _ = this
     this._patchLog = []
     this._testLog = []
+    this._scope = {
+        key: _key,
+        pad: _pad,
+        mouse: _mouse,
+        mix: mix,
+        augment: augment,
+        supplement: supplement,
+        before: before,
+        after: after,
+        chain: chain,
+        isFun: isFun,
+        isObj: isObj,
+        isString: isString,
+        isNumber: isNumber,
+        isFrame: isFrame,
+        isArray: isArray,
+        isEmpty: isEmpty,
+
+        // math
+        E: Math.E,
+        PI: Math.PI,
+        PI2: Math.PI * 2,
+        TAU: Math.PI * 2,
+        HALF_PI: Math.PI / 2,
+
+        abs: Math.abs,
+        pow: Math.pow,
+        sqrt: Math.sqrt,
+        min: Math.min,
+        max: Math.max,
+        ceil: Math.ceil,
+        floor: Math.floor,
+        round: Math.round,
+        sin: Math.sin,
+        cos: Math.cos,
+        tan: Math.tan,
+        acos: Math.acos,
+        asin: Math.asin,
+        atan: Math.atan,
+        atan2: Math.atan2,
+
+        // TODO should we change to determenistic one and introduce seed?
+        // TODO maybe have rndi as a separate one
+        rnd: function(v1, v2) {
+            if (v2) {
+                return v1 + Math.random() * (v2 - v1)
+            } else if (v1) {
+                return Math.random() * v1
+            } else {
+                return Math.random()
+            }
+        },
+
+        RND: function(v1, v2) {
+            if (v2) {
+                return Math.floor(v1 + Math.random() * (v2 - v1 + 1))
+            } else if (v1) {
+                return Math.floor(Math.random() * (v1 + 1))
+            }
+            return 0
+        },
+
+        limit: limit,
+
+        within: function(val, min, max) {
+            return (val >= min && val <= max)
+        },
+
+        warp: function(val, min, max) {
+            const range = max - min
+            if (range <= 0) return 0;
+            if (val < min) return max - Math.abs(min-val) % range
+            return min + (val - min) % range
+        },
+
+        lerp: function(start, stop, v, limitRange) {
+            const res = (stop - start) * v
+            if (limit) {
+                if (res < start) return start
+                if (res > stop) return stop
+            }
+            return res
+        },
+
+        map: function(origStart, origStop, targetStart, targetStop, orig, limit) {
+            let v = (orig - origStart) / (origStop - origStart)
+            if (limit) {
+                if (v < 0) v = 0
+                if (v > 1) v = 1
+            }
+            return (targetStop - targetStart) * v
+        },
+
+        dist: function(x1, y1, x2, y2) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            return Math.sqrt(dx*dx + dy*dy)
+        },
+
+        length: function(x, y) {
+            return Math.sqrt(x*x + y*y)
+        },
+
+        angle: function(x, y) {
+            return Math.atan2(y, x)
+        },
+
+        // angle from source to target vectors
+        bearing: function(sx, sy, tx, ty) {
+            return Math.atan2(tx - sx, ty - sy)
+        },
+
+        kill: kill,
+
+        sfx: function(src, vol, pan) {
+            if (!pan) pan = 0
+            if (!vol) vol = 1
+            if (isNumber(_.env.sfxVolume)) {
+                vol *= _.env.sfxVolume
+            }
+
+            if (!(src instanceof Audio)) {
+                // find by path in resources
+                src = _.res.selectOne(src)
+            }
+
+            if (src && src instanceof Audio && src.readyState === 4) {
+                src.volume = vol
+                src.play()
+            }
+        },
+    }
     this.ctx = false
-    this.focus = true
     this.paused = false
     this.hidden = false
 
@@ -888,12 +2071,12 @@ const Mod = function(dat) {
         },
 
         _startTrigger: function() {
-            if (this._.env.started) return
+            if (this._.env._started) return // it looks like we already started
 
             if (this._included <= this._loaded) {
                 // OK - everything is loaded, call setup functions
                 // TODO how to deal with mods with no res? how start would be triggered?
-                this._.log.sys('loader', 'Total ' + this._loaded + ' resources are loaded in ' + this._.name)
+                this._.log.sys('[loader]', 'Total ' + this._loaded + ' resources are loaded in ' + this._.name)
                 this._exec()
 
                 this._.start()
@@ -952,8 +2135,12 @@ const Mod = function(dat) {
     // log functions
     //this.attach(new Frame("log"))
 
+    this.attach(new Frame(), 'alt')
+
     // prototypes/constructors
-    //this.attach(new Frame(), 'dna')
+    this.attach(new Frame(), 'dna')
+
+    this.attach(new LabFrame(), 'lib')
 
     // augment functions
     // TODO remove in favor of .aug
@@ -962,7 +2149,7 @@ const Mod = function(dat) {
     // static environment data entities
     this.attach(new Frame({
         name: "env",
-        started: false,
+        _started: false,
     }))
 
     // container for acting entities - actors, ghosts, props
@@ -970,8 +2157,11 @@ const Mod = function(dat) {
 
     this.attach(new CueFrame(), 'cue')
 
+    this.attach(new Frame(), 'job')
+
     // container for mods
     // TODO what to do with this autoloading?
+    //      doesn't make any sense to me
     var mod = function mod(path, name) {
         if (!name) {
             let i = path.lastIndexOf('/')
@@ -986,7 +2176,19 @@ const Mod = function(dat) {
     augment(mod, new Frame())
 
     mod.touch = touchFun((name) => {
-        const mod = new Mod(name)
+        let mod
+        if (name.endsWith('-buf')) {
+            // find different convention for buffered?
+            const canvas = document.createElement('canvas')
+            const ctx = augmentCtx(canvas.getContext('2d'))
+
+            mod = new Mod({
+                name: name,
+                ctx: ctx,
+            })
+        } else {
+            mod = new Mod(name)
+        }
         mod._$ = _scene
         return mod
     })
@@ -1012,17 +2214,77 @@ const Mod = function(dat) {
         return true
     }
 
+    trap.on = function(key, fn) {
+        if (!key) throw 'key is expected on trap'
+        if (!isFun(fn)) throw 'function is expected on trap'
+
+        this[key] = chain(this[key], fn)
+    }
+
     augment(trap, new Frame())
     this.attach(trap)
 }
 
-Mod.prototype = new Frame()
+Mod.prototype = Object.create(Frame.prototype)
+
+Mod.prototype.touch = touchFun((name, dir) => {
+    const node = new Frame(name)
+    if (name === 'box') {
+        // mod/box should create mods on touch
+        node.touch = dir.mod.touch
+    }
+    return node
+})
+
+Mod.prototype.populateAlt = function() {
+    const _ = this
+    Object.keys(this._scope).forEach(name => {
+        const fn = _._scope[name]
+        _.alt.attach(fn, name)
+    })
+
+    Object.keys(this.ctx.draw).forEach(name => {
+        const fn = _.ctx.draw[name]
+        _.alt.attach(fn, name)
+    })
+}
 
 Mod.prototype.init = function() {
     this.___ = this._ // save node context as parent mod
     this._ = this // must be in init, since it is assigned during the regular node.attach()
-    if (!this.ctx) this.ctx = this.___.ctx // clone draw context from parent mod if not set explicitly
+    Object.defineProperty(this, '___', { enumerable: false })
+    Object.defineProperty(this, '_', { enumerable: false })
+
+    if (!this.ctx) {
+        this.ctx = this.___.ctx // clone draw context from parent mod if not set explicitly
+    }
+    this.populateAlt()
+
     this.inherit()
+}
+
+function doBox(mod, boxName, start) {
+    const box = mod.selectOne(boxName)
+    if (box) {
+        mod.mod.link(box)
+        if (start) box.start()
+        return true
+    } else {
+        _scene.log.sys(
+            `unable to find box [${boxName}] in [${mod.name}]`)
+    }
+}
+
+function doTest(mod, testName) {
+    const test = mod.selectOne(testName)
+    if (isFun(test)) {
+        _scene.log.sys(`running test [${testName}] in [${mod.name}]`)
+        return test()
+
+    } else {
+        _scene.log.sys(
+            `unable to find test [${testName}] in [${mod.name}]`)
+    }
 }
 
 Mod.prototype._runTests = function() {
@@ -1031,10 +2293,13 @@ Mod.prototype._runTests = function() {
 
     if (isString(_scene.env.config.test)) {
         this.status = 'testing'
-        const test = this.test[_scene.env.config.test]
+        const testName = _scene.env.config.test
+        const test = this.test.selectOne(_scene.env.config.test)
         if (isFun(test)) {
             _scene.log.sys('running test [' + _scene.env.config.test + '] in ' + this.name)
             return test()
+        } else {
+            _scene.log.sys(`no test [${testName}] in ${this.name}`)
         }
         return false
 
@@ -1047,11 +2312,12 @@ Mod.prototype._runTests = function() {
         Object.keys(this.test._dir).forEach(name => {
             const test = this.test[name]
 
-            if (isFun(test) && !test.manual) {
+            if (isFun(test)) {
                 //_scene.log.sys('test [' + name + ']')
                 try {
                     const mod = constructScene()
                     mod.ctx = _scene.ctx
+                    mod.populateAlt()
                     repatchScene(mod, _scene)
 
                     const res = mod.test[name]()
@@ -1086,24 +2352,38 @@ Mod.prototype._runTests = function() {
 }
 
 Mod.prototype.start = function() {
-    if (this.env.started) return
+    if (this.env._started) return
+
+    this.trap('preSetup')
+    this.env._started = true
     //this.inherit()
-    //
-    this.env.started = true
 
     let captured = false
     if (_scene.env.config.test) captured = this._runTests()
+
+    if (this === _scene && _scene.env.config.box) {
+        captured = doBox(_scene, 'box/' + _scene.env.config.box, false)
+        if (captured) {
+            this.status = 'started'
+            if (isFrame(this.mod)) this.mod._ls.forEach( mod => mod.start() )
+            _scene.log.sys('starting evolution of ['
+                + this.path() + '/box/' + _scene.env.config.box + ']')
+            return
+        }
+    }
 
     if (isFrame(this.mod)) this.mod._ls.forEach( mod => mod.start() )
 
     if (!captured) {
         if (isFun(this.setup)) {
             this.setup()
-        } if (isFrame(this.setup)) {
+        }
+        if (isFrame(this.setup)) {
             this.setup._ls.forEach( f => f() )
         }
         this.status = 'started'
     }
+    this.trap('postSetup')
 
     _scene.log.sys('starting evolution of [' + this.path() + ']')
 }
@@ -1113,14 +2393,20 @@ Mod.prototype.inherit = function() {
 
     this.link(this.___.pub)
     supplement(this.sys, this.___.sys)
-
-    // log
-    const log = function log(msg, post) {
+    /*
+        function log(msg, post) {
         log.out(msg, post)
     }
-    augment(log, new Frame())
-    this.attach(log)
-    supplement(this.log, this.___.log)
+    */
+
+    // log
+    this.log = this.___.log
+    this._ls.push(this.log)
+    this._dir['log'] = this.log
+    //const log = this.___.log
+    //augment(log, new Frame())
+    //this.attach(log, 'log')
+    //supplement(this.log, this.___.log)
 }
 
 Mod.prototype.onAttached = function(node, name, parent) {
@@ -1129,10 +2415,10 @@ Mod.prototype.onAttached = function(node, name, parent) {
 
 Mod.prototype.evo = function(dt) {
     // boot logic
-    if (!this.env.started) {
+    if (!this.env._started || this.boot) {
         // try to find and evolve boot node or mod
         if (this.boot && isFun(this.boot.evo)) {
-            this.boot.evo()
+            this.boot.evo(dt)
         }
         return
     }
@@ -1144,19 +2430,19 @@ Mod.prototype.evo = function(dt) {
     this.lab.evo(dt)
     //this.lab._ls.forEach( e => {
     //    if (e.evo && !e.dead && !e.paused) e.evo(dt)
-    //});
+    //})
 
     // evolve all mods
     this.mod._ls.map( function(m) {
         if (m.evo && !m.paused) m.evo(dt)
-    });
+    })
 }
 
 Mod.prototype.draw = function() {
-    if (!this.ctx || this.hidden) return
+    if (!this.ctx) return
 
     // boot logic
-    if (!this.env.started) {
+    if (!this.env._started || this.boot) {
         // try to find and draw boot node or mod
         if (isFun(this.boot)) {
             this.boot()
@@ -1165,6 +2451,8 @@ Mod.prototype.draw = function() {
         }
         return
     }
+
+    if (this.hidden) return
 
     // draw entities in the lab
     // we might integrate this mod display as a link in the mod list
@@ -1232,7 +2520,7 @@ Mod.prototype.patch = function(target, path, node) {
         }
     }
 
-    if (node !== undefined) {
+    if (node !== undefined && node !== null) {
         // found the patch point - attach the node
         if (isFrame(target)) {
             if (path === '') {
@@ -1304,22 +2592,22 @@ function removeExtention(url) {
 }
 
 function attachTTF(name, url) {
-    const fontStyle = document.createElement('style');
+    const fontStyle = document.createElement('style')
     fontStyle.appendChild(document.createTextNode("\n\
     @font-face {\n\
         font-family: '" + name + "';\n\
         src: url('" + url + "'); \n\
     }\
-    "));
+    "))
     return document.head.appendChild(fontStyle)
 }
 
 function attachWAV(url) {
     // TODO autoplay wav -> .auto.wav (with auto classifier)
-    const node = new Audio(url);
-    node.preload = true;
-    node.loop = false;
-    node.autoplay = false;
+    const node = new Audio(url)
+    node.preload = true
+    node.loop = false
+    node.autoplay = false
     return node
 }
 
@@ -1379,14 +2667,14 @@ function loadJson(url) {
                 }
             }
         }
-        ajax.open("GET", randomizeUrl(url), true);
-        ajax.send();
+        ajax.open("GET", randomizeUrl(url), true)
+        ajax.send()
     })
 
     return promise 
 }
 
-function scheduleLoad(_, batch, url, base, path, ext) {
+function scheduleLoad(_, batch, url, base, path, name, ext) {
     _.res._included ++
 
     var ajax = new XMLHttpRequest()
@@ -1398,6 +2686,7 @@ function scheduleLoad(_, batch, url, base, path, ext) {
                     origin: url,
                     path: path,
                     base: base,
+                    name: name,
                     ext: ext,
                     src: this.responseText,
                 }
@@ -1416,9 +2705,22 @@ function scheduleLoad(_, batch, url, base, path, ext) {
             }
         }
     }
-    ajax.open("GET", randomizeUrl(url), true);
-    ajax.send();
+    ajax.open("GET", randomizeUrl(url), true)
+    ajax.send()
 }
+
+Mod.prototype.patchNode = function(unitId, unitUrl, path) {
+    const unit = _scene._units[unitId]
+    if (unit) {
+        const targetPath = addPath(unit.mount,
+                    removeExtention(removeExtention(path)))
+        _scene.log.sys('[patch]', 'patching ' + targetPath)
+        _scene.batchLoad(0, addPath(unit.id, path), _scene, addPath(unit.mount, targetPath))
+    } else {
+        _scene.log.err('[patch]', `unable to patch ${targetPath}`)
+    }
+}
+
 
 Mod.prototype.batchLoad = function(batch, url, base, path) {
     const _ = this
@@ -1454,24 +2756,24 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
     switch (ext) {
         case 'png': case 'jpge': case 'jpg': case 'svg':
             patchImg(_, batch, url, base, path, classifier, onLoad)
-            break;
+            break
 
         case 'ttf':
             attachTTF(name, url)
-            break;
+            break
 
         case 'wav':
             if (base) _.patch(base, path, attachWAV(url))
-            break;
+            break
 
         case 'js': case 'json': case 'yaml':
         case 'txt': case 'prop': case 'lines': case 'csv':
-            scheduleLoad(_, batch, url, base, path, ext)
-            break;
+            scheduleLoad(_, batch, url, base, path, name, ext)
+            break
 
         default:
-            _.log.sys('loader-' + batch, 'ignoring resource by type: [' + url + ']')
-
+            //_.log.sys('loader-' + batch, 'ignoring resource by type: [' + url + ']')
+            scheduleLoad(_, batch + 1, url, base, path, name, ext)
     }
 }
 
@@ -1520,6 +2822,7 @@ function fixUnitMountPoint(unit) {
     }
 }
 
+
 function isUnitAvailable(unitId, loadingQueue) {
     let available = false 
     loadingQueue.forEach(unit => {
@@ -1527,6 +2830,7 @@ function isUnitAvailable(unitId, loadingQueue) {
     })
     return available
 }
+
 function validateUnitRequirements(unit, loadingQueue) {
     if (!isArray(unit.require)) return true // no requirements
 
@@ -1536,6 +2840,7 @@ function validateUnitRequirements(unit, loadingQueue) {
     })
     return res 
 }
+
 function queueUnits(unitsToLoad, loadingQueue) {
     if (unitsToLoad.length === 0) return
 
@@ -1545,7 +2850,7 @@ function queueUnits(unitsToLoad, loadingQueue) {
         if (validateUnitRequirements(unitsToLoad[i], loadingQueue)) {
             nexti = i
             nextUnit = unitsToLoad[i]
-            break;
+            break
         }
     }
 
@@ -1577,7 +2882,7 @@ function isIgnored(url, ignoreList) {
 
 Mod.prototype.loadUnits = function(baseMod, target) {
     target = normalizeDirPath(target)
-    this.log.sys('loader', '[' + this.name + '] loading: [' + baseMod.name + '] <= [' + target + ']') 
+    this.log.sys('[loader]', '[' + this.name + '] loading: [' + baseMod.name + '] <= [' + target + ']') 
     // TODO check that baseMod is actually a mod?
     let currentMod = baseMod
     let loaderMod = this
@@ -1613,7 +2918,7 @@ Mod.prototype.loadUnits = function(baseMod, target) {
             // schedule the loading
             let batch = 2 // 0 is for boot, 1 is for static resources
             loadQueue.forEach(unit => {
-                const ls = unit.ls
+                const ls = unit.ls || []
                 ls.forEach(resLocalUrl => {
                     // remove ext and classifier and add unit mount point to get mod path
                     const targetPath = addPath(unit.mount, removeExtention(removeExtention(resLocalUrl)))
@@ -1634,8 +2939,65 @@ Mod.prototype.loadUnits = function(baseMod, target) {
         })
         .catch(err => {
             console.log(err)
-            _scene.log.err('loader', 'errors on units loading')
+            _scene.log.err('[loader]', 'errors on units loading')
         })
+}
+
+function constructLog() {
+    const log = console.log.bind(window.console, '>')
+    augment(log, new Frame())
+    /*
+    const log = function log(msg, post) {
+        log.out(msg, post)
+    }
+    */ 
+
+    /*
+    mod.log.attach(function err(msg, post) {
+        post? console.log.call(console, '! [' + msg + '] ' + post) : console.log('! ' + msg) 
+    }, 'err')
+    mod.log.attach(function warn(msg, post) {
+        post? console.log.call(console, '? [' + msg + '] ' + post) : console.log('? ' + msg) 
+    }, 'warn')
+    mod.log.attach(function out(msg, post) {
+        post? console.log.call(console, '> [' + msg + '] ' + post) : console.log('> ' + msg) 
+    }, 'out')
+    mod.log.attach(function debug(msg, post) {
+        post? console.log.call(console, '. [' + msg + '] ' + post) : console.log('# ' + msg) 
+    }, 'debug')
+    mod.log.attach(function sys(msg, post) {
+        post? console.log.call(console, '$ [' + msg + '] ' + post) : console.log.call(console, '$ ' + msg) 
+    }, 'sys')
+    mod.log.attach(function dump(obj) {
+        console.dir.call(console, obj)
+    }, 'dump')
+    */
+    log.attach(
+        console.error.bind(window.console, '!'),
+        'err')
+    log.attach(
+        console.warn.bind(window.console, '?'),
+        'warn')
+    log.attach(
+        console.log.bind(window.console, '>'),
+        'out')
+    log.attach(
+        console.log.bind(window.console, '.'),
+        'debug')
+    log.attach(
+        console.log.bind(window.console, '$'),
+        'sys')
+    log.attach(
+        console.log.bind(window.console),
+        'raw')
+    log.attach(
+        console.dir.bind(window.console),
+        'dump')
+    log.attach(
+        console.table.bind(window.console),
+        'tab')
+
+    return log
 }
 
 // ***********************
@@ -1643,10 +3005,15 @@ Mod.prototype.loadUnits = function(baseMod, target) {
 function constructScene() {
     const mod = new Mod()
     mod.name = '/'
+
     mod._ = mod // set the context
     mod._$ = mod // root context
     mod.__ = false // don't have any parents
     mod.___ = mod // parent context
+    Object.defineProperty(mod, '_', { enumerable: false })
+    Object.defineProperty(mod, '_$', { enumerable: false })
+    Object.defineProperty(mod, '__', { enumerable: false })
+    Object.defineProperty(mod, '___', { enumerable: false })
     mod.inherit = function() {}
 
     // sys
@@ -1658,6 +3025,7 @@ function constructScene() {
     mod.sys.attach(supplement)
     mod.sys.attach(before)
     mod.sys.attach(after)
+    mod.sys.attach(chain)
 
     mod.sys.attach(Frame)
     mod.sys.attach(LabFrame)
@@ -1669,6 +3037,7 @@ function constructScene() {
     mod.sys.attach(isArray)
     mod.sys.attach(isMutable)
     mod.sys.attach(isFrame)
+    mod.sys.attach(isEmpty)
 
     // pub
     mod.attach(new Frame({
@@ -1676,41 +3045,21 @@ function constructScene() {
     }))
 
     // log
-    const log = function log(msg, post) {
-        log.out(msg, post)
-    }
-    augment(log, new Frame())
-    mod.attach(log)
-
-    mod.log.attach(function err(msg, post) {
-        post? console.log('! [' + msg + '] ' + post) : console.log('! ' + msg) 
-    }, 'err')
-    mod.log.attach(function warn(msg, post) {
-        post? console.log('? [' + msg + '] ' + post) : console.log('? ' + msg) 
-    }, 'warn')
-    mod.log.attach(function out(msg, post) {
-        post? console.log('> [' + msg + '] ' + post) : console.log('> ' + msg) 
-    }, 'out')
-    mod.log.attach(function debug(msg, post) {
-        post? console.log('# [' + msg + '] ' + post) : console.log('# ' + msg) 
-    }, 'debug')
-    mod.log.attach(function sys(msg, post) {
-        post? console.log('$ [' + msg + '] ' + post) : console.log('$ ' + msg) 
-    }, 'sys')
-    mod.log.attach(function dump(obj) {
-        console.dir(obj)
-    }, 'dump')
+    const log = constructLog()
+    mod.attach(log, 'log')
 
     // setup env
     mod.env.TARGET_FPS = 60
     mod.env.MAX_EVO_STEP = 0.01
     mod.env.MAX_EVO_PER_CYCLE = 0.3
     mod.env.lastFrame = Date.now()
-    mod.env.mouseX = 0
-    mod.env.mouseY = 0
-    mod.env.mouseLX = 0
-    mod.env.mouseLY = 0
-    mod.env.keys = {}  // down key set
+    //mod.env.mouseX = 0
+    //mod.env.mouseY = 0
+    //mod.env.mouseLX = 0
+    //mod.env.mouseLY = 0
+    mod.env.key = _key  // down key set
+    mod.env.pad = _pad
+    mod.env.mouse = _mouse
     mod.env.config = {}
 
     return mod
@@ -1769,7 +3118,7 @@ _scene.packDeclarations = function(target) {
 // main scene lifecycle - bootstrap, cycle[evo, draw]
 //
 const preboot = function() {
-    _scene.log.sys('loader', 'loading config: ' + JAM_CONFIG)
+    _scene.log.sys('[loader]', 'loading config: ' + JAM_CONFIG)
 
     loadJson(JAM_CONFIG)
         .then(function(config) {
@@ -1780,7 +3129,7 @@ const preboot = function() {
             bootstrap()
         })
         .catch((err) => {
-            _scene.log.sys('loader', 'unable to get [' + JAM_CONFIG + ']: ' + err)
+            _scene.log.sys('[loader]', 'unable to get [' + JAM_CONFIG + ']: ' + err)
             bootstrap()
         })
 }
@@ -1801,16 +3150,17 @@ const bootstrap = function() {
         canvas.style.position = "absolute";
         canvas.style.display = "block";
         document.body.appendChild(canvas);
-
-        // style body
+        
+        // style the body
         document.body.style.margin = "0"
         document.body.style.padding = "0"
-        document.body.style.overflow = "hiddenq";
+        document.body.style.overflow = "hidden";
         document.body.setAttribute("scroll", "no");
     }
 
     // bind context
-    _scene.ctx = canvas.getContext("2d")
+    _scene.ctx = augmentCtx(canvas.getContext("2d"))
+    _scene.populateAlt()
 
     _scene.loadUnits(_scene, _scene.env.syspath)
 
@@ -1860,6 +3210,7 @@ const bootstrap = function() {
         if (isFun(canvas.requestFullscreen)) canvas.requestFullscreen()
     }
     startCycle()
+    startFlow()
 }
 
 function startCycle() {
@@ -1880,32 +3231,133 @@ function startCycle() {
     */
 }
 
-// > implement 'keepOriginalAspectRatio'&'aspectRatio' option
+function openSocket(url, retry) {
+    const TAG = '[flow]'
+    const socket = new WebSocket(url)
+
+    socket.onopen = function() {
+        _scene.log.sys(TAG, `started the flow at: ${url}`)
+    }
+
+    socket.onclose = function(err) {
+        const timeout = Math.min(retry * 2, 60) || 5
+        _scene.log.sys(TAG, `flow is closed, trying to reestablish in ${timeout}s...`)
+        setTimeout(() => openSocket(url, timeout), timeout * 1000)
+    }
+
+    socket.onmessage = function(msg) {
+        //_scene.log(TAG, msg.data.toString())
+        if (isString(msg.data)) {
+            const parts = msg.data.split(':')
+            _scene.patchNode(parts[0], parts[1], parts[2])
+        }
+    }
+
+    _scene.flow = function(msg) {
+        console.dir(socket)
+        if (socket.readyState !== 1) return
+        socket.send(msg)
+    }
+}
+
+function startFlow(url) {
+    if (!_scene.env.config.flow) return
+
+    const socketProtocol = (window.location.protocol === 'https:'? 'wss:' : 'ws:')
+    openSocket(`${socketProtocol}//${window.location.host}/flow/`)
+}
+
 function expandCanvas(name) {
     var canvas = document.getElementById(name)
     if (!canvas) return
 
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+
+    const ctx = canvas.getContext("2d")
+
+    let mode = canvas.getAttribute('mode')
+    if (!mode) mode = 'fullscreen'
+
     if (_scene.env.canvasStyle === 'preserve' || _scene.env.config.preserveCanvas) { 
-        _scene.env.width = _scene.ctx.width = canvas.width
-        _scene.env.height = _scene.ctx.height = canvas.height
-        _scene.draw() // it doesn't work without forced redraw
+        _scene.ctx.width = canvas.width
+        _scene.ctx.height = canvas.height
+    } else if (mode === 'fix-aspect') {
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
+
+        const aspect = parseFloat(canvas.getAttribute('aspect'))
+        const minHBorder = parseFloat(canvas.getAttribute('minHBorder'))
+        const minVBorder = parseFloat(canvas.getAttribute('minVBorder'))
+        const portAspect = viewportWidth / viewportHeight
+
+        let targetWidth = viewportWidth
+        let targetHeight = viewportHeight
+        if (minHBorder > 0) targetWidth = targetWidth - minHBorder*2
+        if (minVBorder > 0) targetHeight = targetHeight - minVBorder*2
+
+        if (portAspect > aspect) {
+            // viewport is actually wider
+            targetWidth = Math.round(targetHeight * aspect)
+        } else {
+            // viewport is higher
+            targetHeight = Math.round(targetWidth / aspect)
+        }
+        const hborder = Math.round((viewportWidth - targetWidth)/2)
+        const vborder = Math.round((viewportHeight - targetHeight)/2)
+
+        canvas.width = ctx.width = targetWidth
+        canvas.height = ctx.height = targetHeight
+        canvas.style.width = targetWidth + 'px'
+        canvas.style.height = targetHeight + 'px'
+        canvas.style.left = hborder + 'px'
+        canvas.style.top = vborder + 'px'
+
+    } else if (mode === 'fix-res') {
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
+
+        let targetWidth = canvas.getAttribute('targetWidth')
+        let targetHeight = canvas.getAttribute('targetHeight')
+        // TODO maybe show an error that we are expecting custom attributes in here?
+        if (!targetWidth) targetWidth = viewportWidth
+        if (!targetHeight) targetHeight = viewportHeight
+
+        // calculate canvas scale respecting the aspect
+        const aspect = targetWidth / targetHeight
+        const vscale = viewportWidth / targetWidth
+        const hscale = viewportHeight / targetHeight
+        let scale = hscale
+        if (hscale > vscale) scale = vscale
+
+        const hborder = Math.round((viewportWidth - (targetWidth*scale))/2)
+        const vborder = Math.round((viewportHeight - (targetHeight*scale))/2)
+
+        canvas.width = ctx.width = targetWidth
+        canvas.height = ctx.height = targetHeight
+        canvas.style.width = Math.round(targetWidth * scale) + 'px'
+        canvas.style.height = Math.round(targetHeight * scale) + 'px'
+        canvas.style.left = hborder + 'px'
+        canvas.style.top = vborder + 'px'
+
     } else {
         // default full-screen canvas
-        var newWidth = window.innerWidth
-        var newHeight = window.innerHeight
-        _scene.env.width = _scene.ctx.width = canvas.width = newWidth
-        _scene.env.height = _scene.ctx.height = canvas.height = newHeight
-        canvas.style.width = newWidth + 'px'
-        canvas.style.height = newHeight + 'px'
-        _scene.draw() // it doesn't work without forced redraw
+        //_scene.ctx.width = canvas.width = viewportWidth
+        //_scene.ctx.height = canvas.height = viewportHeight
+        _scene.env.width = _scene.ctx.width = canvas.width = viewportWidth
+        _scene.env.height = _scene.ctx.height = canvas.height = viewportHeight
+        canvas.style.width = viewportWidth + 'px'
+        canvas.style.height = viewportHeight + 'px'
+
     }
+    _scene.draw() // it doesn't work without forced redraw
 }
 
 function expandView() {
     // TODO modify to support multiple canvases and custom resize
     expandCanvas(canvasName)
+    if (_scene.trap) _scene.trap('resize')
 }
-
 
 // ******************************************************
 function cycle() {
@@ -1913,6 +3365,7 @@ function cycle() {
     var dt = (now - _scene.env.lastFrame)/1000
 
     // show, react and update cycle
+    _scene.dt = dt
     _scene.draw()
 
     // max evolution threshold
@@ -1924,9 +3377,9 @@ function cycle() {
     // to compensate possible lag due to rendering delays
     while(dt > 0) {
         if (dt > _scene.env.MAX_EVO_STEP) {
-            _scene.evo(_scene.env.MAX_EVO_STEP);
+            _scene.evo(_scene.env.MAX_EVO_STEP)
         } else {
-            _scene.evo(dt);
+            _scene.evo(dt)
         }
         dt -= _scene.env.MAX_EVO_STEP
     }
@@ -1944,71 +3397,111 @@ function cycle() {
 function handleMouseMove(e) {
     e = e || window.event
 
+    /*
     _scene.env.mouseLX = _scene.env.mouseX
     _scene.env.mouseLY = _scene.env.mouseY
     _scene.env.mouseX = e.pageX
     _scene.env.mouseY = e.pageY
+    */
+    _mouse.lx = _mouse.x
+    _mouse.ly = _mouse.y
+    _mouse.x = e.pageX
+    _mouse.y = e.pageY
 
     _scene.trap('mouseMove', e, true)
     e.preventDefault()
     e.stopPropagation()
-    return false;
+    return false
 }
 
 function handleMouseWheel(e) {
     _scene.trap('mouseWheel', e, true)
-    return false;
+    return false
 }
 
 function handleMouseDown(e) {
     _scene.trap('mouseDown', e, true)
+    _mouse.buttons = e.buttons
     e.preventDefault()
     e.stopPropagation()
-    return false;
+    return false
 }
 
 function handleMouseUp(e) {
     _scene.trap('mouseUp', e, true)
+    _mouse.buttons = e.buttons
     e.preventDefault()
     e.stopPropagation()
-    return false;
+    return false
 }
 
 function handleMouseClick(e) {
     _scene.trap('click', e, true)
     e.preventDefault()
     e.stopPropagation()
-    return false;
+    return false
 }
 
 function handleMouseDoubleClick(e) {
     _scene.trap('dblClick', e, true)
     e.preventDefault()
     e.stopPropagation()
-    return false;
+    return false
 }
 
 function handleMouseOut(e) {
-    for (var k in _scene.env.keys) {
-        delete _scene.env.keys[k]
+    /*
+    for (var k in _scene.env.key) {
+        delete _scene.env.key[k]
     }
+    */
+    _mouse.out = true
+    Object.keys(_key).forEach(k => {
+        delete _key[k]
+    })
     _scene.trap('mouseOut', e, true)
+}
+
+function handleMouseOver(e) {
+    _mouse.out = false
+    _scene.trap('mouseOver', e, true)
+}
+
+function handleTouchStart(e) {
+    _scene.trap('touchStart', e, true)
+    return false
+}
+
+function handleTouchEnd(e) {
+    _scene.trap('touchEnd', e, true)
+    return false
+}
+
+function handleTouchMove(e) {
+    _scene.trap('touchMove', e, true)
+    return false
+}
+
+function handleTouchCancel(e) {
+    _scene.trap('touchCancel', e, true)
+    return false
 }
 
 function handleContextMenu(e) {
     _scene.trap('mouseContext', e, true)
     e.preventDefault()
     e.stopPropagation()
-    return false;
+    return false
 }
 
 function handleKeyDown(e) {
-    var code = e.which || e.keyCode
+    let keyName = e.code.substring(0, 1).toLowerCase()
+        + e.code.substring(1)
 
-    _scene.env.keys[code] = 1
-    let ename = e.code.toLowerCase() + 'Down'
+    _key[keyName] = true
+    _key[e.key] = true
 
-    let chain = _scene.trap(ename, e, true)
+    let chain = _scene.trap(keyName + 'Down', e, true)
     if (chain) {
         chain = _scene.trap('keyDown', e, true)
     }
@@ -2022,12 +3515,13 @@ function handleKeyDown(e) {
 }
 
 function handleKeyUp(e) {
-    var code = e.which || e.keyCode
-    delete _scene.env.keys[code]
+    let keyName = e.code.substring(0, 1).toLowerCase()
+        + e.code.substring(1)
 
-    let ename = e.code.toLowerCase() + 'Up'
+    delete _key[keyName]
+    delete _key[e.key]
 
-    let chain = _scene.trap(ename, e, true)
+    let chain = _scene.trap(keyName + 'Up', e, true)
     if (chain) {
         chain = _scene.trap('keyUp', e, true)
     }
@@ -2035,9 +3529,19 @@ function handleKeyUp(e) {
     if (!chain)  {
         e.preventDefault()
         e.stopPropagation()
-        return false;
+        return false
     }
     return true
+}
+
+function handleHashChange() {
+    if (location.hash.startsWith('#test')) {
+        doTest(_scene, location.hash.substring(1))
+    } else if (location.hash.startsWith('#box')) {
+        doBox(_scene, location.hash.substring(1), true)
+    } else {
+        _scene.trap('hash', location.hash)
+    }
 }
 
 
@@ -2064,22 +3568,27 @@ for (let i = 0; i < scripts.length; i++) {
         _scene.env.title = document.title
 
         // check out test hash
-        if (location.hash && location.hash.startsWith('#test')) {
-            // determine test name
-            const testName = location.hash.substring(6)
-            if (testName.length === 0) {
-                _scene.env.config.test = true
-            } else {
-                _scene.env.config.test = testName
+        if (location.hash) {
+            if (location.hash.startsWith('#test')) {
+                // determine test name
+                const testName = location.hash.substring(6)
+                if (testName.length === 0) {
+                    _scene.env.config.test = true
+                } else {
+                    _scene.env.config.test = testName
+                }
+            } else if (location.hash.startsWith('#box')) {
+                // determine box name
+                _scene.env.config.box = location.hash.substring(5)
             }
-        }
+        } 
 
         _scene.log.sys('=== Environment ===')
         _scene.log.sys('basename: ' + _scene.env.basename)
         _scene.log.sys('syspath: ' + _scene.env.syspath)
         _scene.log.sys('basepath: ' + _scene.env.basepath)
         _scene.log.sys('title: ' + _scene.env.title)
-        break;
+        break
     }
 }
 
@@ -2097,12 +3606,19 @@ function bindHandlers(target) {
     target.onmouseup = handleMouseUp
     target.onclick = handleMouseClick
     target.onmouseout = handleMouseOut
+    target.onmouseover = handleMouseOver
     target.ondblclick = handleMouseDoubleClick
     target.oncontextmenu = handleContextMenu
     target.onmousemove = handleMouseMove
     target.onkeydown = handleKeyDown
     target.onkeyup = handleKeyUp
+    target.onhashchange = handleHashChange
+
     target.addEventListener('wheel', handleMouseWheel)
+    target.addEventListener('touchstart', handleTouchStart)
+    target.addEventListener('touchend', handleTouchEnd)
+    target.addEventListener('touchmove', handleTouchMove)
+    target.addEventListener('touchcancel', handleTouchCancel)
 }
 bindHandlers(window)
 
@@ -2115,8 +3631,8 @@ window.requestAnimFrame = (function() {
          window.oRequestAnimationFrame ||
          window.msRequestAnimationFrame ||
          function(callback, element) {
-            window.setTimeout(callback, 1000/_scene.env.TARGET_FPS);
-         };
+            window.setTimeout(callback, 1000/_scene.env.TARGET_FPS)
+         }
 })();
 
 return _scene;

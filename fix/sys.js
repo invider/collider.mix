@@ -1,8 +1,10 @@
 /**
+ * core system functions
  * @alias sys
  */
 module.exports = {
-    _info: 'system functions',
+
+    // copy source nodes to the target destination
     cp: function(source, target) {
         _.log.sys('copying ' + source + ' -> ' + target)
 
@@ -24,11 +26,15 @@ module.exports = {
         return list.length
     },
 
+    /*
+    // and what can we do with name shaddowing? select is already in Frame
     // select from arbitrary object
     select: function(target, path) {
         // TODO select from any object recursively
     },
+    */
 
+    // attach an element to the specified target
     attach: function(target, element) {
         if (isFrame(target)) {
             target.attach(element)
@@ -38,10 +44,12 @@ module.exports = {
             let name = element.name
             if (!name) throw "can't attach unnamed element to object!"
             target[name] = element
+            element.__ = target
         }
         return element
     },
 
+    // spawn an entity with provided constructor data
     spawn: function(source, spawnData, target, sbase, tbase) {
         if (!sbase) sbase = 'dna/'
         if (!tbase) tbase = 'lab/'
@@ -49,6 +57,7 @@ module.exports = {
         let cons = source
         if (this._.sys.isString(source)) {
             cons = this._.selectOne(sbase + source)
+
             if (!isFun(cons) && !isObj(cons)) {
                 // look up in the root mod
                 cons = this._._$.selectOne(sbase + source)
@@ -56,6 +65,7 @@ module.exports = {
             if (!isFun(cons) && !isObj(cons)) throw "can't find the spawn dna: "
                 + this._.name + '/' + sbase + source
         }
+        if (!cons) throw `can't find the spawn dna: ${source}`
 
         let dest = target
         if (!target || target === '') {
@@ -81,25 +91,30 @@ module.exports = {
             if (/[A-Z]/.test(cons.name[0])) {
                 // uppercase means constructor
                 let res = new cons(spawnData)
+                res._dna = cons.name
                 sys.attach(dest, res)
                 return res
             } else {
                 // lowercase means factory
                 let res = cons(spawnData)
+                res._dna = cons.name
                 return sys.attach(dest, res)
             }
         } else if (sys.isObj(cons)) {
             if (isFun(cons.spawn)) {
-                // spawn() function
+                // spawn() factory function
                 return sys.attach(dest, cons.spawn(spawnData))
             } else {
-                return sys.attach(dest, this.clone(cons))
+                return sys.attach(dest, this.clone(cons, spawnData))
             }
         } else {
             return false
         }
     },
 
+    //
+    // clone the object and augment it with metadata
+    //
     // TODO maybe work on tree instead of generic?
     clone: function(obj, meta) {
         if (!this.isObj(obj)) return
@@ -112,16 +127,23 @@ module.exports = {
         obj._ = null
         obj.__ = null
 
-        let res = JSON.parse(JSON.stringify(obj))
-        this.augment(res, meta)
+        const clone = Object.create(Object.getPrototypeOf(obj))
+        let data = JSON.parse(JSON.stringify(obj))
+        this.augment(clone, data)
+        Object.keys(obj).forEach(k => {
+            if (isFun(obj[k])) clone[k] = obj[k]
+        })
+
+        this.augment(clone, meta)
 
         // restore links on original object
         obj._ = _
         obj.__ = __
 
-        return res
+        return clone
     },
 
+    // extend a child object from the parent prototype
     extend: function(child, parent){
         child.prototype = Object.create(parent.prototype);
         child.prototype.constructor = child;
@@ -129,12 +151,19 @@ module.exports = {
         child.prototype.__superProto__ = parent.prototype
     },
 
+    // find absolute path of the node
     path: function(node) {
         if (!node || !this.isObj(node) || !this.isObj(node.__)) return ''
         if (node.__.name === '/') return this.getName(node)
         return this.path(node.__) + '/' + this.getName(node)
     },
 
+    // determine node's name
+    //
+    // Node's own ['name'] property is considered as a priority.
+    // Otherwise returns an index in the parent _ls (???)
+    // TODO maybe try to locate in _dir first?
+    //
     getName: function(node) {
         if (!node || !this.isObj(node)) return '?'
         if (this.isString(node.name)) return node.name
