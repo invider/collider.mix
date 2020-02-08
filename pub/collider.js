@@ -2179,6 +2179,7 @@ const Mod = function(dat) {
         let mod
         if (name.endsWith('-buf')) {
             // find different convention for buffered?
+            _scene.log.sys(`creating custom canvas for ${name}`)
             const canvas = document.createElement('canvas')
             const ctx = augmentCtx(canvas.getContext('2d'))
 
