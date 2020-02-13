@@ -1805,11 +1805,11 @@ function augmentCtx(ctx) {
             if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
         },
-        polygon: function(points) {
+        polygon: function() {
             ctx.beginPath()
-            ctx.moveTo(points[0], points[1])
-            for (let i = 2; i < points.length; i++) {
-                ctx.lineTo(points[i++], points[i])
+            ctx.moveTo(arguments[0], arguments[1])
+            for (let i = 2; i < arguments.length; i++) {
+                ctx.lineTo(arguments[i++], arguments[i])
             }
             ctx.closePath()
             if (mode < 2) ctx.stroke()
