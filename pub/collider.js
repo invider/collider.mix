@@ -2045,6 +2045,7 @@ const Mod = function(dat) {
         name: 'res',
         _included: 0,
         _loaded: 0,
+        _errors: 0,
         _execList: [],
 
         _schedule: function(batch, script) {
@@ -2077,7 +2078,9 @@ const Mod = function(dat) {
                 // OK - everything is loaded, call setup functions
                 // TODO how to deal with mods with no res? how start would be triggered?
                 this._.log.sys('[loader]', 'Total ' + this._loaded + ' resources are loaded in ' + this._.name)
+                this._errors = 1
                 this._exec()
+                this._errors = 0
 
                 this._.start()
             }
