@@ -1995,14 +1995,14 @@ const Mod = function(dat) {
             return (targetStop - targetStart) * v
         },
 
+        len: function(x, y) {
+            return Math.sqrt(x*x + y*y)
+        },
+
         dist: function(x1, y1, x2, y2) {
             const dx = x2 - x1;
             const dy = y2 - y1;
             return Math.sqrt(dx*dx + dy*dy)
-        },
-
-        length: function(x, y) {
-            return Math.sqrt(x*x + y*y)
         },
 
         angle: function(x, y) {
