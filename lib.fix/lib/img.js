@@ -91,4 +91,16 @@ module.exports = {
         const context = canvas.getContext('2d')
         return context.getImageData(0, 0, img.width, img.height)
     },
+
+    isDrawableImage: function(target) {
+        return (
+               target instanceof HTMLImageElement
+            || target instanceof HTMLCanvasElement
+            || target instanceof SVGImageElement
+            || target instanceof CSSImageValue
+            || target instanceof HTMLVideoElement
+            || target instanceof OffscreenCanvas
+            || target instanceof ImageBitmap
+        )
+    },
 }

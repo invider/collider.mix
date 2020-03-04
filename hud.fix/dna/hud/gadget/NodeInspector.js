@@ -65,7 +65,7 @@ NodeInspector.prototype.open = function(next) {
         this.ensureActive('textInspector')
         this.active.setText('' + next)
 
-    } else if (next instanceof HTMLImageElement) {
+    } else if (lib.img.isDrawableImage(next)) {
         this.ensureActive('imageInspector')
         this.active.open(next)
 

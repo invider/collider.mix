@@ -11,7 +11,7 @@ ImageInspector.prototype = Object.create(Pane.prototype)
 ImageInspector.prototype.open = function(next) {
     this.img = null
 
-    if (next instanceof HTMLImageElement) {
+    if (lib.img.isDrawableImage(next)) {
         this.img = next
     }
 }
