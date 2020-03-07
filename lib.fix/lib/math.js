@@ -157,13 +157,13 @@ return {
 	},
 
     // random float in [0-maxValue)
-	rnd: function rnd(maxValue){
-		return rndv()/_rnd_m * maxValue
+	rnd: function rnd(topLimit){
+		return rndv()/_rnd_m * topLimit 
 	},
 
     // random int in [0..maxValue)
-	rndi: function rndi(maxValue){
-		return ~~this.rnd(maxValue)
+	rndi: function rndi(topLimit){
+		return ~~this.rnd(topLimit)
 	},
 
     // random sign multiplicator [1/-1]
@@ -182,6 +182,22 @@ return {
         }
         return null
 	},
+
+    // shuffle array elements
+    shuffle: function shuffle(array, iter) {
+        if (!array) return
+        if (!iter) iter = array.length * 2
+
+        for (let i = 0; i < iter; i++) {
+            const i1 = this.rndi(array.length)
+            const i2 = this.rndi(array.length)
+
+            const e1 = array[i1]
+            array[i1] = array[i2]
+            array[i2] = e1
+        }
+        return array
+    }
 }
 
 })()
