@@ -2023,12 +2023,14 @@ const Mod = function(dat) {
                 vol *= _.env.sfxVolume
             }
 
-            if (!(src instanceof Audio)) {
+            if (isString(src)) {
                 // find by path in resources
                 src = _.res.selectOne(src)
             }
 
-            if (src && src instanceof Audio && src.readyState === 4) {
+            if (src && (src instanceof Audio
+                        || src instanceof HTMLAudioElement)
+                    && src.readyState === 4) {
                 src.volume = vol
                 src.play()
             }
