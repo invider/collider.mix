@@ -14,7 +14,7 @@ module.exports = function(src, vol, pan) {
 
     if (src && (src instanceof Audio
                 || src instanceof HTMLAudioElement)
-            && src.readyState === 4) {
+            && src.readyState >= 2) {
         src.volume = vol
         src.play()
     }
