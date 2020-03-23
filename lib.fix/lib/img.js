@@ -101,7 +101,8 @@ module.exports = {
             // OffscreenCanvas is experimental, so can be undefined
             || (typeof OffscreenCanvas !== 'undefined'
                 && (target instanceof OffscreenCanvas))
-            || target instanceof ImageBitmap
+            || (typeof ImageBitmap !== 'undefined'
+                && (target instanceof ImageBitmap))
         )
     },
 }
