@@ -97,12 +97,12 @@ module.exports = {
                target instanceof HTMLImageElement
             || target instanceof HTMLCanvasElement
             || target instanceof SVGImageElement
-            || target instanceof CSSImageValue
             || target instanceof HTMLVideoElement
             // OffscreenCanvas is experimental, so can be undefined
             || (typeof OffscreenCanvas !== 'undefined'
                 && (target instanceof OffscreenCanvas))
-            || target instanceof ImageBitmap
+            || (typeof ImageBitmap !== 'undefined'
+                && (target instanceof ImageBitmap))
         )
     },
 }
