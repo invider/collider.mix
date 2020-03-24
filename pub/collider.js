@@ -640,7 +640,7 @@ Frame.prototype.select = function(predicate) {
 			for (let k in this._dir) {
 				let o = this._dir[k]
                 // TODO make possible * matching and direct #tag specifiers
-				if (k === predicate || (o.tag && o.tag.includes(predicate))) res.push(o)
+				if (k === predicate || (o.tag && isString(o.tag) && o.tag.includes(predicate))) res.push(o)
 			}
 			return res
 		}
