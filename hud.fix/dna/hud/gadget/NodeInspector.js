@@ -1,5 +1,4 @@
 'use strict'
-
 // @depends(/dna/hud/gadget/TextView)
 // @depends(/dna/hud/gadget/FrameInspector)
 // @depends(/dna/hud/gadget/ImageInspector)
@@ -12,6 +11,7 @@ const defaults = {
     y: 0,
     w: 100,
     h: 100,
+    trail: [],
 }
 
 function NodeInspector(st) {
@@ -24,7 +24,12 @@ NodeInspector.prototype.init = function() {
     const inspector = this
 
     this.spawn('/dna/hud/gadget/TextView', {
-        name: 'textInspector'
+        name: 'textInspector',
+        onKeyDown: function(e) {
+            if (e.key === 'Backspace') {
+                inspector.back()
+            }
+        },
     })
     this.spawn('/dna/hud/gadget/FrameInspector', {
         name: 'frameInspector',
@@ -33,7 +38,12 @@ NodeInspector.prototype.init = function() {
         }
     })
     this.spawn('/dna/hud/gadget/ImageInspector', {
-        name: 'imageInspector'
+        name: 'imageInspector',
+        onKeyDown: function(e) {
+            if (e.key === 'Backspace') {
+                inspector.back()
+            }
+        },
     })
 
     this.open($)
@@ -55,15 +65,23 @@ NodeInspector.prototype.selectedNode = function() {
 
 NodeInspector.prototype.ensureActive = function(id) {
     if (this.active && this.active.name === id) return
+
+    if (!this.disabled && this.active) {
+        this.hud.releaseFocus(this.active)
+    }
+
     this.activate(id)
+    if (!this.disabled) {
+        this.hud.captureFocus(this.active)
+    }
 }
 
-NodeInspector.prototype.open = function(next) {
-    this.dir = next
+NodeInspector.prototype.sync = function() {
+    const next = this.dir
 
     if (!next) {
         this.ensureActive('textInspector')
-        this.active.setText('' + next)
+        this.active.setText('')
 
     } else if (lib.img.isDrawableImage(next)) {
         this.ensureActive('imageInspector')
@@ -77,6 +95,25 @@ NodeInspector.prototype.open = function(next) {
         this.ensureActive('textInspector')
         this.active.setText(next.toString())
     }
+}
+
+NodeInspector.prototype.back = function() {
+    if (this.trail.length === 0) return
+
+    const cur = this.trail.pop()
+    const prev = this.trail.pop()
+    this.land(prev)
+}
+
+NodeInspector.prototype.open = function(next) {
+    if (!this.disabled) this.trail.push(next)
+    this.dir = next
+    this.sync()
+}
+
+NodeInspector.prototype.land = function(next) {
+    this.open(next)
+    if (this.onStateChange) this.onStateChange()
 }
 
 NodeInspector.prototype.select = function(node) {
@@ -95,4 +132,17 @@ NodeInspector.prototype.getDir = function() {
         this.dir = this.active.dir
     }
     return this.dir
+}
+
+NodeInspector.prototype.onFocus = function() {}
+
+NodeInspector.prototype.onKeyDown = function(e) {
+    switch(e.code) {
+        case 'Escape':
+            this.land(_.___)
+            break
+        case 'Backslash':
+            console.dir(this.selectedNode() || this.dir)
+            break
+    }
 }

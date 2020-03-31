@@ -84,16 +84,18 @@ const FrameInspector = function(dat) {
 }
 FrameInspector.prototype = Object.create(DynamicList.prototype)
 
+FrameInspector.prototype.back = function() {
+    if (this.trail.length > 0) {
+        this.dir = this.trail.pop()
+        this.updatePath()
+    }
+}
+
 FrameInspector.prototype.onKeyDown = function(e) {
     if (e.key === 'Enter' && e.shiftKey) {
         if (this.selected >= 0) this.onItemAction(this.selected, 3);
     } else if (e.key === 'Backspace') {
-        if (this.trail.length > 0) {
-            this.dir = this.trail.pop()
-            this.updatePath()
-        }
-    } else if (e.key === '\\') {
-        log.dump(this.dir)
+        this.back()
     } else if (e.key === 'Escape') {
         if (this.closable) this.detach()
     } else {

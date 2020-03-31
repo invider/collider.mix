@@ -24,3 +24,9 @@ ImageInspector.prototype.drawContent = function() {
         fill(.7, .3, .3)
     }
 }
+
+ImageInspector.prototype.onKeyDown = function(e) {
+    if (this.closable && e.key === 'Escape') {
+        this.detach()
+    }
+}
