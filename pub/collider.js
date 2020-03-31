@@ -2206,6 +2206,8 @@ const Mod = function(dat) {
     }
 
     trap.echo = function(key, data, chain) {
+        if (this.__.disabled) return
+
         var fn = trap[key]
         if (isFun(fn)) {
             if (fn(data) === false) return false
@@ -2213,7 +2215,7 @@ const Mod = function(dat) {
 
         if (chain) {
             // propagate event
-            this._.mod._ls.forEach( m => {
+            this.__.mod._ls.forEach( m => {
                 m.trap(key, data, chain)
             })
         }
