@@ -321,5 +321,10 @@ FrameInspector.prototype.drawItem = function(item, i, iy) {
     return h
 }
 
+FrameInspector.prototype.onItemClick = function(i) {
+    DynamicList.prototype.onItemClick.call(this, i)
+    if (this.onMove) this.onMove()
+}
+
 module.exports = FrameInspector
 
