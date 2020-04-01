@@ -11,10 +11,10 @@ const defaults = {
     y: 0,
     w: 100,
     h: 100,
-    trail: [],
 }
 
 function NodeInspector(st) {
+    this.trail = []
     augment(this, defaults)
     MonoContainer.call(this, st)
 }
@@ -106,7 +106,11 @@ NodeInspector.prototype.back = function() {
 }
 
 NodeInspector.prototype.open = function(next) {
-    if (!this.disabled) this.trail.push(next)
+    if (!this.disabled) {
+        if (this.trail[this.trail.length - 1] !== next) {
+            this.trail.push(next)
+        }
+    }
     this.dir = next
     this.sync()
 }

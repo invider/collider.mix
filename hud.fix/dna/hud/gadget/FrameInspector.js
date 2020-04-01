@@ -10,7 +10,6 @@ const DynamicList = dna.hud.gadget.DynamicList
 const defaults = {
     status: '/',
     dir: $,
-    trail: [],
     x: 0,
     y: 0,
     w: 200,
@@ -77,6 +76,7 @@ const FrameInspector = function(dat) {
     this.lastPos = []
     this.lastSelect = []
     this.lastName = []
+    this.trail = []
     augment(this, defaults)
     DynamicList.call(this, dat)
 
@@ -84,10 +84,17 @@ const FrameInspector = function(dat) {
 }
 FrameInspector.prototype = Object.create(DynamicList.prototype)
 
+FrameInspector.prototype.saveLocation = function(node) {
+    if (this.trail[this.trail.length - 1] !== node) {
+        this.trail.push(node)
+    }
+}
+
 FrameInspector.prototype.back = function() {
     if (this.trail.length > 0) {
         this.dir = this.trail.pop()
         this.updatePath()
+        if (this.onMove) this.onMove()
     }
 }
 
@@ -174,7 +181,7 @@ FrameInspector.prototype.open = function(next) {
         this.pos = 0
         this.selected = 0
         this.slider.pos = 0
-        this.trail.push(this.dir)
+        if (this.dir !== next) this.saveLocation(this.dir)
         if (sys.isFrame(next)) {
             this.dir = next
             //this.max = next._ls.length
@@ -221,7 +228,7 @@ FrameInspector.prototype.onItemAction = function(i, action) {
                 sel = this.lastSelect.pop()
             }
 
-            this.trail.push(this.dir)
+            this.saveLocation(this.dir)
             this.dir = this.dir.__
             this.pos = pos
             this.selected = sel
@@ -235,6 +242,7 @@ FrameInspector.prototype.onItemAction = function(i, action) {
         log.dump(item.node)
 
     } else if (action === 3) {
+        /*
         const next = item.node
         if (next && (sys.isObj(next) || sys.isFrame(next))) {
             const expl = new FrameInspector({
@@ -245,9 +253,11 @@ FrameInspector.prototype.onItemAction = function(i, action) {
             })
             this.__.attach(expl)
             expl.trail.push(expl.dir)
+            if (!this.disabled) log('^^^' + this.dir.name)
             expl.dir = next
             expl.pane.updatePath()
         }
+        */
 
     } else {
         const next = item.node
@@ -255,7 +265,7 @@ FrameInspector.prototype.onItemAction = function(i, action) {
         this.lastSelect.push(i)
     }
 
-    if (this.onStateChange) this.onStateChange()
+    if (this.onMove) this.onMove()
 }
 
 function nodeToIcon(item) {
@@ -293,7 +303,7 @@ FrameInspector.prototype.drawItem = function(item, i, iy) {
     const iconToTextSpacing = 10
     const magnify = 3
 
-    if (!nodeToIcon(item)) console.log(item.name)
+    if (!nodeToIcon(item)) console.log('no icon for ' + item.name)
     if (i === this.selected) {
         ctx.fillStyle = this.color.selected
         ctx.drawImage(nodeToIcon(item), x-magnify, iy-magnify, h+magnify*2, h+magnify*2)
