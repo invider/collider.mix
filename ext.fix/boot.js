@@ -29,7 +29,7 @@ let fadeBase = hsl(.1, 0, 0)
 //const COLOR = hsl(.3, 1, .5)
 //const COLOR = hsl(.35, 1, .5)
 
-let power = 2
+let power = 1.5
 let hold = 3.5
 let fade = 1
 let wait = 0.5
