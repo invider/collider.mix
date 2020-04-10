@@ -2219,7 +2219,9 @@ const Mod = function(dat) {
     }
 
     trap.echo = function(key, data, chain) {
-        if (this.__.disabled) return
+        if (this.__.disabled) return true
+        if (this.mask && !this.mask[key]) return true
+        if (this.ignore && this.ignore[key]) return true
 
         var fn = trap[key]
         if (isFun(fn)) {
@@ -2241,8 +2243,8 @@ const Mod = function(dat) {
 
         this[key] = chain(this[key], fn)
     }
-
     augment(trap, new Frame())
+
     this.attach(trap)
 }
 
