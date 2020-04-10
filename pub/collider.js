@@ -767,14 +767,17 @@ LabFrame.prototype.onAttached = function(node, name, parent) {
 },
 
 LabFrame.prototype.evo = function(dt) {
-    this._ls.forEach( e => {
-        if (e.evo && !e.dead && !e.paused) e.evo(dt)
-    })
+    for (let i = 0; i < this._ls.length; i++) {
+        const e = this._ls[i]
+        if (e.evo && !e.dead && !e.paused) {
+            e.evo(dt)
+        }
+    }
 }
 
 LabFrame.prototype.draw = function() {
     for (let i = 0; i < this._ls.length; i++) {
-        let e = this._ls[i]
+        const e = this._ls[i]
         if (e.draw && !e.dead && !e.hidden) {
             e.draw()
         }
@@ -2383,12 +2386,20 @@ Mod.prototype.start = function() {
     if (isFrame(this.mod)) this.mod._ls.forEach( mod => mod.start() )
 
     if (!captured) {
+        // no test or box has captured the control
+        // TODO search for *setup() in mod and all functions in setup/
         if (isFun(this.setup)) {
             this.setup()
         }
         if (isFrame(this.setup)) {
-            this.setup._ls.forEach( f => f() )
+            this.setup._ls.forEach( f => {
+                if (isFun(f)) f() 
+            })
         }
+        if (isFun(this.lab.setup)) {
+            this.lab.setup()
+        }
+
         this.status = 'started'
     }
     this.trap('postSetup')
@@ -2461,6 +2472,11 @@ Mod.prototype.draw = function() {
     }
 
     if (this.hidden) return
+
+    // optional background
+    if (this.lab.background && !this.lab._dir.background) {
+        this.ctx.draw.background(this.lab.background)
+    }
 
     // draw entities in the lab
     // we might integrate this mod display as a link in the mod list
@@ -3060,7 +3076,6 @@ function constructScene() {
     mod.env.TARGET_FPS = 60
     mod.env.MAX_EVO_STEP = 0.01
     mod.env.MAX_EVO_PER_CYCLE = 0.3
-    mod.env.lastFrame = Date.now()
     //mod.env.mouseX = 0
     //mod.env.mouseY = 0
     //mod.env.mouseLX = 0
@@ -3069,6 +3084,14 @@ function constructScene() {
     mod.env.pad = _pad
     mod.env.mouse = _mouse
     mod.env.config = {}
+
+    // setup default background
+    mod.lab.background = '#121313'
+
+    mod.setConfig = function(config) {
+        augment(this.env.config, config)
+        this.lab.background = config.background || this.lab.background
+    }
 
     return mod
 }
@@ -3132,7 +3155,7 @@ const preboot = function() {
         .then(function(config) {
             if (config) {
                 _scene.log.sys(' = Config =: ' + JSON.stringify(config));
-                augment(_scene.env.config, config)
+                _scene.setConfig(config)
             }
             bootstrap()
         })
@@ -3228,8 +3251,8 @@ function startCycle() {
 
     // initiate the game loop
     console.log('*** [jam] starting main cycle ***')
-    window.requestAnimFrame(cycle)
-    /*
+    _scene.env.lastFrame = performance.now()
+    window.requestAnimFrame(cycle) /*
     // old-fasioned way to setup animation
     if (!_scene.env.TARGET_FPS) {
         setInterval(cycle, 1)
@@ -3368,9 +3391,9 @@ function expandView() {
 }
 
 // ******************************************************
-function cycle() {
-    var now = Date.now()
-    var dt = (now - _scene.env.lastFrame)/1000
+function cycle(now) {
+    //var now = Date.now()
+    let dt = (now - _scene.env.lastFrame)/1000
 
     // show, react and update cycle
     _scene.dt = dt
