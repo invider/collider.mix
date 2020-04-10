@@ -794,6 +794,54 @@ LabFrame.prototype.draw = function() {
     }
 }
 
+LabFrame.prototype.pause = function() {
+    this.paused = true
+}
+
+LabFrame.prototype.pauseAll = function() {
+    this.paused = true
+    this._ls.forEach(n => {
+        if (n.pauseAll) n.pauseAll()
+        else if (n.pause) n.pause()
+    })
+}
+
+LabFrame.prototype.resume = function() {
+    this.paused = false
+}
+
+LabFrame.prototype.resumeAll = function() {
+    this.paused = false
+    this._ls.forEach(n => {
+        if (n.resumeAll) n.resumeAll()
+        else if (n.resume) n.resume()
+    })
+}
+
+LabFrame.prototype.hide = function() {
+    this.hidden = true
+}
+
+LabFrame.prototype.hideAll = function() {
+    this.hidden = true
+    this._ls.forEach(n => {
+        if (n.hideAll) n.hideAll()
+        else if (n.hide) n.hide()
+    })
+}
+
+LabFrame.prototype.show = function() {
+    this.hidden = false
+}
+
+LabFrame.prototype.showAll = function() {
+    this.hidden = false
+    this._ls.forEach(n => {
+        if (n.showAll) n.showAll()
+        else if (n.show) n.show()
+    })
+}
+
 const CueFrame = function(st) {
     Frame.call(this, st)
 }
@@ -879,6 +927,13 @@ CueFrame.prototype.evo = function(dt) {
     })
 }
 
+CueFrame.prototype.pause = function() {
+    this.paused = true
+}
+
+CueFrame.prototype.resume = function() {
+    this.paused = false
+}
 
 
 
@@ -2219,13 +2274,14 @@ const Mod = function(dat) {
     }
 
     trap.echo = function(key, data, chain) {
-        if (this.__.disabled) return true
         if (this.mask && !this.mask[key]) return true
         if (this.ignore && this.ignore[key]) return true
 
-        var fn = trap[key]
-        if (isFun(fn)) {
-            if (fn(data) === false) return false
+        if (!this.__.disabled) {
+            var fn = trap[key]
+            if (isFun(fn)) {
+                if (fn(data) === false) return false
+            }
         }
 
         if (chain) {
@@ -2455,10 +2511,9 @@ Mod.prototype.evo = function(dt) {
     }
     if (this.paused) return
 
-
     // evolve all entities in the lab
-    this.cue.evo(dt)
-    this.lab.evo(dt)
+    if (!this.cue.paused) this.cue.evo(dt)
+    if (!this.lab.paused) this.lab.evo(dt)
     //this.lab._ls.forEach( e => {
     //    if (e.evo && !e.dead && !e.paused) e.evo(dt)
     //})
@@ -2492,7 +2547,7 @@ Mod.prototype.draw = function() {
 
     // draw entities in the lab
     // we might integrate this mod display as a link in the mod list
-    this.lab.draw()
+    if (!this.lab.hidden) this.lab.draw()
 
     // draw mods
     for (let i = 0; i < this.mod._ls.length; i++) {
@@ -2611,6 +2666,87 @@ Mod.prototype.patch = function(target, path, node) {
         }
     }
 }
+
+// mod control
+
+Mod.prototype.pause = function() {
+    this.paused = true
+}
+
+Mod.prototype.pauseLab = function() {
+    this.lab.pause()
+    this.cue.pause()
+}
+
+Mod.prototype.pauseAll = function() {
+    this.paused = true
+    this.mod._ls.forEach(mod => mod.pauseAll())
+}
+
+Mod.prototype.resume = function() {
+    this.paused = false
+}
+
+Mod.prototype.resumeLab = function() {
+    this.lab.resume()
+    this.cue.resume()
+}
+
+Mod.prototype.resumeAll = function() {
+    this.paused = false
+    this.mod._ls.forEach(mod => mod.resumeAll())
+}
+
+Mod.prototype.hide = function() {
+    this.hidden = true
+}
+
+Mod.prototype.hideLab = function() {
+    this.lab.hide()
+}
+
+Mod.prototype.hideAll = function() {
+    this.hidden = true
+    this.mod._ls.forEach(mod => mod.hideAll())
+}
+
+Mod.prototype.show = function() {
+    this.hidden = false
+}
+
+Mod.prototype.showLab = function() {
+    this.lab.show()
+}
+
+Mod.prototype.showAll = function() {
+    this.hidden = false
+    this.mod._ls.forEach(mod => mod.showAll())
+}
+
+Mod.prototype.disable = function() {
+    this.disabled = true
+}
+
+Mod.prototype.disableAll = function() {
+    this.disabled = true
+    this.mod._ls.forEach(mod => mod.disableAll())
+}
+
+Mod.prototype.enable = function() {
+    this.disabled = false
+}
+
+Mod.prototype.enableAll = function() {
+    this.disabled = false
+    this.mod._ls.forEach(mod => mod.enableAll())
+}
+
+
+
+
+// **************************************************************
+//                        patching
+// **************************************************************
 
 function getExtension(url) {
     const match = url.match(/\.[^/.]+$/)
