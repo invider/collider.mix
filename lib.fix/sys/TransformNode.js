@@ -3,18 +3,23 @@
 const TransformationNode = sys.TransformationNode
 
 const df = {
-    angle: 0
+    x: 0,
+    y: 0,
+    angle: 0,
+    scale: 1,
 }
 
-function RotateNode(st) {
+function TransformNode(st) {
     augment(this, df)
     TransformationNode.call(this, st)
 }
-RotateNode.prototype = Object.create(TransformationNode.prototype)
+TransformNode.prototype = Object.create(TransformationNode.prototype)
 
-RotateNode.prototype.draw = function() {
+TransformNode.prototype.draw = function() {
     save()
+    translate(this.x, this.y)
     rotate(this.angle)
+    scale(this.scale, this.scale)
 
     TransformationNode.prototype.draw.call(this)
 
