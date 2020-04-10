@@ -721,6 +721,17 @@ LabFrame.prototype.spawn = function(dna, st) {
     return this._.sys.spawn(dna, st, this)
 }
 
+LabFrame.prototype.orderZ = function() {
+    this._ls.sort((a, b) => {
+        if (!isNumber(a.Z) && !isNumber(b.Z)) return 0;
+        if (!isNumber(a.Z) && isNumber(b.Z)) return 1;
+        if (isNumber(a.Z) && !isNumber(b.Z)) return -1;
+        if (a.Z > b.Z) return 1;
+        if (a.Z < b.Z) return -1;
+        return 0;
+    })
+}
+
 LabFrame.prototype.attach = function(node, name) {
     Frame.prototype.attach.call(this, node, name)
 
@@ -741,17 +752,7 @@ LabFrame.prototype.attach = function(node, name) {
     //    aug(node)
     //})
 
-    if (isNumber(node.Z)) {
-        // sort by Z
-        this._ls.sort((a, b) => {
-            if (!isNumber(a.Z) && !isNumber(b.Z)) return 0;
-            if (!isNumber(a.Z) && isNumber(b.Z)) return 1;
-            if (isNumber(a.Z) && !isNumber(b.Z)) return -1;
-            if (a.Z > b.Z) return 1;
-            if (a.Z < b.Z) return -1;
-            return 0;
-        })
-    }
+    if (isNumber(node.Z)) this.orderZ()
 
     return node
 }
@@ -767,12 +768,21 @@ LabFrame.prototype.onAttached = function(node, name, parent) {
 },
 
 LabFrame.prototype.evo = function(dt) {
+    let dirtyZ = false
+    let Z = Number.MIN_SAFE_INTEGER
+
     for (let i = 0; i < this._ls.length; i++) {
         const e = this._ls[i]
         if (e.evo && !e.dead && !e.paused) {
             e.evo(dt)
         }
+        if (e.Z) {
+            if (e.Z < Z) dirtyZ = true
+            Z = e.Z
+        }
     }
+
+    if (dirtyZ) this.orderZ()
 }
 
 LabFrame.prototype.draw = function() {
