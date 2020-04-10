@@ -380,6 +380,7 @@ Frame.prototype.touch = touchFun((name) => new Frame(name))
 
 Frame.prototype.attach = function(node, name) {
     if (node === undefined || node === null) return
+
     if (isObj(node) || isFun(node)) {
         // attaching an object - inject mod, parent and name
 
@@ -2631,8 +2632,10 @@ Mod.prototype.patch = function(target, path, node) {
                     // already defined - replace
                     // TODO doesn't work property for frames - _dir and _ls stays the same
                     //      maybe different patch modes?
+                    target.detach(target[path])
                     target[path] = node
                     target._dir[path] = node
+                    target._ls.push(node)
                 } else {
                     target.attach(node, path)
                 }
@@ -2663,6 +2666,9 @@ Mod.prototype.patch = function(target, path, node) {
         if (isFun(node.onLoad)) {
             node.onLoad(this)
             node.onLoad = true // replace function with true, so we'd not call it second time
+        }
+        if (isFun(node.init)) {
+            node.init()
         }
     }
 }
