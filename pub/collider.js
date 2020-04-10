@@ -396,17 +396,23 @@ Frame.prototype.attach = function(node, name) {
         if (!name && node.name) name = node.name
 	}
 
+    let prevNode
     if (name) {
         // make sure we are not shaddowing prototype definitions
+        prevNode = this[name]
+
         if (!Frame.prototype[name]) {
             this[name] = node
         }
+
+        if (prevNode) this.detach(prevNode)
         this._dir[name] = node
     }
     this._ls.push(node)
 
     this.onAttached(node, name, this)
     if (isFun(node.init)) node.init() // initialize node
+    if (prevNode && isFun(node.onReplace)) node.onReplace(prevNode)
 
     return node
 }
@@ -464,14 +470,14 @@ Frame.prototype.detachAll = function() {
 }
 
 Frame.prototype.detachByName = function(name) {
-    var obj = this[name];
+    const obj = this[name] || this._dir[name];
     if (obj === undefined){
         throw new Error("No node with name:" + name);
     }
     //
     //  FINISH called when element detached
     //
-    if (this[name].finish) this[name].finish();
+    if (obj.finish) obj.finish();
     if (obj.propagateDetach){
         if (obj.propagateDetach instanceof Array){
             obj.propagateDetach.forEach(o => o.__.detach(o));
@@ -2633,9 +2639,12 @@ Mod.prototype.patch = function(target, path, node) {
                     // TODO doesn't work property for frames - _dir and _ls stays the same
                     //      maybe different patch modes?
                     target.detach(target[path])
+                    target.attach(node, path)
+                    /*
                     target[path] = node
                     target._dir[path] = node
                     target._ls.push(node)
+                    */
                 } else {
                     target.attach(node, path)
                 }

@@ -35,7 +35,8 @@ module.exports = {
     */
 
     // attach an element to the specified target
-    attach: function(target, element) {
+    attachNode: function(target, element) {
+        if (target.name === 'FloatNode') debugger
         if (isFrame(target)) {
             target.attach(element)
         } else if (isArray(target)) {
@@ -92,20 +93,20 @@ module.exports = {
                 // uppercase means constructor
                 let res = new cons(spawnData)
                 res._dna = cons.name
-                sys.attach(dest, res)
+                sys.attachNode(dest, res)
                 return res
             } else {
                 // lowercase means factory
                 let res = cons(spawnData)
                 res._dna = cons.name
-                return sys.attach(dest, res)
+                return sys.attachNode(dest, res)
             }
         } else if (sys.isObj(cons)) {
             if (isFun(cons.spawn)) {
                 // spawn() factory function
-                return sys.attach(dest, cons.spawn(spawnData))
+                return sys.attachNode(dest, cons.spawn(spawnData))
             } else {
-                return sys.attach(dest, this.clone(cons, spawnData))
+                return sys.attachNode(dest, this.clone(cons, spawnData))
             }
         } else {
             return false
