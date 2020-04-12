@@ -12,17 +12,14 @@ const defaults = {
     fadeout: 1,
     state: WAIT,
     color: '#000000',
+    destruct: false,
 }
 
 class Transition {
 
     constructor(st) {
         augment(this, defaults)
-        augment(this, st);
-
-        // set the timer to wait
-        this.time = this.wait
-        this.fader = 1
+        this.transit(st)
     }
 
     init() {
@@ -33,8 +30,16 @@ class Transition {
             this.drawForeground = this.draw
             this.draw = false
         }
-        if (this.onWait) this.onWait()
+    }
 
+    transit(st) {
+        augment(this, st);
+
+        this.state = WAIT
+        this.time = this.wait
+        this.fader = 1
+
+        if (this.onWait) this.onWait()
         // switch state forward if needed
         for (let i = 0; i < 4; i++) this.evo(0)
     }
@@ -66,6 +71,7 @@ class Transition {
               case FADE_OUT:
                       if (this.onHidden) this.onHidden()
                       this.state = HIDDEN;
+                      if (this.destruct) kill(this)
                       break;
               }
         }
