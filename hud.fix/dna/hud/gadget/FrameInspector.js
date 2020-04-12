@@ -272,6 +272,7 @@ function nodeToIcon(item) {
     const node = item.node
 
     if (node instanceof HTMLImageElement) return node
+
     if (sys.isFrame(node)) {
         if (item.node.name === '/') return res.hud.icon.home
         if (item.name === '..') return res.hud.icon.up
@@ -288,7 +289,7 @@ function nodeToIcon(item) {
         return res.hud.icon.frame
     }
     if (sys.isFun(node)) {
-        if (/^[A-Z]/.test(item.name)) return res.hud.icon.constructor
+        if (/^[A-Z]/.test(item.name)) return res.hud.icon._dir['constructor']
         return res.hud.icon.fun
     }
     if (sys.isObj(node)) return res.hud.icon.object
@@ -304,6 +305,7 @@ FrameInspector.prototype.drawItem = function(item, i, iy) {
     const magnify = 3
 
     if (!nodeToIcon(item)) console.log('no icon for ' + item.name)
+
     if (i === this.selected) {
         ctx.fillStyle = this.color.selected
         ctx.drawImage(nodeToIcon(item), x-magnify, iy-magnify, h+magnify*2, h+magnify*2)
