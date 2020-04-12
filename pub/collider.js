@@ -2562,6 +2562,10 @@ Mod.prototype.draw = function() {
             m.draw()
         }
     }
+
+    if (this.lab.foreground) {
+        this.lab.foreground.drawForeground()
+    }
 }
 
 Mod.prototype.patch = function(target, path, node) {
@@ -3213,8 +3217,10 @@ function constructScene() {
     mod.sys.attach(after)
     mod.sys.attach(chain)
 
+    mod.sys.attach(Mod)
     mod.sys.attach(Frame)
     mod.sys.attach(LabFrame)
+    mod.sys.attach(CueFrame)
 
     mod.sys.attach(isObj)
     mod.sys.attach(isFun)
