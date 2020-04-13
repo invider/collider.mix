@@ -2582,9 +2582,13 @@ Mod.prototype.draw = function() {
 
     if (this.hidden) return
 
-    // optional background
+    // optional background property
     if (this.lab.background && !this.lab._dir.background) {
         this.ctx.draw.background(this.lab.background)
+    }
+    // possible pre-vfx
+    if (this.lab.vfx) {
+        this.lab.vfx.preVFX()
     }
 
     // draw entities in the lab
@@ -2599,8 +2603,8 @@ Mod.prototype.draw = function() {
         }
     }
 
-    if (this.lab.foreground) {
-        this.lab.foreground.drawForeground()
+    if (this.lab.vfx) {
+        this.lab.vfx.postVFX()
     }
 }
 

@@ -5,7 +5,7 @@ const KEEP = 3
 const FADE_OUT = 4
 
 const defaults = {
-    name: 'foreground', // important to have this name when fading a mod
+    name: 'vfx', // important to have this name when fading a mod
     wait: 0,
     fadein: 1,
     keep: 1,
@@ -23,11 +23,12 @@ class Transition {
     }
 
     init() {
-        if (this.name === 'foreground'
+        if (this.name === 'vfx'
                 && this.__
                 && this.__.__ instanceof sys.Mod) {
-            // move draw function, so it will be run in the end of mod's draw()
-            this.drawForeground = this.draw
+            // node is placed at /mod/lab  - turn into a mod vfx
+            this.preVFX = function() {}
+            this.postVFX = this.draw
             this.draw = false
         }
     }
@@ -95,14 +96,14 @@ class Transition {
         save()
         switch (this.state) {
           case FADE_IN:
-            alpha(1 - this.fader);
-            break;
+            alpha(1 - this.fader)
+            break
           case KEEP:
-            alpha(1);
-            break;
+            alpha(1)
+            break
           case FADE_OUT:
-            alpha(this.fader);
-            break;
+            alpha(this.fader)
+            break
         }
 
         this.drawBackground()
