@@ -2799,6 +2799,17 @@ Mod.prototype.enableAll = function() {
     this.mod._ls.forEach(mod => mod.enableAll())
 }
 
+Mod.prototype.on = function() {
+    this.show()
+    this.resume()
+    this.enableAll()
+}
+
+Mod.prototype.off = function() {
+    this.hide()
+    this.pause()
+    this.disableAll()
+}
 
 
 

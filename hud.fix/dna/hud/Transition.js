@@ -12,7 +12,7 @@ const defaults = {
     fadeout: 1,
     state: WAIT,
     color: '#000000',
-    destruct: false,
+    destruct: true,
 }
 
 class Transition {
