@@ -1655,7 +1655,8 @@ function augmentCtx(ctx) {
     const TAU = Math.PI * 2
     let mode = 0
     let shape = false
-    let lastFont
+    let fontSize
+    let fontName
 
     ctx.draw = {
 
@@ -1918,9 +1919,45 @@ function augmentCtx(ctx) {
         },
 
         font: function(font) {
-            lastFont = font
-            ctx.font = font
+            if (!font) return
+
+            let size
+            let name
+
+            if (isString(font)) {
+                const i = font.indexOf('px ')
+                if (i > 0) {
+                    // full size+name font qualifier
+                    fontSize = parseInt(font)
+                    fontName = font.substring(i + 3)
+                    ctx.font = font
+                    return
+
+                } else {
+                    let size = parseInt(font)
+                    if (isNaN(size)) {
+                        // name only
+                        fontName = font
+                    } else {
+                        // size only
+                        fontSize = size
+                    }
+                }
+
+            } else if (isNumber(font)) {
+                fontSize = parseInt(font)
+            }
+
+            if (!fontName) {
+                const i = ctx.font.indexOf('px ')
+                fontName = ctx.font.substring(i + 3)
+            }
+            if (!fontSize) {
+                fontSize = parseInt(ctx.font)
+            }
+            ctx.font = fontSize + 'px ' + fontName
         },
+
         alignLeft: function() {
             ctx.textAlign = 'left'
         },
@@ -1948,8 +1985,7 @@ function augmentCtx(ctx) {
             else return ctx.measureText(txt).width
         },
         textHeight: function() {
-            if (!lastFont) return 0
-            return parseInt(lastFont)
+            return parseInt(ctx.font)
         },
         image: function(img, x, y, w, h, dx, dy, dw, dh) {
             switch(arguments.length) {
