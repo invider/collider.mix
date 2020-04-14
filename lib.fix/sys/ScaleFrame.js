@@ -1,39 +1,38 @@
-
-// @depends(/sys/TransformationNode)
-const TransformationNode = sys.TransformationNode
+// @depends(/sys/InjectLabFrame)
+const InjectLabFrame = sys.InjectLabFrame
 
 const df = {
     x: 1,
     y: 1,
 }
 
-function ScaleNode(st) {
+function ScaleFrame(st) {
     augment(this, df)
-    TransformationNode.call(this, st)
+    InjectLabFrame.call(this, st)
 }
-ScaleNode.prototype = Object.create(TransformationNode.prototype)
+ScaleFrame.prototype = Object.create(InjectLabFrame.prototype)
 
-ScaleNode.prototype.draw = function() {
+ScaleFrame.prototype.draw = function() {
     save()
     scale(this.x, this.y)
 
-    TransformationNode.prototype.draw.call(this)
+    InjectLabFrame.prototype.draw.call(this)
 
     restore()
 }
 
-ScaleNode.prototype.lx = function(x) {
+ScaleFrame.prototype.lx = function(x) {
     return x * this.x
 }
 
-ScaleNode.prototype.ly = function(y) {
+ScaleFrame.prototype.ly = function(y) {
     return y * this.y
 }
 
-ScaleNode.prototype.gx = function(x) {
+ScaleFrame.prototype.gx = function(x) {
     return x / this.x
 }
 
-ScaleNode.prototype.gy = function(y) {
+ScaleFrame.prototype.gy = function(y) {
     return y / this.y
 }

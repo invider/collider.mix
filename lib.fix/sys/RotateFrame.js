@@ -1,38 +1,37 @@
-
-// @depends(/sys/TransformationNode)
-const TransformationNode = sys.TransformationNode
+// @depends(/sys/InjectLabFrame)
+const InjectLabFrame = sys.InjectLabFrame
 
 const df = {
     angle: 0
 }
 
-function RotateNode(st) {
+function RotateFrame(st) {
     augment(this, df)
-    TransformationNode.call(this, st)
+    InjectLabFrame.call(this, st)
 }
-RotateNode.prototype = Object.create(TransformationNode.prototype)
+RotateFrame.prototype = Object.create(InjectLabFrame.prototype)
 
-RotateNode.prototype.draw = function() {
+RotateFrame.prototype.draw = function() {
     save()
     rotate(this.angle)
 
-    TransformationNode.prototype.draw.call(this)
+    InjectLabFrame.prototype.draw.call(this)
 
     restore()
 }
 
-RotateNode.prototype.lx = function(x) {
+RotateFrame.prototype.lx = function(x) {
     return x * cos(this.angle)
 }
 
-RotateNode.prototype.ly = function(y) {
+RotateFrame.prototype.ly = function(y) {
     return -y * cos(this.angle)
 }
 
-RotateNode.prototype.gx = function(x) {
+RotateFrame.prototype.gx = function(x) {
     return x * cos(-this.angle)
 }
 
-RotateNode.prototype.gy = function(y) {
+RotateFrame.prototype.gy = function(y) {
     return -y * cos(-this.angle)
 }
