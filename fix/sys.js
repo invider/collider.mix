@@ -50,10 +50,8 @@ module.exports = {
         return element
     },
 
-    // spawn an entity with provided constructor data
-    spawn: function(source, spawnData, target, sbase, tbase) {
-        if (!sbase) sbase = 'dna/'
-        if (!tbase) tbase = 'lab/'
+    construct: function(source, spawnData, sbase) {
+        if (sbase === undefined) sbase = 'dna/'
 
         let cons = source
         if (this._.sys.isString(source)) {
@@ -68,6 +66,38 @@ module.exports = {
         }
         if (!cons) throw `can't find the spawn dna: ${source}`
 
+        if (sys.isFun(cons)) {
+            // source is function - constructor or factory
+            if (/[A-Z]/.test(cons.name[0])) {
+                // uppercase means constructor
+                const res = new cons(spawnData)
+                res._dna = cons.name
+                return res
+                //return sys.attachNode(dest, res)
+            } else {
+                // lowercase means factory
+                let res = cons(spawnData)
+                res._dna = cons.name
+                return res
+                //return sys.attachNode(dest, res)
+            }
+        } else if (sys.isObj(cons)) {
+            if (isFun(cons.spawn)) {
+                // spawn() factory function
+                //return sys.attachNode(dest, cons.spawn(spawnData))
+                return cons.spawn(spawnData)
+
+            } else {
+                //return sys.attachNode(dest, this.clone(cons, spawnData))
+                return this.clone(cons, spawnData)
+            }
+        }
+    },
+
+    // spawn an entity with provided constructor data
+    spawn: function(source, spawnData, target, sbase, tbase) {
+        if (tbase === undefined) tbase = 'lab/'
+
         let dest = target
         if (!target || target === '') {
             dest = this._.lab
@@ -80,37 +110,17 @@ module.exports = {
             dest = dest[0]
         }
 
+        const entity = this.construct(source, spawnData, sbase)
+        if (entity === undefined) return false
+
+        return sys.attachNode(dest, entity)
+
         //if (!sys.isFrame(dest)) return false
         /*
         this._.log.debug('~~~ spawning @'
             + this._.name + ':' + sbase + source + ' -> '
             + tbase + target)
         */
-
-        if (sys.isFun(cons)) {
-            // source is function - constructor or factory
-            if (/[A-Z]/.test(cons.name[0])) {
-                // uppercase means constructor
-                let res = new cons(spawnData)
-                res._dna = cons.name
-                sys.attachNode(dest, res)
-                return res
-            } else {
-                // lowercase means factory
-                let res = cons(spawnData)
-                res._dna = cons.name
-                return sys.attachNode(dest, res)
-            }
-        } else if (sys.isObj(cons)) {
-            if (isFun(cons.spawn)) {
-                // spawn() factory function
-                return sys.attachNode(dest, cons.spawn(spawnData))
-            } else {
-                return sys.attachNode(dest, this.clone(cons, spawnData))
-            }
-        } else {
-            return false
-        }
     },
 
     //

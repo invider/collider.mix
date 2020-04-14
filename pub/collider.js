@@ -1568,10 +1568,21 @@ function evalLoadedContent(script, _) {
     //try {
     switch(script.ext) {
         case 'js':
-            _.patch(script.base, script.path, evalJS(script, _))
+            const val = evalJS(script, _)
+            if (script.classifier === 'spawn') {
+                const dna = val._dna
+                if (!dna) throw 'no _dna set for ' + script.path
+
+                const node = _.sys.construct(dna, val) 
+                _.patch(script.base, script.path, node)
+
+            } else {
+                _.patch(script.base, script.path, val)
+            }
             // TODO apply definitions?
             //let declarationsFound = _.scan(scope)
             break;
+
         case 'json': _.patch(script.base, script.path, JSON.parse(script.src)); break;
         case 'txt': _.patch(script.base, script.path, script.src); break;
         case 'lines': _.patch(script.base, script.path, parseLines(script.src)); break;
@@ -2915,7 +2926,7 @@ function loadJson(url) {
     return promise 
 }
 
-function scheduleLoad(_, batch, url, base, path, name, ext) {
+function scheduleLoad(_, batch, url, base, path, name, ext, classifier) {
     _.res._included ++
 
     var ajax = new XMLHttpRequest()
@@ -2929,6 +2940,7 @@ function scheduleLoad(_, batch, url, base, path, name, ext) {
                     base: base,
                     name: name,
                     ext: ext,
+                    classifier: classifier,
                     src: this.responseText,
                 }
                 if (batch === 0) {
@@ -3009,12 +3021,12 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
 
         case 'js': case 'json': case 'yaml':
         case 'txt': case 'prop': case 'lines': case 'csv':
-            scheduleLoad(_, batch, url, base, path, name, ext)
+            scheduleLoad(_, batch, url, base, path, name, ext, classifier)
             break
 
         default:
             //_.log.sys('loader-' + batch, 'ignoring resource by type: [' + url + ']')
-            scheduleLoad(_, batch + 1, url, base, path, name, ext)
+            scheduleLoad(_, batch + 1, url, base, path, name, ext, classifier)
     }
 }
 
