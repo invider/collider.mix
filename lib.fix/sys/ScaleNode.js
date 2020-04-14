@@ -21,3 +21,19 @@ ScaleNode.prototype.draw = function() {
 
     restore()
 }
+
+ScaleNode.prototype.lx = function(x) {
+    return x * this.x
+}
+
+ScaleNode.prototype.ly = function(y) {
+    return y * this.y
+}
+
+ScaleNode.prototype.gx = function(x) {
+    return x / this.x
+}
+
+ScaleNode.prototype.gy = function(y) {
+    return y / this.y
+}

@@ -20,3 +20,19 @@ RotateNode.prototype.draw = function() {
 
     restore()
 }
+
+RotateNode.prototype.lx = function(x) {
+    return x * cos(this.angle)
+}
+
+RotateNode.prototype.ly = function(y) {
+    return -y * cos(this.angle)
+}
+
+RotateNode.prototype.gx = function(x) {
+    return x * cos(-this.angle)
+}
+
+RotateNode.prototype.gy = function(y) {
+    return -y * cos(-this.angle)
+}

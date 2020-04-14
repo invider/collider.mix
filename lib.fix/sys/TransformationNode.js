@@ -1,5 +1,8 @@
 const LabFrame = sys.LabFrame
 
+// TODO maybe make 'replace' as a feature of attach?
+//      explore if that is feasable for all cases
+
 function TransformationNode(st) {
     LabFrame.call(this, st)
 }

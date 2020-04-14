@@ -848,6 +848,22 @@ LabFrame.prototype.showAll = function() {
     })
 }
 
+LabFrame.prototype.lx = function(x) {
+    return x
+}
+
+LabFrame.prototype.ly = function(y) {
+    return y
+}
+
+LabFrame.prototype.gx = function(x) {
+    return x
+}
+
+LabFrame.prototype.gy = function(y) {
+    return y
+}
+
 const CueFrame = function(st) {
     Frame.call(this, st)
 }
