@@ -2524,15 +2524,15 @@ Mod.prototype.start = function() {
 
     if (!captured) {
         // no test or box has captured the control
-        // TODO search for *setup() in mod and all functions in setup/
-        if (isFun(this.setup)) {
-            this.setup()
-        }
-        if (isFrame(this.setup)) {
-            this.setup._ls.forEach( f => {
-                if (isFun(f)) f() 
-            })
-        }
+        const mod = this
+        Object.keys(this).forEach(k => {
+            if (k.startsWith('setup')) {
+                const fn = mod[k]
+                if (isFun(fn)) {
+                    fn.call(mod)
+                }
+            }
+        })
         if (isFun(this.lab.setup)) {
             this.lab.setup()
         }
