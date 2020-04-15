@@ -22,17 +22,31 @@ ScaleFrame.prototype.draw = function() {
 }
 
 ScaleFrame.prototype.lx = function(x) {
-    return x * this.x
-}
-
-ScaleFrame.prototype.ly = function(y) {
-    return y * this.y
-}
-
-ScaleFrame.prototype.gx = function(x) {
     return x / this.x
 }
 
-ScaleFrame.prototype.gy = function(y) {
+ScaleFrame.prototype.ly = function(y) {
     return y / this.y
+}
+
+ScaleFrame.prototype.lxy = function(x, y) {
+    return {
+        x: x / this.x,
+        y: y / this.y,
+    }
+}
+
+ScaleFrame.prototype.gx = function(x) {
+    return x * this.x
+}
+
+ScaleFrame.prototype.gy = function(y) {
+    return y * this.y
+}
+
+ScaleFrame.prototype.gxy = function(x, y) {
+    return {
+        x: x * this.x,
+        y: y * this.y,
+    }
 }

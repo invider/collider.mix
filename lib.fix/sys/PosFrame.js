@@ -23,17 +23,31 @@ PosFrame.prototype.draw = function() {
 }
 
 PosFrame.prototype.lx = function(x) {
-    return x + this.x
-}
-
-PosFrame.prototype.ly = function(y) {
-    return y + this.y
-}
-
-PosFrame.prototype.gx = function(x) {
     return x - this.x
 }
 
-PosFrame.prototype.gy = function(y) {
+PosFrame.prototype.ly = function(y) {
     return y - this.y
+}
+
+PosFrame.prototype.lxy = function(x, y) {
+    return {
+        x: x - this.x,
+        y: y - this.y,
+    }
+}
+
+PosFrame.prototype.gx = function(x) {
+    return x + this.x
+}
+
+PosFrame.prototype.gy = function(y) {
+    return y + this.y
+}
+
+PosFrame.prototype.gxy = function(x, y) {
+    return {
+        x: x + this.x,
+        y: y + this.y,
+    }
 }

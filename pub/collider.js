@@ -856,12 +856,76 @@ LabFrame.prototype.ly = function(y) {
     return y
 }
 
+LabFrame.prototype.lxy = function(x, y) {
+    return {
+        x: x,
+        y: y,
+    }
+}
+
 LabFrame.prototype.gx = function(x) {
     return x
 }
 
 LabFrame.prototype.gy = function(y) {
     return y
+}
+
+LabFrame.prototype.gxy = function(x, y) {
+    return {
+        x: x,
+        y: y,
+    }
+}
+
+LabFrame.prototype.poke = function(x, y, opt) {
+    let lx
+    let ly
+    const fn = isFun(opt)? opt : false
+    if (this.lx) {
+        lx = this.lx(x)
+        ly = this.ly(y)
+    } else {
+        const l = this.lxy(x, y)
+        lx = l.x
+        ly = l.y
+    }
+
+    for (let i = 0; i < this._ls.length; i++) {
+        const node = this._ls[i]
+        if (isFun(node.poke)) {
+            if (fn) {
+                if (fn(node)) node.poke(lx, ly, opt)
+            } else {
+                node.poke(lx, ly, opt)
+            }
+        }
+    }
+}
+
+LabFrame.prototype.pick = function(x, y, ls, opt) {
+    let lx
+    let ly
+    if (this.lx) {
+        lx = this.lx(x)
+        ly = this.ly(y)
+    } else {
+        const l = this.lxy(x, y)
+        lx = l.x
+        ly = l.y
+    }
+    const fn = isFun(opt)? opt : false
+
+    for (let i = 0; i < this._ls.length; i++) {
+        const node = this._ls[i]
+        if (isFun(node.pick)) {
+            if (fn) {
+                if (fn(node)) node.pick(lx, ly, ls, opt)
+            } else {
+                node.pick(lx, ly, ls, opt)
+            }
+        }
+    }
 }
 
 const CueFrame = function(st) {

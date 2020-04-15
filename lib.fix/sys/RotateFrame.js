@@ -20,18 +20,24 @@ RotateFrame.prototype.draw = function() {
     restore()
 }
 
-RotateFrame.prototype.lx = function(x) {
-    return x * cos(this.angle)
+RotateFrame.prototype.lxy = function(x, y) {
+    return {
+        x: x * cos(this.angle) - y * sin(this.angle),
+        y: x * sin(this.angle) + y * cos(this.angle),
+    }
 }
 
-RotateFrame.prototype.ly = function(y) {
-    return -y * cos(this.angle)
+RotateFrame.prototype.gxy = function(x, y) {
+    return {
+        x: x * cos(-this.angle) - y * sin(-this.angle),
+        y: x * sin(-this.angle) + y * cos(-this.angle),
+    }
 }
 
-RotateFrame.prototype.gx = function(x) {
-    return x * cos(-this.angle)
-}
+RotateFrame.prototype.lx = false
 
-RotateFrame.prototype.gy = function(y) {
-    return -y * cos(-this.angle)
-}
+RotateFrame.prototype.ly = false
+
+RotateFrame.prototype.gx = false
+
+RotateFrame.prototype.gy = false
