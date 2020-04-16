@@ -16,29 +16,47 @@ TransformNode.prototype = Object.create(InjectLabFrame.prototype)
 
 TransformNode.prototype.draw = function() {
     save()
-    rotate(this.angle)
-    scale(this.scale, this.scale)
-    translate(this.x, this.y)
+    translate(-this.x, -this.y)
+    scale(1/this.scale, 1/this.scale)
+    rotate(-this.angle)
 
     InjectLabFrame.prototype.draw.call(this)
 
     restore()
 }
 
-TransformNode.prototype.lx = function(x) {
-    return (x * cos(this.angle)) * this.scale + this.x
+TransformNode.prototype.lx = false
+
+TransformNode.prototype.ly = false
+
+TransformNode.prototype.gx = false
+
+TransformNode.prototype.gy = false
+
+TransformNode.prototype.lxy = function(x, y) {
+    const lx = (x - this.x)/this.scale
+    const ly = (y - this.y)/this.scale
+
+    return {
+        x: lx * cos(-this.angle) - ly * sin(-this.angle),
+        y: lx * sin(-this.angle) + ly * cos(-this.angle),
+
+    }
 }
 
-TransformNode.prototype.ly = function(y) {
-    return (-y * cos(this.angle)) * this.scale + this.y
+TransformNode.prototype.gxy = function(x, y) {
+    return {
+        x: (x * cos(this.angle) - y * sin(this.angle))
+                * this.scale + this.x,
+        y: (x * sin(this.angle) + y * cos(this.angle))
+                * this.scale + this.y,
+    }
 }
 
-TransformNode.prototype.gx = function(x) {
-    x = (x - this.x)/this.scale
-    return (x * cos(-this.angle))
-}
-
-TransformNode.prototype.gy = function(y) {
-    y = (y - this.y)/this.scale
-    return (-y * cos(this.angle))
+TransformNode.prototype.labVector = function(v) {
+    const s = this.scale
+    return this.__.labVector({
+        x: (x * cos(this.angle) - y/s * sin(this.angle)) * s,
+        y: (x * sin(this.angle) + y/s * cos(this.angle)) * s,
+    })
 }

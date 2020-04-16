@@ -41,3 +41,7 @@ RotateFrame.prototype.ly = false
 RotateFrame.prototype.gx = false
 
 RotateFrame.prototype.gy = false
+
+RotateFrame.prototype.labVector = function(v2) {
+    return this.__.labVector( this.gxy(v2.x, v2.y) )
+}

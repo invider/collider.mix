@@ -878,6 +878,15 @@ LabFrame.prototype.gxy = function(x, y) {
     }
 }
 
+LabFrame.prototype.labxy = function(x, y) {
+    const g = this.gxy(x, y)
+    return this.__.labxy(g.x, g.y)
+}
+
+LabFrame.prototype.labVector = function(v2) {
+    return this.__.labVector(v2)
+}
+
 LabFrame.prototype.poke = function(x, y, opt) {
     let lx
     let ly
@@ -2359,7 +2368,14 @@ const Mod = function(dat) {
     }))
 
     // container for acting entities - actors, ghosts, props
-    this.attach(new LabFrame(), 'lab')
+    this.attach(new LabFrame({
+        labxy: function(x, y) {
+            return this.gxy(x, y)
+        },
+        labVector: function(v2) {
+            return v2
+        },
+    }), 'lab')
 
     this.attach(new CueFrame(), 'cue')
 
@@ -3749,6 +3765,8 @@ function handleMouseMove(e) {
     _mouse.ly = _mouse.y
     _mouse.x = e.pageX
     _mouse.y = e.pageY
+    _mouse.dx = _mouse.x - _mouse.lx
+    _mouse.dy = _mouse.y - _mouse.ly
 
     _scene.trap('mouseMove', e, true)
     e.preventDefault()

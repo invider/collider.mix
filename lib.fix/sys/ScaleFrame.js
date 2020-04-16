@@ -50,3 +50,7 @@ ScaleFrame.prototype.gxy = function(x, y) {
         y: y * this.y,
     }
 }
+
+ScaleFrame.prototype.labVector = function(v2) {
+    return this.__.labVector( this.lxy(v2.x, v2.y) )
+}
