@@ -1658,21 +1658,53 @@ function evalLoadedContent(script, _) {
     switch(script.ext) {
         case 'js':
             const val = evalJS(script, _)
-            if (script.classifier === 'spawn') {
-                const dna = val._dna
-                if (!dna) throw 'no _dna set for ' + script.path
 
-                const node = _.sys.construct(dna, val) 
-                _.patch(script.base, script.path, node)
+            if (script.classifier) {
+                // try to find a post-processor for this classifier
+                if (script.classifier === 'spawn') {
+                    const dna = val._dna
+                    if (!dna) throw 'no _dna set for ' + script.path
+
+                    const node = _.sys.construct(dna, val) 
+                    _.patch(script.base, script.path, node)
+
+                } else if (_.lib.ext && _.lib.ext.js && isFun(_.lib.ext.js[script.classifier])) {
+                    _.log.sys("using a custom post-processor for *." + script.classifier)
+                    const processedJS = _.lib.ext.js[script.classifier](val,
+                                            script.name, script.path, script.base)
+                    _.patch(script.base, script.path, processedJS)
+
+                } else {
+                    _.log.sys("can't find a custom post-processor for ." + script.classifier)
+                    _.patch(script.base, script.path, val)
+                }
 
             } else {
                 _.patch(script.base, script.path, val)
             }
             // TODO apply definitions?
             //let declarationsFound = _.scan(scope)
-            break;
+            break
 
-        case 'json': _.patch(script.base, script.path, JSON.parse(script.src)); break;
+        case 'json':
+            const jsonVal = JSON.parse(script.src);
+
+            if (script.classifier) {
+                // try to find a post-processor for this classifier
+                if (_.lib.ext && _.lib.ext.json && isFun(_.lib.ext.json[script.classifier])) {
+                    _.log.sys("using a custom post-processor for *." + script.classifier)
+                    const processedJson = _.lib.ext.json[script.classifier](jsonVal,
+                                            script.name, script.path, script.base)
+                    _.patch(script.base, script.path, processedJson)
+                } else {
+                    _.log.sys("can't find a custom post-processor for ." + script.classifier)
+                    _.patch(script.base, script.path, jsonVal)
+                }
+            } else {
+                _.patch(script.base, script.path, jsonVal)
+            }
+            break
+
         case 'txt': _.patch(script.base, script.path, script.src); break;
         case 'lines': _.patch(script.base, script.path, parseLines(script.src)); break;
         case 'csv': _.patch(script.base, script.path, parseCSV(script, _)); break;
@@ -1681,10 +1713,15 @@ function evalLoadedContent(script, _) {
         default: {
             // check out a custom parser for ext
             if (isFrame(_.lib) && isFrame(_.lib.ext) && isFun(_.lib.ext[script.ext])) {
-                _.log.sys('using custom parser for .' + script.ext)
-                _.patch(script.base, script.path, _.lib.ext[script.ext](script.src)); break;
+                _.log.sys('using custom parser for *.' + script.ext)
+                const parsedVal = _.lib.ext[script.ext](script.src,
+                                    script.name, script.path, script.base)
+                _.patch(script.base, script.path, parsedVal)
+                break
+
             } else {
-                _.patch(script.base, script.path, script.src); break;
+                _.patch(script.base, script.path, script.src)
+                break
             }
         }
     }
