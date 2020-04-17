@@ -755,14 +755,14 @@ LabFrame.prototype.attach = function(node, name) {
         //if (isFun(node.spawn)) node.spawn() // spawn handler
         node._positional = (isNumber(node.x) && isNumber(node.y))
         node._sizable = (node._positional && isNumber(node.w) && isNumber(node.h))
+
+        if (isNumber(node.Z)) this.orderZ()
     }
 
     // TODO make arbitrary augmentation and dependency injection possible
     //this._.aug._ls.forEach( function(aug) {
     //    aug(node)
     //})
-
-    if (isNumber(node.Z)) this.orderZ()
 
     return node
 }
@@ -929,16 +929,21 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
     }
     const fn = isFun(opt)? opt : false
 
+    let last
     for (let i = 0; i < this._ls.length; i++) {
         const node = this._ls[i]
         if (isFun(node.pick)) {
+            let val
             if (fn) {
-                if (fn(node)) node.pick(lx, ly, ls, opt)
+                if (fn(node)) val = node.pick(lx, ly, ls, opt)
+                if (val) last = val
             } else {
-                node.pick(lx, ly, ls, opt)
+                val = node.pick(lx, ly, ls, opt)
+                if (val) last = val
             }
         }
     }
+    return last
 }
 
 const CueFrame = function(st) {
