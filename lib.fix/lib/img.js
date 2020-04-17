@@ -13,7 +13,7 @@ var TileSet = function(img, sx, sy, tw, th) {
 }
 
 TileSet.prototype.init = function() {
-    this.ctx = this._.ctx
+    this.ctx = this.__.getMod().ctx
 }
 
 TileSet.prototype.draw = function(tilex, x, y, w, h) {
@@ -23,13 +23,8 @@ TileSet.prototype.draw = function(tilex, x, y, w, h) {
     let ix = this.sx + tilex*this.tw
     let iy = this.sy + this.th * Math.floor(ix / this.img.width)
     ix = ix % this.img.width
-    if (this.ctx){
-        this.ctx.imageSmoothingEnabled = this.smooth
-        this.ctx.drawImage(this.img, ix, iy, this.tw, this.th, x, y, w, h)
-    } else {
-        debugger;
-        console.error("No context");
-    }
+    this.ctx.imageSmoothingEnabled = this.smooth
+    this.ctx.drawImage(this.img, ix, iy, this.tw, this.th, x, y, w, h)
 }
 
 module.exports = {

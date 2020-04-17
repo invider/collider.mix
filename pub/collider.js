@@ -366,7 +366,7 @@ const Frame = function(dat) {
     }
 }
 Frame.prototype._frame = true
-Frame.prototype.type = "frame"
+Frame.prototype._dna = "Frame"
 
 Frame.prototype.path = function() {
     if (this.__) return addPath(this.__.path(), this.name)
@@ -374,6 +374,10 @@ Frame.prototype.path = function() {
 }
 Frame.prototype.path._meta = {
     head: 'returns the path of the node',
+}
+
+Frame.prototype.getMod = function() {
+    return this.__.getMod()
 }
 
 Frame.prototype.touch = touchFun((name) => new Frame(name))
@@ -2491,6 +2495,10 @@ const Mod = function(dat) {
 }
 
 Mod.prototype = Object.create(Frame.prototype)
+
+Mod.prototype.getMod = function() {
+    return this
+}
 
 Mod.prototype.touch = touchFun((name, dir) => {
     const node = new Frame(name)
