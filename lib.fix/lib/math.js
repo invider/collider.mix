@@ -1,22 +1,105 @@
 'use strict'
 
+// LCG random generator implementation
+function LCGSource () {
+    let _rnd_m = 0xFFFFFFFF
+    let _rnd_a = 1664525
+    let _rnd_c = 1013904223
+    let _seed = 1
+
+    // core random value
+    function rndv() {
+        _seed = (_rnd_a * _seed + _rnd_c) % _rnd_m
+        return _seed
+    }
+
+    return {
+        setSeed: function(v) {
+            _seed = v
+        },
+
+        getSeed: function() {
+            return _seed
+        },
+
+        // random float
+        rndf: function rndf() {
+            return rndv()/_rnd_m
+        },
+    }
+}
+
+function createRandomGenerator(source) {
+    source = source || LCGSource
+
+    const generator = source()
+    const rndf = generator.rndf
+
+    function rnd(topLimit) {
+        return rndf() * topLimit 
+    }
+
+    // random int in [0..maxValue)
+    function rndi(topLimit) {
+        return ~~rnd(topLimit)
+    }
+
+    return {
+        getSeed: generator.getSeed,
+        setSeed: generator.setSeed,
+
+        rndf: rndf,
+        rnd: rnd,
+        rndi: rndi,
+
+        // random angle in radians
+        rndfi: function rndfi() {
+            return rndf()*PI2 - PI
+        },
+
+        // random sign multiplicator [1/-1]
+        rnds: function rnds() {
+            return rndf() < .5? -1 : 1
+        },
+
+        // select random element from an object or an array
+        rnde: function rnde(obj) {
+            if (!obj) return
+            if (Array.isArray(obj)) {
+                return obj[rndi(obj.length)]
+            } else if (typeof obj === 'object') {
+                const keys = Object.keys(obj)
+                return obj[keys[rndi(keys.length)]]
+            }
+            return null
+        },
+
+        // shuffle array elements
+        shuffle: function shuffle(array, iter) {
+            if (!array) return
+            if (!iter) iter = array.length * 2
+
+            for (let i = 0; i < iter; i++) {
+                const i1 = rndi(array.length)
+                const i2 = rndi(array.length)
+
+                const e1 = array[i1]
+                array[i1] = array[i2]
+                array[i2] = e1
+            }
+            return array
+        }
+    }
+}
+
+
 // math library
 module.exports = (function() { 
 
 const PI = Math.PI
 const PI2 = PI*2
 
-// LCG random generator implementation
-
-var _rnd_m = 0xFFFFFFFF, _rnd_a = 1664525, _rnd_c = 1013904223;
-var _seed = 1
-
-function rndv() {
-	_seed = (_rnd_a * _seed + _rnd_c) % _rnd_m
-	return _seed
-}
-
-return {
+const math = {
     name: 'math',
 
     PI: PI,
@@ -143,61 +226,12 @@ return {
         return r * (180 / Math.PI)
     },
 
-    // **********
-	// randomness
-    
-    // random float
-	rndf: function rndf() {
-		return rndv()/_rnd_m
-	},
-
-    // random angle in radians
-	rndfi: function rndfi() {
-		return this.rndf()*PI2 - PI
-	},
-
-    // random float in [0-maxValue)
-	rnd: function rnd(topLimit){
-		return rndv()/_rnd_m * topLimit 
-	},
-
-    // random int in [0..maxValue)
-	rndi: function rndi(topLimit){
-		return ~~this.rnd(topLimit)
-	},
-
-    // random sign multiplicator [1/-1]
-	rnds: function rnds() {
-		return this.rndf() < .5? -1 : 1
-	},
-
-    // select random element from an object or an array
-	rnde: function rnde(obj) {
-        if (!obj) return
-        if (Array.isArray(obj)) {
-            return obj[this.rndi(obj.length)]
-        } else if (typeof obj === 'object') {
-            const keys = Object.keys(obj)
-            return obj[keys[this.rndi(keys.length)]]
-        }
-        return null
-	},
-
-    // shuffle array elements
-    shuffle: function shuffle(array, iter) {
-        if (!array) return
-        if (!iter) iter = array.length * 2
-
-        for (let i = 0; i < iter; i++) {
-            const i1 = this.rndi(array.length)
-            const i2 = this.rndi(array.length)
-
-            const e1 = array[i1]
-            array[i1] = array[i2]
-            array[i2] = e1
-        }
-        return array
-    }
+    createRandomGenerator: createRandomGenerator,
 }
+
+const generator = createRandomGenerator()
+augment(math, generator)
+
+return math
 
 })()

@@ -23,6 +23,7 @@ TileSet.prototype.draw = function(tilex, x, y, w, h) {
     let ix = floor(this.sx + tilex*this.tw)
     let iy = floor(this.sy + this.th * Math.floor(ix / this.img.width))
     ix = ix % this.img.width
+
     this.ctx.imageSmoothingEnabled = this.smooth
     this.ctx.drawImage(this.img, ix, iy, this.tw, this.th, x, y, w, h)
 }
