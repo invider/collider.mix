@@ -3162,6 +3162,8 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
             break
 
         case 'wav':
+        case 'ogg':
+        case 'mp3':
             if (base) _.patch(base, path, attachWAV(url))
             break
 
