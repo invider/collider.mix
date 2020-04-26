@@ -41,6 +41,36 @@ SlideCamera.prototype.screenY = function(y) {
     return (y - this.y)*this.scale + ctx.height/2
 }
 
+SlideCamera.prototype.gx = function(x) {
+    return (x - this.x)*this.scale + ctx.width/2
+}
+
+SlideCamera.prototype.gy = function(y) {
+    return (y - this.y)*this.scale + ctx.height/2
+}
+
+SlideCamera.prototype.gxy = function(x, y) {
+    return {
+        x: (x - this.x)*this.scale + ctx.width/2,
+        y: (y - this.y)*this.scale + ctx.height/2,
+    }
+}
+
+SlideCamera.prototype.lx = function(x) {
+    return (x-ctx.width/2)/this.scale + this.x
+}
+
+SlideCamera.prototype.ly = function(y) {
+    return (y-ctx.height/2)/this.scale + this.y
+}
+
+SlideCamera.prototype.lxy = function(x, y) {
+    return {
+        x: (x-ctx.width/2)/this.scale + this.x,
+        y: (y-ctx.height/2)/this.scale + this.y,
+    }
+}
+
 SlideCamera.prototype.inView = function(x, y) {
     let sx = this.screenX(x)
     let sy = this.screenY(y)
