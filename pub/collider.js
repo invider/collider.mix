@@ -1806,12 +1806,6 @@ function augmentCtx(ctx) {
 
     ctx.draw = {
 
-        width: function() {
-            return ctx.width
-        },
-        height: function() {
-            return ctx.height
-        },
         rx:function(x) {
             return ctx.width * x
         },
@@ -2242,7 +2236,7 @@ const Mod = function(dat) {
             return res
         },
 
-        map: function(origStart, origStop, targetStart, targetStop, orig, limit) {
+        vmap: function(origStart, origStop, targetStart, targetStop, orig, limit) {
             let v = (orig - origStart) / (origStop - origStart)
             if (limit) {
                 if (v < 0) v = 0
