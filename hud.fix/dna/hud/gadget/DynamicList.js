@@ -167,10 +167,10 @@ DynamicList.prototype.drawItem = function(item, i, iy) {
     if (i === this.selected) ctx.fillStyle = this.color.selected
     else ctx.fillStyle = this.color.text
 
-    ctx.font = this.font
-    ctx.textBaseline = 'top'
-    ctx.textAlign = "left"
-    ctx.fillText(item, x, iy);
+    font(this.font)
+    alignLeft()
+    baseMiddle()
+    text(item, x, iy)
     return this.itemHeight()
 }
 

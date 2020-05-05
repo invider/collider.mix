@@ -316,10 +316,10 @@ FrameInspector.prototype.drawItem = function(item, i, iy) {
 
     x += this.itemHeight() + iconToTextSpacing
 
-    ctx.font = this.font
-    ctx.textBaseline = 'center'
-    ctx.textAlign = "left"
-    ctx.fillText(item.name, x, iy + this.itemHeight()/2)
+    font(this.font)
+    alignLeft()
+    baseMiddle()
+    text(item.name, x, iy + this.itemHeight()/2)
     return h
 }
 
