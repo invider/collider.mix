@@ -2651,12 +2651,22 @@ Mod.prototype.start = function() {
         const mod = this
         Object.keys(this).forEach(k => {
             if (k.startsWith('setup')) {
-                const fn = mod[k]
-                if (isFun(fn)) {
-                    fn.call(mod)
+                const setup = mod[k]
+                if (isFun(setup)) {
+                    setup.call(mod)
+                } else if (isFrame(setup)) {
+                    setup._ls.forEach(fn => {
+                        if (isFun(fn)) {
+                            fn.call(mod)
+                        }
+                    })
+                } else {
+                    _scene.log.sys('[setup] ignoring [' + k + ']')
                 }
             }
         })
+
+        // run in-lab setup function
         if (isFun(this.lab.setup)) {
             this.lab.setup()
         }
