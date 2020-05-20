@@ -2970,7 +2970,7 @@ Mod.prototype.off = function() {
 
 function getExtension(url) {
     const match = url.match(/\.[^/.]+$/)
-    if (match && match.length > 0) return match[0].substring(1)
+    if (match && match.length > 0) return match[0].substring(1).toLowerCase()
     return ''
 }
 
