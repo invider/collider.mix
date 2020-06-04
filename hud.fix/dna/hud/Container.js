@@ -188,9 +188,8 @@ Container.prototype.onTouchStart = function(x, y, e) {
             if (sys.isFun(g.onTouchStart)) {
                 g.onTouchStart(lx, ly, e)
             }
-            if (sys.isFun(g.onTouchDrag)) {
-                this.captureTouch(g)
-            }
+            this.captureTouch(g)
+
             if (sys.isFun(g.onFocus)) {
                 this.captureFocus(g)
                 if (!g.keepZ) this.moveOnTop(i)
@@ -204,11 +203,13 @@ Container.prototype.onTouchStart = function(x, y, e) {
     return !focusPending
 }
 
-Container.prototype.onTouchEnd = function(x, y, b, e) {
+/*
+Container.prototype.onTouchEnd = function(e) {
     if (x < 0 || y < 0 || x > this.w || y > this.h) return
     //log.debug('touch end on [' + this.name + '] @' + x + 'x' + y)
 
     this._ls.forEach(g => {
+        if (g.name === 'menu') debugger
         if (sys.isFun(g.onTouchEnd)) {
             const lx = x - g.x
             const ly = y - g.y
@@ -218,6 +219,7 @@ Container.prototype.onTouchEnd = function(x, y, b, e) {
         }
     })
 }
+*/
 
 Container.prototype.onReleasedFocus = function() {
     this._ls.forEach(g => {
