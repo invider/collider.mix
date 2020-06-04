@@ -1,6 +1,6 @@
 {
   "name": "collider.mix",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "collider.jam supervisor and core mods",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

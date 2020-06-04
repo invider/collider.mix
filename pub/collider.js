@@ -2980,10 +2980,7 @@ Mod.prototype.off = function() {
 
 function getExtension(url) {
     const match = url.match(/\.[^/.]+$/)
-    if (match && match.length > 0) {
-        const ext = match[0].substring(1)
-        return ext.toLowerCase()
-    }
+    if (match && match.length > 0) return match[0].substring(1).toLowerCase()
     return ''
 }
 
@@ -3160,7 +3157,7 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
     _.log.sys('loader-' + batch, '.' + ext + ': ' + url + ' -> ' + addPath(base.name, path))
 
     switch (ext) {
-        case 'png': case 'jpge': case 'jpg': case 'svg':
+        case 'png': case 'jpeg': case 'jpg': case 'svg': case 'gif':
             patchImg(_, batch, url, base, path, classifier, onLoad)
             break
 
