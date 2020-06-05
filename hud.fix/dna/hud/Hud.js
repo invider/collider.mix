@@ -138,9 +138,11 @@ Hud.prototype.adjust = function() {
 }
 
 Hud.prototype.onMouseDown = function(x, y, b, e) {
+    /*
     this.captured.forEach(g => {
         if (sys.isFun(g.onMouseDown)) g.onMouseDown(x, y, e)
     })
+    */
     return Container.prototype.onMouseDown.call(this, x, y, e)
 }
 

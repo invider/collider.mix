@@ -102,6 +102,8 @@ Container.prototype.onMouseDown = function(x, y, b, e) {
     let pending = true
     for (let i = this._ls.length-1; i >= 0; i--) {
         const g = this._ls[i]
+        if (g.hidden || g.disabled || !g._sizable) continue
+
         const lx = x - g.x
         const ly = y - g.y
         if (pending && lx >= 0 && lx <= g.w && ly >= 0 && ly <= g.h) {
@@ -128,6 +130,8 @@ Container.prototype.onMouseUp = function(x, y, b, e) {
     if (x < 0 || y < 0 || x > this.w || y > this.h) return
     //log.debug('mouse up on [' + this.name + '] @' + x + 'x' + y)
     this._ls.forEach(g => {
+        if (g.hidden || g.disabled || !g._sizable) return
+
         if (sys.isFun(g.onMouseUp)) {
             const lx = x - g.x
             const ly = y - g.y
@@ -142,6 +146,7 @@ Container.prototype.onMouseMove = function(x, y, e) {
     //if (x < 0 || y < 0 || x > this.w || y > this.h) return
     //log.debug('mouse move on [' + this.name + '] @' + x + 'x' + y)
     this._ls.forEach(g => {
+        if (g.hidden || g.disabled || !g._sizable) return
         if (sys.isFun(g.onMouseMove)) {
             const lx = x - g.x
             const ly = y - g.y
@@ -162,6 +167,7 @@ Container.prototype.onMouseWheel = function(d, x, y, e) {
     //if (x < 0 || y < 0 || x > this.w || y > this.h) return
     //log.debug('mouse move on [' + this.name + '] @' + x + 'x' + y)
     this._ls.forEach(g => {
+        if (g.hidden || g.disabled || !g._sizable) return
         if (sys.isFun(g.onMouseWheel)) {
             const lx = x - g.x
             const ly = y - g.y
@@ -179,6 +185,8 @@ Container.prototype.onTouchStart = function(x, y, e) {
     let focusPending = true
     for (let i = this._ls.length-1; i >= 0; i--) {
         const g = this._ls[i]
+        if (g.hidden || g.disabled || !g._sizable) continue
+
         const lx = x - g.x
         const ly = y - g.y
 
