@@ -2285,6 +2285,22 @@ const Mod = function(dat) {
                 src.play()
             }
         },
+
+        print: function() {
+            return _.sys.print.apply(_.sys, arguments)
+        },
+
+        input: function() {
+            return _.sys.input.apply(_.sys, arguments)
+        },
+
+        ask: function() {
+            return _.sys.ask.apply(_.sys, arguments)
+        },
+
+        alert: function() {
+            return _.sys.alert.apply(_.sys, arguments)
+        },
     }
     this.ctx = false
     this.paused = false

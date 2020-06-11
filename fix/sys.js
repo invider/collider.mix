@@ -173,6 +173,62 @@ module.exports = {
         if (this.isString(node.name)) return node.name
         if (this.isObj(node.__)) return '#' + node.__._ls.indexOf(node)
         return '?'
-    }
+    },
+
+
+    textSurface: false,
+
+    createTextSurface: function() {
+        const _ = this.__.getMod()
+
+        const hud = _.lab.spawn(dna.hud.Hud, {
+            name: 'textHud',
+        })
+        const con = hud.spawn(dna.hud.gadget.Console, {
+            name: 'console',
+            border: 40,
+            adjust: function() {
+                const br = this.border
+                this.x = br
+                this.y = br
+                this.resize(rx(1) - 2*br, ry(1) - 2*br)
+            },
+
+            resolvers: [],
+
+            onCommand: function(cmd) {
+                if (this.resolvers.length === 0) return
+                const resolve = this.resolvers.shift()
+                resolve(cmd)
+            },
+        })
+        this.textSurface = con
+    },
+
+    print: function(msg) {
+        if (!this.textSurface) this.createTextSurface()
+        this.textSurface.print(msg)
+    },
+
+    input: async function(msg) {
+        if (!this.textSurface) this.createTextSurface()
+        msg = msg || ''
+
+        const textSurface = this.textSurface
+        textSurface.__.captureFocus(textSurface)
+        //textSurface.echo(msg)
+
+        return new Promise(resolve => {
+            textSurface.resolvers.push(resolve)
+        })
+    },
+
+    ask: function(msg) {
+        return this.input(msg)
+    },
+
+    alert: function(msg) {
+        return this.print(msg)
+    },
 }
 
