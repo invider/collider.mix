@@ -95,7 +95,6 @@ let Hud = function(dat) {
     sys.after(trap, 'touchEnd', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
-
         hud.onTouchEnd(e)
     })
 
@@ -139,9 +138,11 @@ Hud.prototype.adjust = function() {
 }
 
 Hud.prototype.onMouseDown = function(x, y, b, e) {
+    /*
     this.captured.forEach(g => {
         if (sys.isFun(g.onMouseDown)) g.onMouseDown(x, y, e)
     })
+    */
     return Container.prototype.onMouseDown.call(this, x, y, e)
 }
 
@@ -172,12 +173,8 @@ Hud.prototype.onTouchStart = function(x, y, e) {
 }
 */
 
-Hud.prototype.onTouchEnd = function(x, y, e) {
-    this.touched.forEach(g => {
-        if (sys.isFun(g.onTouchEnd)) g.onTouchEnd(x, y, e)
-    })
-    Container.prototype.onTouchEnd.call(this, x, y, e)
-    this.releaseTouch()
+Hud.prototype.onTouchEnd = function(e) {
+    this.releaseTouch(e)
 }
 
 
@@ -217,9 +214,10 @@ Hud.prototype.captureTouch = function(gadget) {
     if (this.touched.indexOf(gadget) < 0) this.touched.push(gadget)
 }
 
-Hud.prototype.releaseTouch = function() {
+Hud.prototype.releaseTouch = function(e) {
     this.touched.forEach(g => {
         g._touched = false
+        if (sys.isFun(g.onTouchEnd)) g.onTouchEnd(e)
     })
     this.touched = []
 }
