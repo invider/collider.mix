@@ -230,5 +230,10 @@ module.exports = {
     alert: function(msg) {
         return this.print(msg)
     },
+
+    cls: function() {
+        if (!this.textSurface) return
+        this.textSurface.clear()
+    },
 }
 

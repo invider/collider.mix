@@ -2286,6 +2286,10 @@ const Mod = function(dat) {
             }
         },
 
+        sleep: function(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms))
+        },
+
         print: function() {
             return _.sys.print.apply(_.sys, arguments)
         },
@@ -2300,6 +2304,10 @@ const Mod = function(dat) {
 
         alert: function() {
             return _.sys.alert.apply(_.sys, arguments)
+        },
+
+        cls: function() {
+            return _.sys.cls.apply(_.sys, arguments)
         },
     }
     this.ctx = false

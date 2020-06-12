@@ -67,6 +67,10 @@ Console.prototype.onFocus = function() {
     this.blinkState = this.blink*2
 }
 
+Console.prototype.clear = function() {
+    this.lines = []
+}
+
 Console.prototype.pushLine = function(line) {
     this.lines.push(line)
 }
