@@ -1705,10 +1705,12 @@ function evalLoadedContent(script, _) {
                     const processedJson = _.lib.ext.json[script.classifier](jsonVal,
                                             script.name, script.path, script.base)
                     _.patch(script.base, script.path, processedJson)
+
                 } else {
                     _.log.sys("can't find a custom post-processor for ." + script.classifier)
                     _.patch(script.base, script.path, jsonVal)
                 }
+
             } else {
                 _.patch(script.base, script.path, jsonVal)
             }
@@ -1734,6 +1736,7 @@ function evalLoadedContent(script, _) {
             }
         }
     }
+    if (script.after) script.after()
     _._patchLog.push(script)
     //} catch (e) {
     //    _scene.log.err('[loader]', 'error in [' + script.path + ']' + e)
@@ -2523,6 +2526,10 @@ Mod.prototype.getMod = function() {
     return this
 }
 
+Mod.prototype.getRoot = function() {
+    return this._$
+}
+
 Mod.prototype.touch = touchFun((name, dir) => {
     const node = new Frame(name)
     if (name === 'box') {
@@ -3100,7 +3107,7 @@ function loadJson(url) {
     return promise 
 }
 
-function scheduleLoad(_, batch, url, base, path, name, ext, classifier) {
+function scheduleLoad(_, batch, url, base, path, name, ext, classifier, after) {
     _.res._included ++
 
     var ajax = new XMLHttpRequest()
@@ -3116,6 +3123,7 @@ function scheduleLoad(_, batch, url, base, path, name, ext, classifier) {
                     ext: ext,
                     classifier: classifier,
                     src: this.responseText,
+                    after: after,
                 }
                 if (batch === 0) {
                     // boot scripts are evaluated imediately
@@ -3137,19 +3145,61 @@ function scheduleLoad(_, batch, url, base, path, name, ext, classifier) {
 }
 
 Mod.prototype.patchNode = function(unitId, unitUrl, path) {
+
+    function repatchNode(source, target) {
+        // TODO explore prototypes and other cases
+        console.dir(source)
+        console.dir(target)
+        for (let k in source) {
+            const v = source[k]
+            if (isFun(v)) {
+                target[k] = v
+            }
+        }
+    }
+
     const unit = _scene._units[unitId]
     if (unit) {
         const targetPath = addPath(unit.mount,
                     removeExtention(removeExtention(path)))
+
+        const prevNode = _scene.selectOne(targetPath)
+
         _scene.log.sys('[patch]', 'patching ' + targetPath)
-        _scene.batchLoad(0, addPath(unit.id, path), _scene, addPath(unit.mount, targetPath))
+        _scene.batchLoad(0,
+            addPath(unit.id, path),
+            _scene,
+            addPath(unit.mount, targetPath),
+            () => {
+                // repatch spawned child nodes
+                if (prevNode) {
+                    const nextNode = _scene.selectOne(targetPath)
+
+                    const kids = _scene.sys.spawnCache.lookupKids(prevNode)
+                    if (kids.length > 0) {
+                        _scene.log.sys('[patch]', 'repatching '
+                            + kids.length + ' entities')
+                    }
+
+                    for (let i = 0, l = kids.length; i < l; i++) {
+                        const ds = kids[i]
+                        if (ds.entity.name) {
+                            _scene.log.sys('[patch]', 'repatching '
+                                + ds.entity.name)
+                        }
+                        repatchNode(nextNode, ds.entity)
+                    }
+                }
+            }
+        )
+
     } else {
         _scene.log.err('[patch]', `unable to patch ${targetPath}`)
     }
 }
 
 
-Mod.prototype.batchLoad = function(batch, url, base, path) {
+Mod.prototype.batchLoad = function(batch, url, base, path, after) {
     const _ = this
     //_.log.sys('batch-#' + batch, 'url: ' + url + ' base: ' + base.name + ' path: ' + path)
 
@@ -3197,7 +3247,7 @@ Mod.prototype.batchLoad = function(batch, url, base, path) {
 
         case 'js': case 'json': case 'yaml':
         case 'txt': case 'prop': case 'lines': case 'csv':
-            scheduleLoad(_, batch, url, base, path, name, ext, classifier)
+            scheduleLoad(_, batch, url, base, path, name, ext, classifier, after)
             break
 
         default:
@@ -3469,6 +3519,8 @@ function constructScene() {
     mod.sys.attach(isMutable)
     mod.sys.attach(isFrame)
     mod.sys.attach(isEmpty)
+
+    mod.sys.attach(addPath)
 
     // pub
     mod.attach(new Frame({

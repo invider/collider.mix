@@ -53,9 +53,13 @@ module.exports = {
     construct: function(source, spawnData, sbase) {
         if (sbase === undefined) sbase = 'dna/'
 
+        let res
+
+        let path
         let cons = source
         if (this._.sys.isString(source)) {
-            cons = this._.selectOne(sbase + source)
+            path = this.addPath(sbase, source)
+            cons = this._.selectOne(path)
 
             if (!isFun(cons) && !isObj(cons)) {
                 // look up in the root mod
@@ -70,28 +74,53 @@ module.exports = {
             // source is function - constructor or factory
             if (/[A-Z]/.test(cons.name[0])) {
                 // uppercase means constructor
-                const res = new cons(spawnData)
+                res = new cons(spawnData)
                 res._dna = cons.name
-                return res
                 //return sys.attachNode(dest, res)
             } else {
                 // lowercase means factory
-                let res = cons(spawnData)
+                res = cons(spawnData)
                 res._dna = cons.name
-                return res
                 //return sys.attachNode(dest, res)
             }
         } else if (sys.isObj(cons)) {
             if (isFun(cons.spawn)) {
                 // spawn() factory function
                 //return sys.attachNode(dest, cons.spawn(spawnData))
-                return cons.spawn(spawnData)
+                res = cons.spawn(spawnData)
 
             } else {
                 //return sys.attachNode(dest, this.clone(cons, spawnData))
-                return this.clone(cons, spawnData)
+                res = this.clone(cons, spawnData)
             }
         }
+
+        if (res && env.config && env.config.flow) {
+            const descriptor = {
+                source: path,
+                cons: cons,
+                entity: res,
+            }
+            this.spawnCache.push(descriptor)
+        }
+
+        return res
+    },
+
+    spawnCache: {
+        cache: [],
+        push: function(descr) {
+            this.cache.push(descr)
+        },
+        lookupKids: function(cons) {
+            const res = []
+            const cache = this.cache
+            for (let i = 0, l = cache.length; i < l; i++) {
+                const d = cache[i]
+                if (d.cons == cons) res.push(d)
+            }
+            return res
+        },
     },
 
     // spawn an entity with provided constructor data
