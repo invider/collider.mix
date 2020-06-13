@@ -1,7 +1,7 @@
 /*
  * Collider.JAM Supervisor
  */
-$ = scene = (function(window) {
+$ = mix = (function(window) {
 
 "use strict"
 
@@ -443,7 +443,7 @@ Frame.prototype.onAttached = function(node, name, parent) {
 }
 
 Frame.prototype.detach = function(node) {
-    if (!node) {
+    if (node === undefined) {
         // detaching this
         let i = this.__._ls.indexOf(this);
         if (i >= 0) {
@@ -1671,8 +1671,8 @@ function evalLoadedContent(script, _) {
             if (script.classifier) {
                 // try to find a post-processor for this classifier
                 if (script.classifier === 'spawn') {
-                    const dna = val._dna
-                    if (!dna) throw 'no _dna set for ' + script.path
+                    const dna = val.DNA
+                    if (!dna) throw 'no DNA set for ' + script.path
 
                     const node = _.sys.construct(dna, val) 
                     _.patch(script.base, script.path, node)
@@ -3481,8 +3481,8 @@ function constructLog() {
 
 // ***********************
 // collider scene construction
-function constructScene() {
-    const mod = new Mod()
+function constructScene(target) {
+    const mod = target || new Mod()
     mod.name = '/'
 
     mod._ = mod // set the context
@@ -3521,6 +3521,7 @@ function constructScene() {
     mod.sys.attach(isEmpty)
 
     mod.sys.attach(addPath)
+    mod.sys.attach(reconstructScene)
 
     // pub
     mod.attach(new Frame({
@@ -3558,14 +3559,35 @@ function constructScene() {
 function repatchScene(mod, proto) {
     if (proto && proto._patchLog && proto._patchLog.length > 0) {
         proto._patchLog.forEach(script => {
-            try {
-                script.base = mod
-                evalLoadedContent(script, mod)
-            } catch (err) {
-                console.log(err)
-            }
+            script.base = mod
+            evalLoadedContent(script, mod)
         })
     }
+}
+
+function reconstructScene() {
+    const protoLog = {
+        _patchLog: _scene._patchLog
+    }
+
+    // clean up scene
+    for (let k in _scene) {
+        const v = _scene[k]
+        if (!isFun(v) && !v.name === 'res') delete _scene[k]
+    }
+
+    Mod.call(_scene)
+    constructScene(_scene)
+    _scene.ctx = augmentCtx(canvas.getContext("2d"))
+    _scene.populateAlt()
+
+    repatchScene(_scene, protoLog)
+    _scene.boot = false
+
+    startCycle()
+    startFlow()
+    _scene.res._startTrigger()
+    console.dir(_scene)
 }
 
 // root
