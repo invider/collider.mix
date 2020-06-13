@@ -307,11 +307,11 @@ FrameInspector.prototype.drawItem = function(item, i, iy) {
     if (!nodeToIcon(item)) console.log('no icon for ' + item.name)
 
     if (i === this.selected) {
-        ctx.fillStyle = this.color.selected
-        ctx.drawImage(nodeToIcon(item), x-magnify, iy-magnify, h+magnify*2, h+magnify*2)
+        fill(this.color.selected)
+        image(nodeToIcon(item), x-magnify, iy-magnify, h+magnify*2, h+magnify*2)
     } else {
-        ctx.fillStyle = this.color.text
-        ctx.drawImage(nodeToIcon(item), x, iy, h, h)
+        fill(this.color.text)
+        image(nodeToIcon(item), x, iy, h, h)
     }
 
     x += this.itemHeight() + iconToTextSpacing

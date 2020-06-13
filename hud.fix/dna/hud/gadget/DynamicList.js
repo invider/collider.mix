@@ -164,8 +164,8 @@ DynamicList.prototype.itemHeight = function() {
 DynamicList.prototype.drawItem = function(item, i, iy) {
     let x = this.slider.w + this.itemsPadding
 
-    if (i === this.selected) ctx.fillStyle = this.color.selected
-    else ctx.fillStyle = this.color.text
+    if (i === this.selected) fill(this.color.selected)
+    else fill(this.color.text)
 
     font(this.font)
     alignLeft()
