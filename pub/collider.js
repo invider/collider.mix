@@ -573,6 +573,15 @@ Frame.prototype.map = function(fn) {
 Frame.prototype.flatMap = function(fn) {
 }
 
+Frame.prototype.filter = function(fn) {
+    const res = []
+    for (let i = 0, l = this._ls.length; i < l; i++) {
+        const v = this._ls[i]
+        if (fn(v, i)) res.push(v)
+    }
+    return res
+}
+
 Frame.prototype.reduce = function(fn, initVal) {
     let i = 0
     let accumulator = initVal
@@ -3536,7 +3545,7 @@ function createRootMod() {
 
 function constructScene(target) {
     const mod = target || new Mod()
-    //mod.name = '/'
+    mod.name = '/'
 
     mod._ = mod // set the context
     mod._$ = mod // root context
