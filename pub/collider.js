@@ -131,6 +131,10 @@ function supplement() {
     return mixin
 }
 
+function $$(q) {
+    return _scene.select(q)
+}
+
 function kill(e, s) {
     if (e.__) {
         if (isFun(e.kill)) e.kill(s)
@@ -557,15 +561,22 @@ Frame.prototype.collide = function(fn, predicate) {
 }
 
 Frame.prototype.map = function(fn) {
+    const res = []
+    for (let i = 0, l = this._ls.length; i < l; i++) {
+        const node = this._ls[i]
+        const mapped = fn(node)
+        if (mapped !== undefined) res.push(mapped)
+    }
+    return res
 }
 
 Frame.prototype.flatMap = function(fn) {
 }
 
-Frame.prototype.reduce = function(fn) {
+Frame.prototype.reduce = function(fn, initVal) {
 }
 
-Frame.prototype.selectInstance = function(of) {
+Frame.prototype.selectInstanceOf = function(of) {
     return this.select(o => o instanceof of)
 }
 
@@ -694,6 +705,7 @@ Frame.prototype.selectOne = function(predicate) {
 	return undefined
 }
 
+/*
 Frame.prototype.selectOneNumber = function(predicate) {
     let list = this.select(predicate)
     if (list.length > 0) {
@@ -704,6 +716,7 @@ Frame.prototype.selectOneNumber = function(predicate) {
     }
     return 0
 }
+*/
 
 Frame.prototype.kill = function() {
     // TODO shouldn't it be killThemAll?
@@ -2267,6 +2280,8 @@ const Mod = function(dat) {
             return Math.atan2(tx - sx, ty - sy)
         },
 
+        $$: $$,
+
         kill: kill,
 
         sfx: function(src, vol, pan) {
@@ -3148,8 +3163,6 @@ Mod.prototype.patchNode = function(unitId, unitUrl, path) {
 
     function repatchNode(source, target) {
         // TODO explore prototypes and other cases
-        console.dir(source)
-        console.dir(target)
         for (let k in source) {
             const v = source[k]
             if (isFun(v)) {
@@ -3481,9 +3494,22 @@ function constructLog() {
 
 // ***********************
 // collider scene construction
+/*
+function createRootMod() {
+
+    function mix(locator) {
+        console.log('!!! ' + locator)
+        return _scene
+    }
+    augment(mix, new Frame())
+    Mod.call(mix)
+    return mix
+}
+*/
+
 function constructScene(target) {
     const mod = target || new Mod()
-    mod.name = '/'
+    //mod.name = '/'
 
     mod._ = mod // set the context
     mod._$ = mod // root context
