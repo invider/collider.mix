@@ -577,11 +577,26 @@ Frame.prototype.reduce = function(fn, initVal) {
     let i = 0
     let accumulator = initVal
     if (accumulator === undefined) {
-        accumulator = this._ls[0]
+        accumulator = this._ls[i]
         i++
     }
 
     for (let l = this._ls.length; i < l; i++) {
+        const v = this._ls[i]
+        accumulator = fn(accumulator, v, i, this)
+    }
+    return accumulator
+}
+
+Frame.prototype.reduceRight = function(fn, initVal) {
+    let i = this._ls.length - 1
+    let accumulator = initVal
+    if (accumulator === undefined) {
+        accumulator = this._ls[i]
+        i--
+    }
+
+    for (; i >= 0; i--) {
         const v = this._ls[i]
         accumulator = fn(accumulator, v, i, this)
     }
