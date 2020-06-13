@@ -504,27 +504,59 @@ Frame.prototype.detachByName = function(name) {
 }
 
 Frame.prototype.apply = function(fn, predicate) {
-    let i = 0
+    const ls = this._ls
+    let count = 0
+
     if (isFun(predicate)) {
-		this._ls.forEach( function(e) {
+        for (let i = 0, l = ls.length; i < l; i++) {
+            const e = ls[i]
 			if (predicate(e)) {
                 fn(e)
-                i++
+                count ++
             }
-		})
+		}
+
     } else if (isString(predicate)) {
-        let ls = this.select(predicate)
-        ls.forEach( function(e) {
+        const sls = this.select(predicate)
+        for (let i = 0, l = sls.length; i < l; i++) {
+            const e = sls[i]
             fn(e)
-            i++
-        })
+            count ++
+        }
+
     } else {
-		this._ls.forEach( function(e) {
+        for (let i = 0, l = ls.length; i < l; i++) {
+            const e = ls[i]
             fn(e)
-            i++
-        })
+            count ++
+        }
     }
-    return i
+    return count
+}
+
+Frame.prototype.applyAll = function(fn, predicate) {
+    let count = 0
+    const ls = this._ls
+
+    if (isFun(predicate)) {
+        for (let i = 0, l = ls.length; i < l; i++) {
+            const e = ls[i]
+			if (predicate(e)) {
+                fn(e)
+                count ++
+            }
+            if (e.applyAll) count += e.applyAll(fn, predicate)
+		}
+    } else {
+        for (let i = 0, l = ls.length; i < l; i++) {
+            const e = ls[i]
+
+            fn(e)
+            count ++
+            if (e.applyAll) count += e.applyAll(fn, predicate)
+        }
+    }
+    return count
 }
 
 Frame.prototype.collide = function(fn, predicate) {
