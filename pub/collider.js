@@ -575,10 +575,24 @@ Frame.prototype.flatMap = function(fn) {
 
 Frame.prototype.filter = function(fn) {
     const res = []
+    
     for (let i = 0, l = this._ls.length; i < l; i++) {
         const v = this._ls[i]
         if (fn(v, i)) res.push(v)
     }
+
+    return res
+}
+
+Frame.prototype.find = function(fn, acc) {
+    const res = acc || []
+
+    for (let i = 0, l = this._ls.length; i < l; i++) {
+        const v = this._ls[i]
+        if (fn(v, i, res)) res.push(v)
+        if (v.find) v.find(fn, res)
+    }
+
     return res
 }
 
