@@ -574,6 +574,18 @@ Frame.prototype.flatMap = function(fn) {
 }
 
 Frame.prototype.reduce = function(fn, initVal) {
+    let i = 0
+    let accumulator = initVal
+    if (accumulator === undefined) {
+        accumulator = this._ls[0]
+        i++
+    }
+
+    for (let l = this._ls.length; i < l; i++) {
+        const v = this._ls[i]
+        accumulator = fn(accumulator, v, i, this)
+    }
+    return accumulator
 }
 
 Frame.prototype.selectInstanceOf = function(of) {
