@@ -135,14 +135,16 @@ function $$(q) {
     return _scene.select(q)
 }
 
-function kill(e, s) {
-    if (e.__) {
-        if (isFun(e.kill)) e.kill(s)
-        else if (isFun(e.onKill)) e.onKill(s)
+function kill(e, st) {
+    if (isFun(e.kill)) {
+        e.kill(st)
+
+    } else if (e.__) {
         e.__.detach(e)
+        if (isFun(e.onKill)) e.onKill(st)
+
     } else {
-        if (isFun(e.kill)) e.kill(s)
-        else _.log.warn("can't find kill function for " + e)
+        _.log.warn("can't find kill function for " + e)
     }
 }
 
@@ -3631,6 +3633,9 @@ function constructScene(target) {
     mod.sys.attach(addPath)
     mod.sys.attach(reconstructScene)
 
+    mod.sys.attach(placeCanvas)
+    mod.sys.attach(expandCanvas)
+
     // pub
     mod.attach(new Frame({
         name: 'pub',
@@ -3834,7 +3839,7 @@ const bootstrap = function() {
 }
 
 function startCycle() {
-    expandCanvas(canvasName)
+    _scene.sys.expandCanvas(canvasName)
     focus()
     setInterval(focus, 100)
 
@@ -3887,12 +3892,15 @@ function startFlow(url) {
     openSocket(`${socketProtocol}//${window.location.host}/flow/`)
 }
 
-function expandCanvas(name) {
+function placeCanvas(name, baseX, baseY, baseWidth, baseHeight) {
+    if (!name) name = canvasName
     var canvas = document.getElementById(name)
     if (!canvas) return
 
-    const viewportWidth = window.innerWidth
-    const viewportHeight = window.innerHeight
+    //canvas.style.left = baseX + 'px'
+    //canvas.style.top = baseY + 'px'
+    const viewportWidth = baseWidth
+    const viewportHeight = baseHeight
 
     const ctx = canvas.getContext("2d")
 
@@ -3902,9 +3910,10 @@ function expandCanvas(name) {
     if (_scene.env.canvasStyle === 'preserve' || _scene.env.config.preserveCanvas) { 
         _scene.ctx.width = canvas.width
         _scene.ctx.height = canvas.height
+
     } else if (mode === 'fix-aspect') {
-        const viewportWidth = window.innerWidth
-        const viewportHeight = window.innerHeight
+        const viewportWidth = baseWidth
+        const viewportHeight = baseHeight
 
         const aspect = parseFloat(canvas.getAttribute('aspect'))
         const minHBorder = parseFloat(canvas.getAttribute('minHBorder'))
@@ -3934,8 +3943,8 @@ function expandCanvas(name) {
         canvas.style.top = vborder + 'px'
 
     } else if (mode === 'fix-res') {
-        const viewportWidth = window.innerWidth
-        const viewportHeight = window.innerHeight
+        const viewportWidth = baseWidth
+        const viewportHeight = baseHeight
 
         let targetWidth = canvas.getAttribute('targetWidth')
         let targetHeight = canvas.getAttribute('targetHeight')
@@ -3973,9 +3982,13 @@ function expandCanvas(name) {
     _scene.draw() // it doesn't work without forced redraw
 }
 
+function expandCanvas(name) {
+    _scene.sys.placeCanvas(name, 0, 0, window.innerWidth, window.innerHeight)
+}
+
 function expandView() {
     // TODO modify to support multiple canvases and custom resize
-    expandCanvas(canvasName)
+    _scene.sys.expandCanvas(canvasName)
     if (_scene.trap) _scene.trap('resize')
 }
 
