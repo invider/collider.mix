@@ -3635,6 +3635,7 @@ function constructScene(target) {
 
     mod.sys.attach(placeCanvas)
     mod.sys.attach(expandCanvas)
+    mod.sys.attach(evalLoadedContent)
 
     // pub
     mod.attach(new Frame({
