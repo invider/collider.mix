@@ -557,6 +557,7 @@ function evoBoot(dt) {
 
     case 'self-destruct':
         kill(this)
+        trap('postBoot')
         break;
     }
 }

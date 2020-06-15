@@ -3766,21 +3766,21 @@ const bootstrap = function() {
     let canvas = document.getElementById(canvasName)
     if (canvas == null) {
         // precreated canvas is not found, so create one
-        canvas = document.createElement(canvasName);
-        canvas.id = canvasName;
-        canvas.style.zIndex   = 1;
-        canvas.style.border   = "0px";
-        canvas.style.margin = "0px";
-        canvas.style.padding = "0px";
-        canvas.style.position = "absolute";
-        canvas.style.display = "block";
-        document.body.appendChild(canvas);
+        canvas = document.createElement(canvasName)
+        canvas.id = canvasName
+        canvas.style.zIndex   = 1
+        canvas.style.border   = "0px"
+        canvas.style.margin = "0px"
+        canvas.style.padding = "0px"
+        canvas.style.position = "absolute"
+        canvas.style.display = "block"
+        document.body.appendChild(canvas)
         
         // style the body
         document.body.style.margin = "0"
         document.body.style.padding = "0"
-        document.body.style.overflow = "hidden";
-        document.body.setAttribute("scroll", "no");
+        document.body.style.overflow = "hidden"
+        document.body.setAttribute("scroll", "no")
     }
 
     // bind context
@@ -3897,8 +3897,8 @@ function placeCanvas(name, baseX, baseY, baseWidth, baseHeight) {
     var canvas = document.getElementById(name)
     if (!canvas) return
 
-    //canvas.style.left = baseX + 'px'
-    //canvas.style.top = baseY + 'px'
+    canvas.style.left = baseX + 'px'
+    canvas.style.top = baseY + 'px'
     const viewportWidth = baseWidth
     const viewportHeight = baseHeight
 
