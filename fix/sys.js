@@ -256,7 +256,7 @@ module.exports = {
         return this.input(msg)
     },
 
-    alert: function(msg) {
+    say: function(msg) {
         return this.print(msg)
     },
 

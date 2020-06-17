@@ -2404,7 +2404,7 @@ const Mod = function(dat) {
             return _.sys.ask.apply(_.sys, arguments)
         },
 
-        alert: function() {
+        say: function() {
             return _.sys.alert.apply(_.sys, arguments)
         },
 
