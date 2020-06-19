@@ -36,7 +36,6 @@ module.exports = {
 
     // attach an element to the specified target
     attachNode: function(target, element) {
-        if (target.name === 'FloatNode') debugger
         if (isFrame(target)) {
             target.attach(element)
         } else if (isArray(target)) {

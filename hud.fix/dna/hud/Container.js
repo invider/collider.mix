@@ -217,7 +217,6 @@ Container.prototype.onTouchEnd = function(e) {
     //log.debug('touch end on [' + this.name + '] @' + x + 'x' + y)
 
     this._ls.forEach(g => {
-        if (g.name === 'menu') debugger
         if (sys.isFun(g.onTouchEnd)) {
             const lx = x - g.x
             const ly = y - g.y
