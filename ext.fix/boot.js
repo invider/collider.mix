@@ -100,7 +100,8 @@ function init() {
         bootSfx = bt.sfx            || bootSfx
         sfxVolume = bt.volume       || sfxVolume
     }
-    if (env.config.fast) hold = 0
+    //if (env.config.fast) hold = 0 // no hold on fast flag
+    if (env.config.debug && !env.config.slow) hold = 0 // no hold on debug
 }
 
 function evoWorm(dt) {
