@@ -144,7 +144,7 @@ function kill(e, st) {
         if (isFun(e.onKill)) e.onKill(st)
 
     } else {
-        _.log.warn("can't find kill function for " + e)
+        _scene.log.warn("can't find kill function for " + e)
     }
 }
 
