@@ -1,7 +1,7 @@
 //
 // target-following zoom in/out camera constructor
 //
-let SlideCamera = function(dat) {
+const SlideCamera = function(dat) {
     this.name = 'cam'
     this.x = 0
     this.y = 0
@@ -116,10 +116,12 @@ SlideCamera.prototype.follow = function(dt) {
     let dx = this.target.x - this.x
     let dy = this.target.y - this.y
     if (dx < this.targetingPrecision
-            && dx > -this.targetingPrecision
-            && dy < this.targetingPrecision
-            && dy > -this.targetingPrecision) {
-        this.target = false
+                && dx > -this.targetingPrecision
+                && dy < this.targetingPrecision
+                && dy > -this.targetingPrecision) {
+
+        // camera is within precision range
+        if (!this.keepFollowing) this.target = false
         return
     }
     let fi = Math.atan2(dy, dx);
@@ -170,6 +172,3 @@ SlideCamera.prototype.draw = function(dt) {
 
     ctx.restore()
 }
-
-module.exports = SlideCamera
-
