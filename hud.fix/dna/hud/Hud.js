@@ -32,8 +32,8 @@ let Hud = function(dat) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
-        let x = e.pageX - hud.x
-        let y = e.pageY - hud.y
+        const x = hud.lx(e.pageX)
+        const y = hud.ly(e.pageY)
         hud.onClick(x, y, e)
     })
 
@@ -41,8 +41,8 @@ let Hud = function(dat) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
-        let x = e.pageX - hud.x
-        let y = e.pageY - hud.y
+        const x = hud.lx(e.pageX)
+        const y = hud.ly(e.pageY)
         hud.onDblClick(x, y, e)
     })
 
@@ -50,8 +50,8 @@ let Hud = function(dat) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
-        let x = e.pageX - hud.x
-        let y = e.pageY - hud.y
+        const x = hud.lx(e.pageX)
+        const y = hud.ly(e.pageY)
         hud.onMouseDown(x, y, e.button, e)
     })
 
@@ -59,8 +59,8 @@ let Hud = function(dat) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
-        let x = e.pageX - hud.x
-        let y = e.pageY - hud.y
+        const x = hud.lx(e.pageX)
+        const y = hud.ly(e.pageY)
         hud.onMouseUp(x, y, e.button, e)
     })
 
@@ -69,8 +69,8 @@ let Hud = function(dat) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
-        let x = e.pageX - hud.x
-        let y = e.pageY - hud.y
+        const x = hud.lx(e.pageX)
+        const y = hud.ly(e.pageY)
         hud.onMouseMove(x, y, e)
     })
 
@@ -78,8 +78,8 @@ let Hud = function(dat) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
-        let x = e.pageX - hud.x
-        let y = e.pageY - hud.y
+        const x = hud.lx(e.pageX)
+        const y = hud.ly(e.pageY)
         hud.onMouseWheel(e.wheelDelta, x, y, e)
     })
 
@@ -136,6 +136,16 @@ Hud.prototype.adjust = function() {
     Container.prototype.adjust.call(this)
     this.saveSize()
 }
+
+Hud.prototype.lx = function(x) {
+    return x - this.x
+}
+
+Hud.prototype.ly = function(y) {
+    return y - this.y
+}
+
+
 
 Hud.prototype.onMouseDown = function(x, y, b, e) {
     /*
