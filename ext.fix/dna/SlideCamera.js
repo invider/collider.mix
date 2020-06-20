@@ -115,18 +115,25 @@ SlideCamera.prototype.zoom = function(z) {
 SlideCamera.prototype.follow = function(dt) {
     let dx = this.target.x - this.x
     let dy = this.target.y - this.y
-    if (dx < this.targetingPrecision
-                && dx > -this.targetingPrecision
-                && dy < this.targetingPrecision
-                && dy > -this.targetingPrecision) {
+    if (abs(dx) < this.targetingPrecision
+            && abs(dy) < this.targetingPrecision) {
 
         // camera is within precision range
+        if (this.pinOnTarget) {
+            this.x = this.target.x
+            this.y = this.target.y
+        }
         if (!this.keepFollowing) this.target = false
-        return
+
+    } else {
+
+        let fi = Math.atan2(dy, dx);
+        const ndx = Math.cos(fi) * this.speed / this.scale * dt
+        const ndy = Math.sin(fi) * this.speed / this.scale * dt
+
+        this.x += abs(ndx) < abs(dx)? ndx : dx
+        this.y += abs(ndy) < abs(dy)? ndy : dy
     }
-    let fi = Math.atan2(dy, dx);
-    this.x += Math.cos(fi) * this.speed / this.scale * dt
-    this.y += Math.sin(fi) * this.speed / this.scale * dt
 }
 
 SlideCamera.prototype.evo = function(dt) {
