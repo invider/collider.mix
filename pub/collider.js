@@ -1038,6 +1038,20 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
                 val = node.pick(lx, ly, ls, opt)
                 if (val) last = val
             }
+        } else if (node._sizable) {
+            if (lx >= node.x && lx <= node.x + node.w
+                    && ly >= node.y && ly <= node.y + node.h) {
+                if (fn) {
+                    if (fn(node)) {
+                        ls.push(node)
+                        last = node
+                    }
+                } else {
+                    ls.push(node)
+                    last = val
+                }
+
+            }
         }
     }
     return last
