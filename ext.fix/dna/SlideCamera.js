@@ -77,6 +77,7 @@ SlideCamera.prototype.inView = function(x, y) {
     return (sx >= 0 && sx <= ctx.width && sy >= 0 && sy <= ctx.height)
 }
 
+/*
 SlideCamera.prototype.pick = function(screenX, screenY) {
     let wx = this.worldX(screenX)
     let wy = this.worldY(screenY)
@@ -93,6 +94,7 @@ SlideCamera.prototype.pick = function(screenX, screenY) {
     })
     return res
 }
+*/
 
 SlideCamera.prototype.bindZoom = function() {
     let cam = this
