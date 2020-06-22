@@ -1155,6 +1155,8 @@ CueFrame.prototype.resume = function() {
 // =============================================================
 //                          LOADER 
 // =============================================================
+
+// JavaScript parser to extract metadata
 function extractMeta(script) {
     const meta = {}
 
@@ -1328,7 +1330,6 @@ function extractMeta(script) {
 
             if (c === type) {
                 if (prevc !== '\\') {
-                    retc()
                     open = false
                 }
             }
@@ -1385,6 +1386,55 @@ function extractMeta(script) {
         return token
     }
 
+    function nextWord(line) {
+        if (!line) return ''
+        const at = line.indexOf(' ')
+        if (at < 0) return line
+        return line.substring(0, at)
+    }
+
+    function cutPrefix(line, prefix) {
+        if (!line) return ''
+        return line.substring(prefix.length, line.length)
+    }
+
+    function extractTagsFromDetails(details) {
+        const dt = {
+            body: '',
+        }
+        const lines = details.split('\n')
+        for (let i = 0, ln = lines.length; i < ln; i++) {
+            let line = lines[i].trim()
+            if (line.startsWith('@')) {
+                const tag = {}
+                tag.id = nextWord(line)
+                line = cutPrefix(line, tag.id).trim()
+                if (line.startsWith('{')) {
+                    // type declaration
+                    tag.type = nextWord(line)
+                    line = cutPrefix(line, tag.type).trim()
+                }
+                // expecting the name here
+                tag.name = nextWord(line)
+                line = cutPrefix(line, tag.name).trim()
+
+                if (line.startsWith('-')) {
+                    line = line.substring(1, line.length).trim()
+                }
+                if (line.length > 0) {
+                    tag.line = line
+                }
+
+                if (!dt.at) dt.at = []
+                dt.at.push(tag)
+
+            } else {
+                dt.body += line + '\n'
+            }
+        }
+        return dt
+    }
+
     function defMeta(type, name, comment, params) {
         if (name === 'exports') name = script.name
 
@@ -1394,16 +1444,21 @@ function extractMeta(script) {
 
             const inextLine = head.indexOf('\n')
             if (inextLine > 0) {
+                // split the header and the rest of the comment
                 details = head.substring(inextLine).trim()
                 head = head.substring(0, inextLine)
             }
 
-            meta[name] = {
-                head: head,
-                details: details,
+            const def = {
+                head: head
             }
+            if (details) {
+                const detailsMeta = extractTagsFromDetails(details)
+                if (detailsMeta.body) def.details = detailsMeta.body
+                if (detailsMeta.at) def.at = detailsMeta.at
+            }
+            meta[name] = def
             metaCount ++
-
         } 
         // define usage for functions
         if (type === 'function' && isString(params)) {
