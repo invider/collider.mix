@@ -1413,6 +1413,7 @@ function extractMeta(script) {
                     // type declaration
                     tag.type = nextWord(line)
                     line = cutPrefix(line, tag.type).trim()
+                    tag.type = tag.type.substring(1, tag.type.length-1)
                 }
                 // expecting the name here
                 tag.name = nextWord(line)
