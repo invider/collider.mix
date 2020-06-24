@@ -1409,6 +1409,8 @@ function extractMeta(script) {
                 const tag = {}
                 tag.id = nextWord(line)
                 line = cutPrefix(line, tag.id).trim()
+                tag.id = tag.id.substring(1, tag.id.length)
+
                 if (line.startsWith('{')) {
                     // type declaration
                     tag.type = nextWord(line)
@@ -1434,6 +1436,28 @@ function extractMeta(script) {
             }
         }
         return dt
+    }
+
+    function augmentType(usage, name, type) {
+        const i = usage.indexOf(name)
+        if (i < 0) return usage
+        const prefix = usage.slice(0, i+name.length)
+        const sufix = usage.slice(i+name.length)
+        return prefix + ': ' + type + sufix
+    }
+
+    function augmentUsageWithTypes(usage, types) {
+        if (usage.includes('three')) debugger
+
+        for (let i = 0, ln = types.length; i < ln; i++) {
+            const at = types[i]
+            if (at.id === 'param' && at.type) {
+                usage = augmentType(usage, at.name, at.type)
+            } else if (at.id === 'returns' && at.type) {
+                usage = usage + ': ' + at.type
+            }
+        }
+        return usage
     }
 
     function defMeta(type, name, comment, params) {
@@ -1465,6 +1489,9 @@ function extractMeta(script) {
         if (type === 'function' && isString(params)) {
             if (!meta[name]) meta[name] = {}
             meta[name].usage = `(${params})`
+            if (meta[name].at) {
+                meta[name].usage = augmentUsageWithTypes(meta[name].usage, meta[name].at)
+            }
         }
     }
 
