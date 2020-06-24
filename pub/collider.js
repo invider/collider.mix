@@ -1447,8 +1447,6 @@ function extractMeta(script) {
     }
 
     function augmentUsageWithTypes(usage, types) {
-        if (usage.includes('three')) debugger
-
         for (let i = 0, ln = types.length; i < ln; i++) {
             const at = types[i]
             if (at.id === 'param' && at.type) {
