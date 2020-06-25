@@ -136,13 +136,12 @@ function $$(q) {
 }
 
 function kill(e, st) {
+    if (isFun(e.onKill)) e.onKill(st)
+
     if (isFun(e.kill)) {
         e.kill(st)
-
     } else if (e.__) {
         e.__.detach(e)
-        if (isFun(e.onKill)) e.onKill(st)
-
     } else {
         _scene.log.warn("can't find kill function for " + e)
     }
