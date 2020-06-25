@@ -2483,7 +2483,8 @@ const Mod = function(dat) {
         },
 
         sleep: function(s) {
-            return new Promise(resolve => setTimeout(resolve, s * 1000))
+            if (!s || !isNumber(s)) s = 0
+            return new Promise(resolve => setTimeout(resolve, (s * 1000) | 0))
         },
 
         print: function() {
