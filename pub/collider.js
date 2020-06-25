@@ -2449,7 +2449,7 @@ const Mod = function(dat) {
             return Math.sqrt(dx*dx + dy*dy)
         },
 
-        angle: function(x, y) {
+        angleTo: function(x, y) {
             return Math.atan2(y, x)
         },
 
