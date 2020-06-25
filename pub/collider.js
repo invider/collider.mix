@@ -2482,8 +2482,8 @@ const Mod = function(dat) {
             }
         },
 
-        sleep: function(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms))
+        sleep: function(s) {
+            return new Promise(resolve => setTimeout(resolve, s * 1000))
         },
 
         print: function() {
