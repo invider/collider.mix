@@ -246,7 +246,7 @@ function spawnLineSegment(worm, x1, y1, x2, y2, onTarget) {
                 alpha(1 - this.time/FADE)
             }
 
-            const a = lib.math.targetAngle(this.x1, this.y1, this.x2, this.y2)
+            const a = lib.math.bearing(this.x1, this.y1, this.x2, this.y2)
 
             let l = this.length
             if (this.state === ACTIVE) l = this.time/this.targetTime * this.length

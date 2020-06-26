@@ -2244,7 +2244,7 @@ function augmentCtx(ctx) {
         bezierTo: function(cp1x, cp1y, cp2x, cp2y, ex, ey) {
             ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, ex, ey)
         },
-        close: function() {
+        closePath: function() {
             ctx.closePath()
         },
         shape: function() {
