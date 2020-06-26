@@ -102,15 +102,24 @@ const PI2 = PI*2
 const math = {
     name: 'math',
 
+    // Pi constant
     PI: PI,
+
+    // Doulbe Pi constant
     PI2: PI2,
 
     // calculates the length of a vector
+    // @param {number} x
+    // @param {number} y
+    // @returns {number} - length of a vector
     length: function(x, y) {
         return Math.sqrt(x*x + y*y)
     },
 
     // get a normalized vector as an array of [x, y]
+    // @param {number} x
+    // @param {number} y
+    // @returns {array[x, y]} - unit vector
     normalize: function(x, y) {
         var len = this.length(x, y)
         if (len === 0) return [0, 0];
@@ -118,11 +127,11 @@ const math = {
     },
 
     /**
-     * returns distance between 2 dots
-     * @param x1
-     * @param y1
-     * @param x2
-     * @param y2
+     * returns distance between 2 points
+     * @param {number} x1
+     * @param {number} y1
+     * @param {number} x2
+     * @param {number} y2
      * @returns {number}
      */
     distance: function(x1, y1, x2, y2) {
@@ -132,11 +141,11 @@ const math = {
     },
 
     /**
-     * returns square of distance between 2 dots
-     * @param x1
-     * @param y1
-     * @param x2
-     * @param y2
+     * returns square of distance between 2 points
+     * @param {number} x1
+     * @param {number} y1
+     * @param {number} x2
+     * @param {number} y2
      * @returns {number}
      */
     distanceSq: function(x1, y1, x2, y2) {
@@ -144,15 +153,16 @@ const math = {
         var dy = y2 - y1;
         return dx*dx + dy*dy
     },
+
     /**
-     *
-     * @param px
-     * @param py
-     * @param x1
-     * @param y1
-     * @param x2
-     * @param y2
-     * @returns {*|number}
+     * square of the distance from a point to a segment
+     * @param {number} px - point x 
+     * @param {number} py - point y
+     * @param {number} x1 - first segment point x
+     * @param {number} y1 - first segment point y
+     * @param {number} x2 - second segment point x
+     * @param {number} y2 - second segment point y
+     * @returns {number} - square of the distance
      */
     distanceToSegmentSq: function(px, py, x1, y1, x2, y2) {
         let segLen2 = this.distanceSq(x1, y1, x2, y2);
@@ -163,65 +173,105 @@ const math = {
         return this.distanceSq(px, py, x1 + t*(x2 - x1), y1 + t*(y2 - y1));
     },
 
-    // calculates a distance from a point to a segment
+    /**
+     * distance from a point to a segment
+     * @param {number} px - point x 
+     * @param {number} py - point y
+     * @param {number} x1 - first segment point x
+     * @param {number} y1 - first segment point y
+     * @param {number} x2 - second segment point x
+     * @param {number} y2 - second segment point y
+     * @returns {number} - distance
+     */
     distanceToSegment: function(px, py, x1, y1, x2, y2) {
         return Math.sqrt(this.distanceToSegmentSq(px, py, x1, y1, x2, y2))
     },
 
-    // angle from the source to the target coordinates
-    targetAngle: function(sx, sy, tx, ty) {
-        return Math.atan2(tx - sx, ty - sy)
+    // angle of direction vector from *[x1, y1]* to *[x2, y2]* in relation to OX axis
+    // @param {number} x1 - first vector x coordinate
+    // @param {number} y1 - first vector y coordinate
+    // @param {number} x2 - second vector x coordinate
+    // @param {number} y2 - second vector y coordinate
+    // @returns {number/radians} - an angle of direction vector from [x1:y1] to [x2:y2]
+    bearing: function(x1, y1, x2, y2) {
+        return Math.atan2(x2 - x1, y2 - y1)
     },
 
-    // normalize an angle to 0..2*PI range
+    // normalize an angle to [0..2*PI] range
+    // @param {number/radians} a - original angle in radians
+    // @returns {number/radians} - normalized angle in radians
     normalizeAngle: function(a) {
         a = a % (2*Math.PI)
         return a < 0? a + 2*Math.PI : a
     },
 
-    // get an opposite vector normalazed in 0..2*PI range
+    // get an opposite angle normalazed in [0..2*PI] range
+    // @param {number/radians} a - original angle in radians
+    // @returns {number/radians} - reveresed angle in radians, normalazied in [0..2*PI]
     reverseAngle: function(a) {
         a = (a + Math.PI) % (2*Math.PI)
         return a < 0? a + 2*Math.PI : a
     },
 
-    // limit the value within provided min..max range
+    // limit the value within provided [min..max] range
+    // @param {number} val - original value
+    // @param {number} min
+    // @param {number} max
+    // @returns {number} - a value limited to [min..max] range
     limit: function(val, min, max) {
         return val < min? min : val > max? max : val
     },
 
     // linear interpolation of the value between v1 .. v2 and t in [0..1]
-    linear: function(v1, v2, t) {
-        return (v2 - v1) * t + v1
+    // @param {number} start
+    // @param {number} stop
+    // @param {number} t - current value, assumed to be in the range [0..1]
+    linear: function(start, stop, t) {
+        return (stop - start) * t + start
     },
 
     // dot product of two N2 vectors
     // useful for interception of moving objects
+    // @param {number} x1
+    // @param {number} y1
+    // @param {number} x2
+    // @param {number} y2
     dotProduct: function(x1, y1, x2, y2) {
         return x1*x2 + y1*y2
     },
 
     // get vector's angle in rad
+    // @param {number} x
+    // @param {number} y
+    // @returns {number/angle} - angle in radians
     vecAngle: function(x, y) {
         return Math.atan2(y, x)
     },
 
     // get unit vector x from an angle
+    // @param {number} a - angle in radians
+    // @returns {number[0..1]} - unit vector x component
     vecX: function(a) {
         return Math.cos(a)
     },
 
     // get unit vector y from an angle
+    // @param {number} a - angle in radians
+    // @returns {number[0..1]} - unit vector y component
     vecY: function(a) {
         return Math.sin(a)
     },
 
     // convert degree value to radians
+    // @param {number} a - angle in degree
+    // @returns {number} - angle in radians
     degToRad: function(d) {
         return d * (Math.PI / 180)
     },
 
     // convert radians value to degrees
+    // @param {number} r - angle in radians
+    // @returns {number} - angle in degree
     radToDeg: function(r) {
         return r * (180 / Math.PI)
     },
