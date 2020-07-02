@@ -838,9 +838,7 @@ LabFrame.prototype.orderZ = function() {
     })
 }
 
-LabFrame.prototype.attach = function(node, name) {
-    Frame.prototype.attach.call(this, node, name)
-
+LabFrame.prototype.promoteNode = function(node) {
     //this._.log.sys('spawned ' + node.name)
     // normalize and augment the node
     if (isObj(node)) {
@@ -859,7 +857,17 @@ LabFrame.prototype.attach = function(node, name) {
     //this._.aug._ls.forEach( function(aug) {
     //    aug(node)
     //})
+}
 
+LabFrame.prototype.attach = function(node, name) {
+    Frame.prototype.attach.call(this, node, name)
+    this.promoteNode(node)
+    return node
+}
+
+LabFrame.prototype.link = function(node, name) {
+    Frame.prototype.link.call(this, node, name)
+    this.promoteNode(node)
     return node
 }
 
@@ -2656,7 +2664,7 @@ const Mod = function(dat) {
         //      use load instead?
         //nmod.fix(nmod, path, 'fix')
     }
-    augment(mod, new Frame())
+    augment(mod, new LabFrame())
 
     mod.touch = touchFun((name) => {
         let mod
@@ -2952,9 +2960,12 @@ Mod.prototype.evo = function(dt) {
     //})
 
     // evolve all mods
+    this.mod.evo(dt)
+    /*
     this.mod._ls.map( function(m) {
         if (m.evo && !m.paused) m.evo(dt)
     })
+    */
 }
 
 Mod.prototype.draw = function() {
@@ -2987,12 +2998,15 @@ Mod.prototype.draw = function() {
     if (!this.lab.hidden) this.lab.draw()
 
     // draw mods
+    this.mod.draw()
+    /*
     for (let i = 0; i < this.mod._ls.length; i++) {
         let m = this.mod._ls[i]
         if (m.draw && !m.hidden) {
             m.draw()
         }
     }
+    */
 
     if (this.lab.vfx) {
         this.lab.vfx.postVFX()
