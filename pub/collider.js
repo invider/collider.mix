@@ -2760,12 +2760,17 @@ Mod.prototype.init = function() {
     this.inherit()
 }
 
+function enableBox(mod, box, start) {
+    if (!box) throw 'missing box'
+    mod.mod.link(box)
+    if (start) box.start()
+    return true
+}
+
 function doBox(mod, boxName, start) {
     const box = mod.selectOne(boxName)
     if (box) {
-        mod.mod.link(box)
-        if (start) box.start()
-        return true
+        return enableBox(mod, box, start)
     } else {
         _scene.log.sys(
             `unable to find box [${boxName}] in [${mod.name}]`)
@@ -3731,6 +3736,8 @@ function constructScene(target) {
     mod.sys.attach(placeCanvas)
     mod.sys.attach(expandCanvas)
     mod.sys.attach(evalLoadedContent)
+    mod.sys.attach(doBox)
+    mod.sys.attach(enableBox)
 
     // pub
     mod.attach(new Frame({
