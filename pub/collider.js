@@ -91,6 +91,19 @@ function mix() {
     }
     return mixin
 }
+
+function extend() {
+    let mixin = arguments[0]
+    for (let arg = 1; arg < arguments.length; arg++) {
+        for (let prop in arguments[arg]) {
+            if (arguments[arg].hasOwnProperty(prop)) {
+                mixin[prop] = arguments[arg][prop]
+            }
+        }
+    }
+    return mixin
+}
+
 function augment() {
     let mixin = arguments[0]
     if (!isObj(mixin) && !isFun(mixin)) mixin = {}
@@ -2866,7 +2879,7 @@ Mod.prototype.start = function() {
 
     this.trap('preSetup')
     this.env._started = true
-    //this.inherit()
+    this.inherit()
 
     let captured = false
     if (_scene.env.config.test) captured = this._runTests()
@@ -2920,7 +2933,8 @@ Mod.prototype.inherit = function() {
     this.touch('sys')
 
     this.link(this.___.pub)
-    supplement(this.sys, this.___.sys)
+    extend(this.sys, this.___.sys)
+    //supplement(this.sys, this.___.sys)
     /*
         function log(msg, post) {
         log.out(msg, post)
@@ -3724,6 +3738,7 @@ function constructScene(target) {
         name: "sys",
     }))
     mod.sys.attach(mix)
+    mod.sys.attach(extend)
     mod.sys.attach(augment)
     mod.sys.attach(supplement)
     mod.sys.attach(before)
