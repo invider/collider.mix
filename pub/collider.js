@@ -1068,7 +1068,7 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
                     }
                 } else {
                     ls.push(node)
-                    last = val
+                    last = node
                 }
 
             }
@@ -3768,7 +3768,6 @@ function constructScene(target) {
     mod.sys.attach(doBox)
     mod.sys.attach(enableBox)
 
-    // pub
     mod.attach(new Frame({
         name: 'pub',
     }))
