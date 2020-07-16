@@ -62,12 +62,13 @@ Container.prototype.onClick = function(x, y, e) {
 
     for (let i = this._ls.length-1; i >= 0; i--) {
         const g = this._ls[i]
-        if (g.hidden || g.disabled || !g._sizable) continue
+        if (!g || g.hidden || g.disabled) continue
 
-        if (pending && x >= g.x
+        if (pending && (!g._sizable
+                || (x >= g.x
                     && x <= g.x + g.w
                     && y >= g.y
-                    && y <= g.y + g.h) {
+                    && y <= g.y + g.h))) {
 
             // map to local coordinates
             let lx, ly
@@ -102,12 +103,13 @@ Container.prototype.onDblClick = function(x, y, e) {
     for (let i = this._ls.length-1; i >= 0; i--) {
         const g = this._ls[i]
 
-        if (g.hidden || g.disabled || !g._sizable) continue
+        if (!g || g.hidden || g.disabled) continue
 
-        if (pending && x >= g.x
+        if (pending && (!g._sizable
+                || (x >= g.x
                     && x <= g.x + g.w
                     && y >= g.y
-                    && y <= g.y + g.h) {
+                    && y <= g.y + g.h))) {
 
             // map to local coordinates
             let lx, ly
@@ -139,12 +141,13 @@ Container.prototype.onMouseDown = function(x, y, b, e) {
     let pending = true
     for (let i = this._ls.length-1; i >= 0; i--) {
         const g = this._ls[i]
-        if (g.hidden || g.disabled || !g._sizable) continue
+        if (!g || g.hidden || g.disabled) continue
 
-        if (pending && x >= g.x
+        if (pending && (!g._sizable
+                || (x >= g.x
                     && x <= g.x + g.w
                     && y >= g.y
-                    && y <= g.y + g.h) {
+                    && y <= g.y + g.h))) {
 
             // map to local coordinates
             let lx, ly
@@ -184,12 +187,14 @@ Container.prototype.onMouseUp = function(x, y, b, e) {
     //log.debug('mouse up on [' + this.name + '] @' + x + 'x' + y)
     for (let i = this._ls.length-1; i >= 0; i--) {
         const g = this._ls[i]
-        if (g.hidden || g.disabled || !g._sizable) continue
+        if (!g || g.hidden || g.disabled) continue
 
         if (sys.isFun(g.onMouseUp)) {
 
-            if (!g._captured && (x >= g.x && x <= g.x + g.w
-                            && y >= g.y && y <= g.y + g.h)) {
+            if (!g._captured && (!g._sizable
+                    || (x >= g.x && x <= g.x + g.w
+                            && y >= g.y && y <= g.y + g.h))) {
+
                 // map to local coordinates
                 let lx, ly
                 if (g.lx) {
@@ -215,11 +220,12 @@ Container.prototype.onMouseMove = function(x, y, e) {
     //log.debug('mouse move on [' + this.name + '] @' + x + 'x' + y)
     for (let i = this._ls.length-1; i >= 0; i--) {
         const g = this._ls[i]
-        if (g.hidden || g.disabled || !g._sizable) return
+        if (!g || g.hidden || g.disabled) return
 
         if (sys.isFun(g.onMouseMove)) {
-            if (!g._captured && (x >= g.x && x <= g.x + g.w
-                            && y >= g.y && y <= g.y + g.h)) {
+            if (!g._captured && (!g._sizable
+                    || (x >= g.x && x <= g.x + g.w
+                            && y >= g.y && y <= g.y + g.h))) {
 
                 // map to local coordinates
                 let lx, ly
@@ -253,11 +259,11 @@ Container.prototype.onMouseWheel = function(d, x, y, e) {
     for (let i = this._ls.length-1; i >= 0; i--) {
         const g = this._ls[i]
 
-        if (g.hidden || g.disabled || !g._sizable) return
+        if (!g || g.hidden || g.disabled) return
         if (sys.isFun(g.onMouseWheel)) {
 
-            if (x >= g.x && x <= g.x + g.w
-                    && y >= g.y && y <= g.y + g.h) {
+            if (!g._sizable || (x >= g.x && x <= g.x + g.w
+                    && y >= g.y && y <= g.y + g.h)) {
 
                 // map to local coordinates
                 let lx, ly
@@ -286,10 +292,11 @@ Container.prototype.onTouchStart = function(x, y, e) {
     let focusPending = true
     for (let i = this._ls.length-1; i >= 0; i--) {
         const g = this._ls[i]
-        if (g.hidden || g.disabled || !g._sizable) continue
+        if (!g || g.hidden || g.disabled) continue
 
-        if (focusPending && x >= g.x && x <= g.x + g.w
-                    && y >= g.y && y <= g.y + g.h) {
+        if (focusPending && (!g._sizable
+                || (x >= g.x && x <= g.x + g.w
+                    && y >= g.y && y <= g.y + g.h))) {
 
             // map to local coordinates
             let lx, ly
