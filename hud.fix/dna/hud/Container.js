@@ -161,7 +161,7 @@ Container.prototype.onMouseDown = function(x, y, b, e) {
             }
 
             if (sys.isFun(g.onMouseDown)) {
-                g.onMouseDown(lx, ly, e)
+                g.onMouseDown(lx, ly, b, e)
             }
             if (sys.isFun(g.onMouseDrag)) {
                 this.captureMouse(g)

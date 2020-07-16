@@ -148,12 +148,7 @@ Hud.prototype.ly = function(y) {
 
 
 Hud.prototype.onMouseDown = function(x, y, b, e) {
-    /*
-    this.captured.forEach(g => {
-        if (sys.isFun(g.onMouseDown)) g.onMouseDown(x, y, e)
-    })
-    */
-    return Container.prototype.onMouseDown.call(this, x, y, e)
+    return Container.prototype.onMouseDown.call(this, x, y, b, e)
 }
 
 Hud.prototype.onMouseUp = function(x, y, b, e) {
