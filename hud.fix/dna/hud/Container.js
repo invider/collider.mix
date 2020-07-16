@@ -64,9 +64,25 @@ Container.prototype.onClick = function(x, y, e) {
         const g = this._ls[i]
         if (g.hidden || g.disabled || !g._sizable) continue
 
-        const lx = x - g.x
-        const ly = y - g.y
-        if (pending && lx >= 0 && lx <= g.w && ly >= 0 && ly <= g.h) {
+        if (pending && x >= g.x
+                    && x <= g.x + g.w
+                    && y >= g.y
+                    && y <= g.y + g.h) {
+
+            // map to local coordinates
+            let lx, ly
+            if (g.lx) {
+                lx = g.lx(x)
+                ly = g.ly(y)
+            } else if (g.lxy) {
+                const xy = g.lxy(x, y)
+                lx = xy.x
+                ly = xy.y
+            } else {
+                lx = x - g.x
+                ly = y - g.y
+            }
+            
             if (sys.isFun(g.onClick)) {
                 g.onClick(lx, ly, e)
             }
@@ -75,28 +91,49 @@ Container.prototype.onClick = function(x, y, e) {
                 if (!g.keepZ) this.moveOnTop(i)
             }
             pending = false
-
         } 
     }
     return !pending
 }
 
 Container.prototype.onDblClick = function(x, y, e) {
-    this._ls.forEach(g => {
-        if (g.hidden || g.disabled || !g._sizable) return
+    let pending = true
 
-        const lx = x - g.x
-        const ly = y - g.y
-        if (lx >= 0 && lx <= g.w && ly >= 0 && ly <= g.h) {
+    for (let i = this._ls.length-1; i >= 0; i--) {
+        const g = this._ls[i]
+
+        if (g.hidden || g.disabled || !g._sizable) continue
+
+        if (pending && x >= g.x
+                    && x <= g.x + g.w
+                    && y >= g.y
+                    && y <= g.y + g.h) {
+
+            // map to local coordinates
+            let lx, ly
+            if (g.lx) {
+                lx = g.lx(x)
+                ly = g.ly(y)
+            } else if (g.lxy) {
+                const xy = g.lxy(x, y)
+                lx = xy.x
+                ly = xy.y
+            } else {
+                lx = x - g.x
+                ly = y - g.y
+            }
+
             if (sys.isFun(g.onDblClick)) {
                 g.onDblClick(lx, ly, e)
             }
+            pending = false
         }
-    })
+    }
+    return !pending
 }
 
 Container.prototype.onMouseDown = function(x, y, b, e) {
-    if (x < 0 || y < 0 || x > this.w || y > this.h) return
+    //if (x < 0 || y < 0 || x > this.w || y > this.h) return
     //log.debug('mouse down on [' + this.name + '] @' + x + 'x' + y)
 
     let pending = true
@@ -104,9 +141,25 @@ Container.prototype.onMouseDown = function(x, y, b, e) {
         const g = this._ls[i]
         if (g.hidden || g.disabled || !g._sizable) continue
 
-        const lx = x - g.x
-        const ly = y - g.y
-        if (pending && lx >= 0 && lx <= g.w && ly >= 0 && ly <= g.h) {
+        if (pending && x >= g.x
+                    && x <= g.x + g.w
+                    && y >= g.y
+                    && y <= g.y + g.h) {
+
+            // map to local coordinates
+            let lx, ly
+            if (g.lx) {
+                lx = g.lx(x)
+                ly = g.ly(y)
+            } else if (g.lxy) {
+                const xy = g.lxy(x, y)
+                lx = xy.x
+                ly = xy.y
+            } else {
+                lx = x - g.x
+                ly = y - g.y
+            }
+
             if (sys.isFun(g.onMouseDown)) {
                 g.onMouseDown(lx, ly, e)
             }
@@ -127,30 +180,61 @@ Container.prototype.onMouseDown = function(x, y, b, e) {
 }
 
 Container.prototype.onMouseUp = function(x, y, b, e) {
-    if (x < 0 || y < 0 || x > this.w || y > this.h) return
+    //if (x < 0 || y < 0 || x > this.w || y > this.h) return
     //log.debug('mouse up on [' + this.name + '] @' + x + 'x' + y)
-    this._ls.forEach(g => {
-        if (g.hidden || g.disabled || !g._sizable) return
+    for (let i = this._ls.length-1; i >= 0; i--) {
+        const g = this._ls[i]
+        if (g.hidden || g.disabled || !g._sizable) continue
 
         if (sys.isFun(g.onMouseUp)) {
-            const lx = x - g.x
-            const ly = y - g.y
-            if (!g._captured && (lx >= 0 && lx <= g.w && ly >= 0 && ly <= g.h)) {
+
+            if (!g._captured && (x >= g.x && x <= g.x + g.w
+                            && y >= g.y && y <= g.y + g.h)) {
+                // map to local coordinates
+                let lx, ly
+                if (g.lx) {
+                    lx = g.lx(x)
+                    ly = g.ly(y)
+                } else if (g.lxy) {
+                    const xy = g.lxy(x, y)
+                    lx = xy.x
+                    ly = xy.y
+                } else {
+                    lx = x - g.x
+                    ly = y - g.y
+                }
+
                 g.onMouseUp(lx, ly, e)
             }
         }
-    })
+    }
 }
 
 Container.prototype.onMouseMove = function(x, y, e) {
     //if (x < 0 || y < 0 || x > this.w || y > this.h) return
     //log.debug('mouse move on [' + this.name + '] @' + x + 'x' + y)
-    this._ls.forEach(g => {
+    for (let i = this._ls.length-1; i >= 0; i--) {
+        const g = this._ls[i]
         if (g.hidden || g.disabled || !g._sizable) return
+
         if (sys.isFun(g.onMouseMove)) {
-            const lx = x - g.x
-            const ly = y - g.y
-            if (!g._captured && (lx >= 0 && lx <= g.w && ly >= 0 && ly <= g.h)) {
+            if (!g._captured && (x >= g.x && x <= g.x + g.w
+                            && y >= g.y && y <= g.y + g.h)) {
+
+                // map to local coordinates
+                let lx, ly
+                if (g.lx) {
+                    lx = g.lx(x)
+                    ly = g.ly(y)
+                } else if (g.lxy) {
+                    const xy = g.lxy(x, y)
+                    lx = xy.x
+                    ly = xy.y
+                } else {
+                    lx = x - g.x
+                    ly = y - g.y
+                }
+
                 if (!g._hover) {
                     g._hover = true
                     if (sys.isFun(g.onMouseEnter)) g.onMouseEnter(lx, ly, e)
@@ -160,22 +244,39 @@ Container.prototype.onMouseMove = function(x, y, e) {
                 g._hover = false
             }
         }
-    })
+    }
 }
 
 Container.prototype.onMouseWheel = function(d, x, y, e) {
     //if (x < 0 || y < 0 || x > this.w || y > this.h) return
     //log.debug('mouse move on [' + this.name + '] @' + x + 'x' + y)
-    this._ls.forEach(g => {
+    for (let i = this._ls.length-1; i >= 0; i--) {
+        const g = this._ls[i]
+
         if (g.hidden || g.disabled || !g._sizable) return
         if (sys.isFun(g.onMouseWheel)) {
-            const lx = x - g.x
-            const ly = y - g.y
-            if (lx >= 0 && lx <= g.w && ly >= 0 && ly <= g.h) {
+
+            if (x >= g.x && x <= g.x + g.w
+                    && y >= g.y && y <= g.y + g.h) {
+
+                // map to local coordinates
+                let lx, ly
+                if (g.lx) {
+                    lx = g.lx(x)
+                    ly = g.ly(y)
+                } else if (g.lxy) {
+                    const xy = g.lxy(x, y)
+                    lx = xy.x
+                    ly = xy.y
+                } else {
+                    lx = x - g.x
+                    ly = y - g.y
+                }
+
                 g.onMouseWheel(d, lx, ly, e)
             }
         }
-    })
+    }
 }
 
 Container.prototype.onTouchStart = function(x, y, e) {
@@ -187,11 +288,22 @@ Container.prototype.onTouchStart = function(x, y, e) {
         const g = this._ls[i]
         if (g.hidden || g.disabled || !g._sizable) continue
 
-        const lx = x - g.x
-        const ly = y - g.y
+        if (focusPending && x >= g.x && x <= g.x + g.w
+                    && y >= g.y && y <= g.y + g.h) {
 
-        if (focusPending && lx >= 0 && lx <= g.w
-                        && ly >= 0 && ly <= g.h) {
+            // map to local coordinates
+            let lx, ly
+            if (g.lx) {
+                lx = g.lx(x)
+                ly = g.ly(y)
+            } else if (g.lxy) {
+                const xy = g.lxy(x, y)
+                lx = xy.x
+                ly = xy.y
+            } else {
+                lx = x - g.x
+                ly = y - g.y
+            }
 
             if (sys.isFun(g.onTouchStart)) {
                 g.onTouchStart(lx, ly, e)
