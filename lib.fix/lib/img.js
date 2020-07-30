@@ -9,6 +9,8 @@ var TileSet = function(img, sx, sy, tw, th) {
     this.sy = sy
     this.tw = tw
     this.th = th
+    this.iw = floor((img.width - this.sx) / this.tw)
+    this.ih = floor((img.height - this.sy) / this.th)
     this.smooth = false
 }
 
@@ -17,15 +19,16 @@ TileSet.prototype.init = function() {
 }
 
 TileSet.prototype.draw = function(tilex, x, y, w, h) {
-    if (!w) w = this.tw
-    if (!h) h = this.th
+    w = w || this.tw
+    h = h || this.th
 
-    let ix = floor(this.sx + tilex*this.tw)
-    let iy = floor(this.sy + this.th * Math.floor(ix / this.img.width))
-    ix = ix % this.img.width
+    const ix = tilex % this.iw
+    const iy = floor(tilex / this.iw)
+    const tx = ix * this.tw + this.sx
+    const ty = iy * this.th + this.sy
 
     this.ctx.imageSmoothingEnabled = this.smooth
-    this.ctx.drawImage(this.img, ix, iy, this.tw, this.th, x, y, w, h)
+    this.ctx.drawImage(this.img, tx, ty, this.tw, this.th, x, y, w, h)
 }
 
 module.exports = {
