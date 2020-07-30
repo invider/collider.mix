@@ -1289,6 +1289,7 @@ function extractMeta(script) {
         let c = getc()
         let prevc
         let lineChars = 0
+        let prefixSpaces = 0
 
         if (type === '/' && isNewLine(c)) return {
             t: LINE_COMMENT,
@@ -1302,6 +1303,8 @@ function extractMeta(script) {
             c = getc()
 
             if (type === '*') {
+                // handle block comment char
+
                 if (prevc === '*' && c === '/') {
                     return {
                         t: BLOCK_COMMENT,
@@ -1312,11 +1315,17 @@ function extractMeta(script) {
 
                 if (isNewLine(prevc)) {
                     lineChars = 0
-                } else if (lineChars === 0 && isWhitespace(prevc)) {
-                    // don't count in whitespaces in the beginning of a line
-                } else if (lineChars === 0 && prevc === '*') {
-                    // skip
+                    prefixSpaces = 0
+
+                } else if (lineChars === 0 && prefixSpaces < 1 && isWhitespace(prevc)) {
+                    // don't count first prefix whitespace
+                    prefixSpaces ++
                     prevc = ''
+
+                } else if (lineChars === 0 && prevc === '*') {
+                    // skip *
+                    prevc = ''
+                    prefixSpaces = 0
 
                 } else {
                     lineChars ++
@@ -1324,9 +1333,13 @@ function extractMeta(script) {
 
             } else {
                 if (isNewLine(c)) {
+                    comment += prevc
+                    // skip leading space
+                    if (comment.startsWith(' ')) comment = comment.substring(1)
+
                     return {
                         t: LINE_COMMENT,
-                        v: (comment + prevc).trim(),
+                        v: (comment + prevc),
                         l: line,
                     }
                 }
@@ -1424,7 +1437,8 @@ function extractMeta(script) {
         }
         const lines = details.split('\n')
         for (let i = 0, ln = lines.length; i < ln; i++) {
-            let line = lines[i].trim()
+            const originalLine = lines[i]
+            let line = originalLine.trim()
             if (line.startsWith('@')) {
                 const tag = {}
                 tag.id = nextWord(line)
@@ -1452,7 +1466,7 @@ function extractMeta(script) {
                 dt.at.push(tag)
 
             } else {
-                dt.body += line + '\n'
+                dt.body += originalLine + '\n'
             }
         }
         return dt
