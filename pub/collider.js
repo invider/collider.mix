@@ -1687,8 +1687,8 @@ function generateSource(script, __) {
     + '\n//# sourceURL=' + script.origin
 }
 
-function injectMeta(val, meta, name) {
-    if (!val) return
+function withMeta(val, meta, name) {
+    if (val === undefined) return
     if (!meta) return val
 
     if (isFun(val) && meta[val.name]) {
@@ -1772,13 +1772,14 @@ function evalJS(script, _) {
     const val = eval(code)
 
     if (val !== undefined) {
-        return injectMeta(val, meta, script.name)
+        return withMeta(val, meta, script.name)
 
     } else if (module.exports !== undefined) {
-        return injectMeta(module.exports, meta, script.name)
+        return withMeta(module.exports, meta, script.name)
 
     } else {
         const defs = []
+        // TODO make all in one parser (meta, require, definitions)
         parseClasses(script.src, defs)
         parseFunctions(script.src, defs)
         parseConstants(script.src, defs)
@@ -1800,9 +1801,9 @@ function evalJS(script, _) {
             if (module.def) {
                 if (isFun(module.def[script.name]) || isObj(module.def[script.name])) {
                     _.log.sys('found defining node for export ' + script.name + '()')
-                    return module.def[script.name]
+                    return withMeta(module.def[script.name], meta, script.name)
                 }
-                return injectMeta(module.def, meta, script.name)
+                return withMeta(module.def, meta, script.name)
             } else {
                 _.log.sys('no value, exports or declarations from ' + script.path, '[eval]')
                 return null
