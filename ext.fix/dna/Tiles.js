@@ -4,6 +4,7 @@ const df = {
     iw: 0,
     ih: 0,
     step: 32,
+    blocky: true,
 }
 
 /*
@@ -93,6 +94,9 @@ class Tiles {
             if (ety > this.ih) ety = this.ih
             else if (ety < 0) return // out of viewport
         }
+
+        if (this.blocky) blocky()
+        else smooth()
 
         for (let y = sty; y < ety; y++) {
             for (let x = stx; x < etx; x++) {
