@@ -22,6 +22,7 @@
 let base = hsl(.1, 0, 0)
 let content = hsl(.54, 1, .5)
 //let content = hsl(.1, 1, .5)      // collider orange
+let contentTest = hsl(.17, 1, .55)
 let contentErr = hsl(.01, 1, .55)   // error red
 let fadeBase = hsl(.1, 0, 0)
 //const COLOR = hsl(.98, 1, .6)

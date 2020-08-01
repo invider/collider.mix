@@ -127,6 +127,9 @@ function augment() {
                     }
                 }
             }
+            if (isFun(source.onAugment)) {
+                source.onAugment.call(mixin)
+            }
         }
     }
     return mixin
