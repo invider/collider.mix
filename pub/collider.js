@@ -150,6 +150,9 @@ function supplement() {
                     }
                 }
             }
+            if (isFun(source.onSupplement)) {
+                source.onSupplement.call(mixin)
+            }
         }
     }
     return mixin
