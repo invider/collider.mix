@@ -80,6 +80,12 @@ const isEmpty = function(o) {
     return false
 }
 
+function assert(cond, msg) {
+    msg = msg || 'assert failed'
+    if (cond) return true
+    throw msg
+}
+
 function mix() {
     let mixin = {}
     for (let arg = 0; arg < arguments.length; arg++) {
@@ -110,13 +116,15 @@ function augment() {
 
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
-        if (source && source !== mixin) for (let prop in source) {
-            if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
-                if (isObj(mixin[prop]) && isObj(arguments[arg][prop])) {
-                    // property is already assigned - augment it
-                    if (mixin !== source[prop]) augment(mixin[prop], source[prop])
-                } else {
-                    mixin[prop] = source[prop];
+        if (source && source !== mixin) {
+            for (let prop in source) {
+                if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
+                    if (isObj(mixin[prop]) && isObj(arguments[arg][prop])) {
+                        // property is already assigned - augment it
+                        if (mixin !== source[prop]) augment(mixin[prop], source[prop])
+                    } else {
+                        mixin[prop] = source[prop];
+                    }
                 }
             }
         }
@@ -2399,6 +2407,7 @@ const Mod = function(dat) {
         isFrame: isFrame,
         isArray: isArray,
         isEmpty: isEmpty,
+        assert: assert,
 
         // math
         E: Math.E,
@@ -3752,6 +3761,7 @@ function constructScene(target) {
     mod.attach(new Frame({
         name: "sys",
     }))
+    mod.sys.attach(assert)
     mod.sys.attach(mix)
     mod.sys.attach(extend)
     mod.sys.attach(augment)
