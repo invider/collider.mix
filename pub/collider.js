@@ -2813,6 +2813,9 @@ Mod.prototype.init = function() {
 
 function enableBox(mod, box, start) {
     if (!box) throw 'missing box'
+    supplement(box.res, mod.res)
+    supplement(box.lib, mod.lib)
+    supplement(box.lib, mod.dna)
     mod.mod.link(box)
     if (start) box.start()
     return true
