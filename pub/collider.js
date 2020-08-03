@@ -107,6 +107,16 @@ assert.fun(val, msg) {
     if (isFun(val)) return true
     throw msg
 }
+assert.empty(val, msg) {
+    msg = msg || 'not empty'
+    if (isEmpty(val)) return true
+    throw msg
+}
+assert.notEmpty(val, msg) {
+    msg = msg || 'empty'
+    if (!isEmpty(val)) return true
+    throw msg
+}
 
 
 function mix() {
