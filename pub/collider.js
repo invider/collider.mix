@@ -53,11 +53,13 @@ const isString = function(s) {
     return toString.call(s) == "[object String]"
 }
 const isNumber = function(s) {
-    return toString.call(s) == "[object Number]"
+    //return toString.call(s) == "[object Number]"
+    return !isNaN(s)
 }
 const isArray = function(a) {
     return Array.isArray(a)
 }
+// TODO deprecate - has no use whatsoever
 const isMutable = function(obj) {
     return ((typeof obj === 'object')
                 || (typeof obj === 'function'))
@@ -85,6 +87,27 @@ function assert(cond, msg) {
     if (cond) return true
     throw msg
 }
+assert.number(val, msg) {
+    msg = msg || 'not a number'
+    if (isNumber(val)) return true
+    throw msg
+}
+assert.string(val, msg) {
+    msg = msg || 'not a string'
+    if (isString(val)) return true
+    throw msg
+}
+assert.object(val, msg) {
+    msg = msg || 'not an object'
+    if (isObj(val)) return true
+    throw msg
+}
+assert.fun(val, msg) {
+    msg = msg || 'not a function'
+    if (isFun(val)) return true
+    throw msg
+}
+
 
 function mix() {
     let mixin = {}
