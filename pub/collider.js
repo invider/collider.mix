@@ -87,32 +87,32 @@ function assert(cond, msg) {
     if (cond) return true
     throw msg
 }
-assert.number(val, msg) {
+assert.number = function(val, msg) {
     msg = msg || 'not a number'
     if (isNumber(val)) return true
     throw msg
 }
-assert.string(val, msg) {
+assert.string = function(val, msg) {
     msg = msg || 'not a string'
     if (isString(val)) return true
     throw msg
 }
-assert.object(val, msg) {
+assert.object = function(val, msg) {
     msg = msg || 'not an object'
     if (isObj(val)) return true
     throw msg
 }
-assert.fun(val, msg) {
+assert.fun = function(val, msg) {
     msg = msg || 'not a function'
     if (isFun(val)) return true
     throw msg
 }
-assert.empty(val, msg) {
+assert.empty = function(val, msg) {
     msg = msg || 'not empty'
     if (isEmpty(val)) return true
     throw msg
 }
-assert.notEmpty(val, msg) {
+assert.notEmpty = function(val, msg) {
     msg = msg || 'empty'
     if (!isEmpty(val)) return true
     throw msg
