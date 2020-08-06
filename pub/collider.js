@@ -1,5 +1,20 @@
 /*
- * Collider.JAM Supervisor
+ * Collider.JAM Ring
+ *
+ * The core framework definitions are provided here.
+ *
+ * The Ring controls the boot and resource loading.
+ * Once all assets are loaded, evaluated and
+ * mixed into the core mix, it starts the game loop.
+ *
+ * The Ring hardly provides any significant game framework features,
+ * but rather creates a stucture to mix in
+ * functionality from various supplied and optional mixes.
+ *
+ * Only the most low-level and essential boilerplate is included.
+ * Everything else is considered optional and can be disabled
+ * or switched to alternative implementation.
+ *
  */
 $ = mix = (function(window) {
 
@@ -10,6 +25,7 @@ $ = mix = (function(window) {
 const SCRIPT_SRC = 'collider.mix/collider.js'
 const UNITS_MAP = 'units.map'
 const JAM_CONFIG = 'jam.config'
+// TODO it shouldn't be global, but rather a property of a mod
 const canvasName = 'canvas'
 
 const GAMEPADS = 4
