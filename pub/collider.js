@@ -192,6 +192,7 @@ function supplement() {
         if (isObj(source)) {
             for (let prop in source) {
                 if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
+                //if (prop.startsWith('_')) {
                     if (isObj(mixin[prop]) && isObj(source[prop])) {
                         if (mixin !== source[prop]) supplement(mixin[prop], source[prop])
                     } else if (mixin[prop] === undefined) {
@@ -2862,9 +2863,12 @@ Mod.prototype.init = function() {
 
 function enableBox(mod, box, start) {
     if (!box) throw 'missing box'
-    supplement(box.res, mod.res)
-    supplement(box.lib, mod.lib)
-    supplement(box.lib, mod.dna)
+    if (!box.env.patched) {
+        supplement(box.res, mod.res)
+        supplement(box.lib, mod.lib)
+        supplement(box.lib, mod.dna)
+        box.env.patched = true
+    }
     mod.mod.link(box)
     if (start) box.start()
     return true
