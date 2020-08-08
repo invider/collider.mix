@@ -148,13 +148,11 @@ SlideCamera.prototype.evo = function(dt) {
 
 SlideCamera.prototype.draw = function(dt) {
     ctx.save()
-	let sw = ctx.width
-	let sh = ctx.height
-    let sw2 = sw/2
-    let sh2 = sh/2
+	let sw = env.width
+	let sh = env.height
     let vp = this.getViewport()
     
-    ctx.translate(sw2, sh2)
+    ctx.translate(sw/2, sh/2) // half-screen shift
 	ctx.scale(this.scale, this.scale);
 	ctx.translate(-this.x, -this.y)
 
@@ -167,12 +165,26 @@ SlideCamera.prototype.draw = function(dt) {
     this._ls.forEach( e => {
         if (e.draw && !e.dead && !e.hidden) {
             // culling
-            if (e._sizable
-                    && e.x+e.w/2 >= vp[0]
-                    && e.x-e.w/2 <= vp[2]
-                    && e.y+e.h/2 >= vp[1]
-                    && e.y-e.h/2 <= vp[3]) {
-                e.draw()
+            if (e._sizable) {
+                if ((e._centered
+                            && e.x+e.w/2 >= vp[0]
+                            && e.x-e.w/2 <= vp[2]
+                            && e.y+e.h/2 >= vp[1]
+                            && e.y-e.h/2 <= vp[3])
+                        || (e.x+e.w >= vp[0]
+                            && e.x  <= vp[2]
+                            && e.y+e.h >= vp[1]
+                            && e.y  <= vp[3])) {
+                    e.draw()
+                }
+            } else if (e._circular) {
+                if (e.x+e.r >= vp[0]
+                        && e.x-e.r <= vp[2]
+                        && e.y+e.r >= vp[1]
+                        && e.y-e.r <= vp[3]) {
+                    e.draw()
+                }
+
             } else {
                 e.draw()
             }
