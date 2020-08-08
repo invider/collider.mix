@@ -192,7 +192,6 @@ function supplement() {
         if (isObj(source)) {
             for (let prop in source) {
                 if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
-                //if (prop.startsWith('_')) {
                     if (isObj(mixin[prop]) && isObj(source[prop])) {
                         if (mixin !== source[prop]) supplement(mixin[prop], source[prop])
                     } else if (mixin[prop] === undefined) {
@@ -926,6 +925,7 @@ LabFrame.prototype.promoteNode = function(node) {
         //if (isFun(node.spawn)) node.spawn() // spawn handler
         node._positional = (isNumber(node.x) && isNumber(node.y))
         node._sizable = (node._positional && isNumber(node.w) && isNumber(node.h))
+        node._circular = (node._positional && isNumber(node.r))
 
         if (isNumber(node.Z)) this.orderZ()
     }
