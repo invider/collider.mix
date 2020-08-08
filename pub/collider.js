@@ -926,6 +926,7 @@ LabFrame.prototype.promoteNode = function(node) {
         node._positional = (isNumber(node.x) && isNumber(node.y))
         node._sizable = (node._positional && isNumber(node.w) && isNumber(node.h))
         node._circular = (node._positional && isNumber(node.r))
+        node._centered = true
 
         if (isNumber(node.Z)) this.orderZ()
     }
