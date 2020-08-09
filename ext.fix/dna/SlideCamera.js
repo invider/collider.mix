@@ -6,10 +6,14 @@ const SlideCamera = function(dat) {
     this.x = 0
     this.y = 0
     this.scale = 1
+    this.scaleTarget = 0
+    this.scaleSpeed = 1
+    this.zoomStep = .2
     this.target = false
     this.targetingPrecision = 1
     this.speed = 1
     this.zoomOnPlusMinus = false
+    this.keys = []
 
     sys.Frame.call(this, dat)
 }
@@ -99,10 +103,17 @@ SlideCamera.prototype.pick = function(screenX, screenY) {
 SlideCamera.prototype.bindZoom = function() {
     let cam = this
     sys.after(trap, 'equalDown', function() {
-        cam.zoom(1.2)
+        cam.zoomStart(0)
     })
+    sys.after(trap, 'equalUp', function() {
+        cam.zoomStop(0)
+    })
+
     sys.after(trap, 'minusDown', function() {
-        cam.zoom(0.8)
+        cam.zoomStart(1)
+    })
+    sys.after(trap, 'minusUp', function() {
+        cam.zoomStop(1)
     })
 }
 
@@ -111,7 +122,19 @@ SlideCamera.prototype.init = function() {
 }
 
 SlideCamera.prototype.zoom = function(z) {
-    this.scale *= z
+    this.scaleTarget *= z
+}
+
+SlideCamera.prototype.zoomAt = function(scale) {
+    this.scaleTarget = scale
+}
+
+SlideCamera.prototype.zoomStart = function(dir) {
+    this.keys[dir] = true
+}
+
+SlideCamera.prototype.zoomStop = function(dir) {
+    this.keys[dir] = false
 }
 
 SlideCamera.prototype.follow = function(dt) {
@@ -144,6 +167,31 @@ SlideCamera.prototype.evo = function(dt) {
     })
 
     if (this.target) this.follow(dt)
+
+    if (this.keys[0]) {
+        this.scale += this.scaleSpeed * dt
+    }
+    if (this.keys[1]) {
+        this.scale -= this.scaleSpeed * dt
+    }
+
+    if (this.scaleTarget) {
+        if (this.scale < this.scaleTarget) {
+            this.scale += this.scaleSpeed * dt
+            if (this.scale > this.scaleTarget) {
+                this.scale = this.scaleTarget
+                this.scaleTarget = 0
+            }
+
+        } else if (this.scale > this.scaleTarget) {
+            this.scale -= this.scaleSpeed * dt
+            if (this.scale < this.scaleTarget) {P
+                this.scale = this.scaleTarget
+                this.scaleTarget = 0
+            }
+        }
+    }
+
 }
 
 SlideCamera.prototype.draw = function(dt) {
