@@ -9,9 +9,67 @@
 // You can setup zoom in/out and move speed
 // with *speed* and *zoomSpeed* accordingly.
 //
+// Spawn camera somewhere in /lab and
+// then spawn all actors into the camera.
+//
+// Typical structure may look like:
+//
+//     /lab
+//       |
+//       |--cam
+//       |   |
+//       |   |-- mob
+//       |   |-- fx
+//       |
+//       |--hud
+//
+// The first node in _lab_ is SlideCamera
+// and it contains nodes _mob_ for all actors
+// and _fx_ for special effects like particles.
+//
+// Separating the two is a good idea,
+// since we want our particles to be "over"
+// the actors.
+//
+// Following the camera in _lab_, there is _hud_.
+// It is an overlay layer with objects not supposed
+// to be affected by the camera. Like a map,
+// a score tab or other UI elements.
+//
+// You may create such structure during the setup
+// of the game in /setup.js:
+//
+//     lab.spawn('SlideCamera', {
+//         name: 'cam',
+//         x: 0,
+//         y: 0,
+//         zoomOnPlusMinus: true,
+//     })
+//     lab.cam.touch('mob')
+//     lab.cam.touch('fx')
+//
+//     // create a hero
+//     lab.cam.mob.spawn(dna.Hero, {...})
+//     
+//     // create a spider and some spider-related visual effect
+//     lab.cam.mob.spawn(dna.Spider, {...})
+//     lab.cam.fx.spawn(dna.teleportFx, {...})
+//
+// Now we can tell the camera to slide at some coordinates:
+//
+//     lab.cam.follow({ x: 101, y: 101 }, false)
+// Note, that we don't want to keep following.
+// The camera target will be reset once it reached the coordinates.
+//
+// Next, follow and pin on the hero:
+//
+//     lab.cam.pinOnTarget = true
+//     lab.cam.follow( lab.cam.mob.hero, true )
+// And zoom in a little
+//     lab.cam.zoom(1.5)
 //
 //
-const SlideCamera = function(dat) {
+const SlideCamera = function(st) {
     this.name = 'cam'
     this.x = 0
     this.y = 0
@@ -19,13 +77,15 @@ const SlideCamera = function(dat) {
     this.scaleTarget = 0
     this.zoomSpeed = 0.5
     this.zoomStep = .2
-    this.target = false
+    this.target = null
+    this.pinOnTarget = false
+    this.keepFollowing = false
     this.targetingPrecision = 1
     this.speed = 1
     this.zoomOnPlusMinus = false
     this.keys = []
 
-    sys.Frame.call(this, dat)
+    sys.Frame.call(this, st)
 }
 
 SlideCamera.prototype = new sys.LabFrame()
@@ -178,9 +238,30 @@ SlideCamera.prototype.init = function() {
     if (this.zoomOnPlusMinus) this.bindZoom()
 }
 
+// move camera at specified coordinates
+// @param {number} x
+// @param {number} y
 SlideCamera.prototype.lookAt = function(x, y) {
     this.x = x
     this.y = y
+}
+
+// follow the target
+// The camera keeps following, until the distance is < _targetingPrecision_.
+// At this point the target is considered reached.
+//
+// The camera keeps following the target if _keepFollowing_ flag is set.
+//
+// If _pinOnTarget_ is true, the camera coordinates will be fixed to target coordinates.
+// This is the best way to "pin" the camera to an object and avoid
+// jiggling artefacts.
+//
+// @param {object/xy} target - a positional target for the camera to follow
+// @param {boolean} keepFollowing - keep following after the camera reached the position.
+//
+SlideCamera.prototype.follow = function(target, keepFollowing) {
+    this.target = target
+    this.keepFollowing = !!keepFollowing
 }
 
 // set relative zoom target
@@ -212,7 +293,7 @@ SlideCamera.prototype.stopMoving = function(dir) {
 // Shouldn't be called manually.
 // It is called automatically as a part of evo(dt) process
 // @params {number} dt - delta time in seconds
-SlideCamera.prototype.follow = function(dt) {
+SlideCamera.prototype.evoFollow = function(dt) {
     let dx = this.target.x - this.x
     let dy = this.target.y - this.y
     if (abs(dx) < this.targetingPrecision
@@ -223,7 +304,7 @@ SlideCamera.prototype.follow = function(dt) {
             this.x = this.target.x
             this.y = this.target.y
         }
-        if (!this.keepFollowing) this.target = false
+        if (!this.keepFollowing) this.target = null
 
     } else {
 
@@ -243,7 +324,7 @@ SlideCamera.prototype.evo = function(dt) {
         if (e.evo && !e.dead && !e.paused) e.evo(dt)
     })
 
-    if (this.target) this.follow(dt)
+    if (this.target) this.evoFollow(dt)
 
     if (this.keys[0]) {
         this.scale *= 1 + this.zoomSpeed * dt
