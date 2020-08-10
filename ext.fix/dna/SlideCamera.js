@@ -20,39 +20,44 @@ const SlideCamera = function(dat) {
 
 SlideCamera.prototype = new sys.LabFrame()
 
+// deprecated
 SlideCamera.prototype.worldX = function(x) {
     return (x-ctx.width/2)/this.scale + this.x
 }
 
+// deprecated
 SlideCamera.prototype.worldY = function(y) {
     return (y-ctx.height/2)/this.scale + this.y
 }
 
-SlideCamera.prototype.getViewport = function() {
-    return [
-        this.worldX(0),
-        this.worldY(0),
-        this.worldX(ctx.width),
-        this.worldY(ctx.height)
-    ]
-}
-
+// deprecated
 SlideCamera.prototype.screenX = function(x) {
     return (x - this.x)*this.scale + ctx.width/2
 }
 
+// deprecated
 SlideCamera.prototype.screenY = function(y) {
     return (y - this.y)*this.scale + ctx.height/2
 }
 
+// translate local x to global coordinates
+// @param {number} x
+// @returns {number} - global x
 SlideCamera.prototype.gx = function(x) {
     return (x - this.x)*this.scale + ctx.width/2
 }
 
+// translate local y to global coordinates
+// @param {number} y
+// @returns {number} - global y
 SlideCamera.prototype.gy = function(y) {
     return (y - this.y)*this.scale + ctx.height/2
 }
 
+// translate local x and y to global coordinates
+// @param {number} x
+// @param {number} y
+// @returns {object/2d-vector} - object with global x and y
 SlideCamera.prototype.gxy = function(x, y) {
     return {
         x: (x - this.x)*this.scale + ctx.width/2,
@@ -60,14 +65,24 @@ SlideCamera.prototype.gxy = function(x, y) {
     }
 }
 
+// translate global x to local coordinates
+// @param {number} x
+// @returns {number} - local x
 SlideCamera.prototype.lx = function(x) {
     return (x-ctx.width/2)/this.scale + this.x
 }
 
+// translate global y to local coordinates
+// @param {number} y
+// @returns {number} - local y
+// @returns {object/2d-vector} - object with local x and y
 SlideCamera.prototype.ly = function(y) {
     return (y-ctx.height/2)/this.scale + this.y
 }
 
+// translate global x and y to local coordinates
+// @param {number} x
+// @param {number} y
 SlideCamera.prototype.lxy = function(x, y) {
     return {
         x: (x-ctx.width/2)/this.scale + this.x,
@@ -75,9 +90,38 @@ SlideCamera.prototype.lxy = function(x, y) {
     }
 }
 
+// get camera viewport
+// @returns {object/viewport-rectangle} - viewport x, y, w and h
+SlideCamera.prototype.viewport = function() {
+    const x = this.lx(0)
+    const y = this.ly(0)
+    return {
+        x: x,
+        y: y,
+        w: this.lx(ctx.width) - x,
+        h: this.ly(ctx.height) - y,
+    }
+}
+
+// deprecated
+// get viewport coordinates
+// @returns {array/2d-coordinates}
+SlideCamera.prototype.getViewport = function() {
+    return [
+        this.lx(0),
+        this.ly(0),
+        this.lx(ctx.width),
+        this.ly(ctx.height)
+    ]
+}
+
+// check if local coordinates are in the viewport
+// @param {number} x - local x
+// @param {number} y - local y
+// @returns {boolean} - true if local x:y are in the viewport
 SlideCamera.prototype.inView = function(x, y) {
-    let sx = this.screenX(x)
-    let sy = this.screenY(y)
+    let sx = this.gx(x)
+    let sy = this.gy(y)
     return (sx >= 0 && sx <= ctx.width && sy >= 0 && sy <= ctx.height)
 }
 
@@ -100,43 +144,59 @@ SlideCamera.prototype.pick = function(screenX, screenY) {
 }
 */
 
+// create traps for Plus/Minus keys to control camera zoom in/out
+// called automatically, when (camera.zoomOnPlusMinus === true)
 SlideCamera.prototype.bindZoom = function() {
     let cam = this
     sys.after(trap, 'equalDown', function() {
-        cam.zoomStart(0)
+        cam.startMoving(0)
     })
     sys.after(trap, 'equalUp', function() {
-        cam.zoomStop(0)
+        cam.stopMoving(0)
     })
 
     sys.after(trap, 'minusDown', function() {
-        cam.zoomStart(1)
+        cam.startMoving(1)
     })
     sys.after(trap, 'minusUp', function() {
-        cam.zoomStop(1)
+        cam.stopMoving(1)
     })
 }
 
+// complete necessary bindings
 SlideCamera.prototype.init = function() {
     if (this.zoomOnPlusMinus) this.bindZoom()
 }
 
+// set relative zoom target
+// accepts values relative to the current scale, where current scale is considered 1
+// @param {number} z - relative value, e.g. 1.2 to zoom 20% in, 0.8 to zoom 20% out
 SlideCamera.prototype.zoom = function(z) {
-    this.scaleTarget *= z
+    this.scaleTarget = this.scale * z
 }
 
+// set absolute zoom target
+// @param {number} scale
 SlideCamera.prototype.zoomAt = function(scale) {
     this.scaleTarget = scale
 }
 
-SlideCamera.prototype.zoomStart = function(dir) {
+// activate a movement
+// @params {number} dir - movement time (0 - zoom out, 1 - zoom in)
+SlideCamera.prototype.startMoving = function(dir) {
     this.keys[dir] = true
 }
 
-SlideCamera.prototype.zoomStop = function(dir) {
+// stop a movement
+// @params {number} dir - movement time (0 - zoom out, 1 - zoom in)
+SlideCamera.prototype.stopMoving = function(dir) {
     this.keys[dir] = false
 }
 
+// follow a target if one is defined
+// Shouldn't be called manually.
+// It is called automatically as a part of evo(dt) process
+// @params {number} dt - delta time in seconds
 SlideCamera.prototype.follow = function(dt) {
     let dx = this.target.x - this.x
     let dy = this.target.y - this.y
@@ -161,6 +221,8 @@ SlideCamera.prototype.follow = function(dt) {
     }
 }
 
+// evolve the camera and all included entities
+// @param {number} dt - delta time in seconds
 SlideCamera.prototype.evo = function(dt) {
     this._ls.forEach( e => {
         if (e.evo && !e.dead && !e.paused) e.evo(dt)
@@ -191,9 +253,9 @@ SlideCamera.prototype.evo = function(dt) {
             }
         }
     }
-
 }
 
+// draw entities in the viewport
 SlideCamera.prototype.draw = function(dt) {
     ctx.save()
 	let sw = env.width
