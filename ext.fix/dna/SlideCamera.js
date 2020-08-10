@@ -6,6 +6,9 @@
 // When the target is not set, it can work in a free-roaming mode.
 // In this mode a gamer can move and zoom the viewport.
 //
+// You can setup zoom in/out and move speed
+// with *speed* and *zoomSpeed* accordingly.
+//
 //
 //
 const SlideCamera = function(dat) {
@@ -14,7 +17,7 @@ const SlideCamera = function(dat) {
     this.y = 0
     this.scale = 1
     this.scaleTarget = 0
-    this.scaleSpeed = 1
+    this.zoomSpeed = 0.5
     this.zoomStep = .2
     this.target = false
     this.targetingPrecision = 1
@@ -243,22 +246,22 @@ SlideCamera.prototype.evo = function(dt) {
     if (this.target) this.follow(dt)
 
     if (this.keys[0]) {
-        this.scale += this.scaleSpeed * dt
+        this.scale *= 1 + this.zoomSpeed * dt
     }
     if (this.keys[1]) {
-        this.scale -= this.scaleSpeed * dt
+        this.scale *= 1 - this.zoomSpeed * dt
     }
 
     if (this.scaleTarget) {
         if (this.scale < this.scaleTarget) {
-            this.scale += this.scaleSpeed * dt
+            this.scale *= 1 + this.zoomSpeed * dt
             if (this.scale > this.scaleTarget) {
                 this.scale = this.scaleTarget
                 this.scaleTarget = 0
             }
 
         } else if (this.scale > this.scaleTarget) {
-            this.scale -= this.scaleSpeed * dt
+            this.scale *= 1 - this.zoomSpeed * dt
             if (this.scale < this.scaleTarget) {P
                 this.scale = this.scaleTarget
                 this.scaleTarget = 0

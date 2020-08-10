@@ -197,7 +197,7 @@ const math = {
         return Math.atan2(x2 - x1, y2 - y1)
     },
 
-    // normalize an angle to [0..2*PI] range
+    // normalize an angle to [0..2**PI] range
     // @param {number/radians} a - original angle in radians
     // @returns {number/radians} - normalized angle in radians
     normalizeAngle: function(a) {
@@ -205,7 +205,7 @@ const math = {
         return a < 0? a + 2*Math.PI : a
     },
 
-    // get an opposite angle normalazed in [0..2*PI] range
+    // get an opposite angle normalazed in [0..2**PI] range
     // @param {number/radians} a - original angle in radians
     // @returns {number/radians} - reveresed angle in radians, normalazied in [0..2*PI]
     reverseAngle: function(a) {
