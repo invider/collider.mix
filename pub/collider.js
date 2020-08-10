@@ -1397,6 +1397,7 @@ function extractMeta(script) {
                 }
 
             } else {
+                // handle line comment char
                 if (isNewLine(c)) {
                     comment += prevc
                     // skip leading space
@@ -1404,7 +1405,7 @@ function extractMeta(script) {
 
                     return {
                         t: LINE_COMMENT,
-                        v: (comment + prevc),
+                        v: comment,
                         l: line,
                     }
                 }
