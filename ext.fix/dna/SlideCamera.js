@@ -1,18 +1,21 @@
 //
 // target-following sliding and zooming camera 
 //
+// SlideCamera supports automatic culling,
+// so objects outside the viewport are not drawn.
+//
 // SlideCamera can follow a positional target
 // (it can be any object with x and y).
 // When the target is not set, it can work in a free-roaming mode.
-// In this mode a gamer can move and zoom the viewport.
+// In this mode, a gamer can move and zoom the viewport.
 //
 // You can setup zoom in/out and move speed
-// with *speed* and *zoomSpeed* accordingly.
+// with *speed* and *zoomSpeed* properties accordingly.
 //
 // Spawn camera somewhere in /lab and
 // then spawn all actors into the camera.
 //
-// Typical structure may look like:
+// A typical structure may look like this:
 //
 //     /lab
 //       |
@@ -22,7 +25,6 @@
 //       |   |-- fx
 //       |
 //       |--hud
-//
 // The first node in _lab_ is SlideCamera
 // and it contains nodes _mob_ for all actors
 // and _fx_ for special effects like particles.
@@ -33,8 +35,7 @@
 //
 // Following the camera in _lab_, there is _hud_.
 // It is an overlay layer with objects not supposed
-// to be affected by the camera. Like a map,
-// a score tab or other UI elements.
+// to be affected by the camera. Like a map, a score tab or other UI elements.
 //
 // You may create such structure during the setup
 // of the game in /setup.js:
@@ -45,6 +46,7 @@
 //         y: 0,
 //         zoomOnPlusMinus: true,
 //     })
+//     // create a substructure in /lab/cam
 //     lab.cam.touch('mob')
 //     lab.cam.touch('fx')
 //
@@ -67,8 +69,11 @@
 //     lab.cam.follow( lab.cam.mob.hero, true )
 // And zoom in a little
 //     lab.cam.zoom(1.5)
+// Use viewport() to get viewport rectangle coordinates (x, y, w, h).
 //
+// Use gx, gy, gxy to get screen coordinates from camera-ones.
 //
+// Use lx, ly, lxy to get camera-world coordinates form the screen-ones.
 const SlideCamera = function(st) {
     this.name = 'cam'
     this.x = 0
