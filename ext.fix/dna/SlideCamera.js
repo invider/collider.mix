@@ -1,5 +1,12 @@
 //
-// target-following zoom in/out camera constructor
+// target-following sliding and zooming camera 
+//
+// SlideCamera can follow a positional target
+// (it can be any object with x and y).
+// When the target is not set, it can work in a free-roaming mode.
+// In this mode a gamer can move and zoom the viewport.
+//
+//
 //
 const SlideCamera = function(dat) {
     this.name = 'cam'
@@ -166,6 +173,11 @@ SlideCamera.prototype.bindZoom = function() {
 // complete necessary bindings
 SlideCamera.prototype.init = function() {
     if (this.zoomOnPlusMinus) this.bindZoom()
+}
+
+SlideCamera.prototype.lookAt = function(x, y) {
+    this.x = x
+    this.y = y
 }
 
 // set relative zoom target
