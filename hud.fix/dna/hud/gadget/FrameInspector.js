@@ -72,6 +72,7 @@ function nodeTitle(node, dir, i, key) {
     return title
 }
 
+// shows and navigates a frame
 const FrameInspector = function(dat) {
     this.lastPos = []
     this.lastSelect = []
@@ -174,6 +175,8 @@ FrameInspector.prototype.selectedNode = function() {
     return item.node
 }
 
+// open a frame for exploration
+// @param {object/frame} next
 FrameInspector.prototype.open = function(next) {
     if (next && (sys.isObj(next) || sys.isFrame(next))) {
         this.lastName.push(findName(next))

@@ -13,6 +13,9 @@ const defaults = {
     h: 100,
 }
 
+// explores various nodes
+// Integrates FrameInspector, TextInspector and ImageInspector
+// in one component that switches between them dynamically.
 function NodeInspector(st) {
     this.trail = []
     augment(this, defaults)

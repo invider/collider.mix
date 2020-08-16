@@ -7,6 +7,8 @@ const Slider = dna.hud.gadget.Slider
 
 
 let instances = 0
+
+// a text console component - can be used in a chatbot-like or a command-response loop scenarios
 const Console = function(dat) {
     if (!this.name) this.name = 'console' + ++instances
 

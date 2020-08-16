@@ -9,6 +9,8 @@ const defaultStyle = {
     lineSpacing: 5,
 }
 
+// a multiline text container
+// Used in composite components like TextView.
 function TextPane(st) {
     this.tx = 0
     this.ty = 0

@@ -1,5 +1,7 @@
 'use strict'
 
+// eyes looking at the mouse cursor
+// Just a sample component
 const Eyes = function(dat) {
     this.x = ctx.width/2 - 40
     this.y = ctx.height/2 - 25

@@ -3,6 +3,8 @@
 // @depends(/env/hud)
 
 let instances = 0
+
+// a static text label
 const Label = function Label(dat) {
     this.name = 'label' + ++instances
     this.textAlign = "left"
@@ -38,6 +40,8 @@ Label.prototype.adjust = function() {
     this.h = this.th
 }
 
+// set label text
+// @param {string} text
 Label.prototype.setText = function(text) {
     this.text = text
     this.adjust()

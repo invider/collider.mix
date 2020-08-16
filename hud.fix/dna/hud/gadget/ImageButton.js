@@ -19,6 +19,7 @@ const defaults = {
     imageY: 0,
 }
 
+// a button with an icon
 const ImageButton = function(dat) {
     sys.supplement(this, defaults)
     Button.call(this, dat)

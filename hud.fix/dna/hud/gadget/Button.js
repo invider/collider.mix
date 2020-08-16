@@ -1,6 +1,8 @@
 'use strict'
 
 let instances = 0
+
+// a visual component that has to be pushed to invoke an action
 const Button = function(dat) {
     this.name = 'button_' + ++instances
     if (!this.text && !this.text === '') {
@@ -50,6 +52,9 @@ Button.prototype.injectStyle = function(base) {
     }
 }
 
+// a service method to adjust component in the updated layout
+// Usually invoked automatically when component is added
+// or layout is changed.
 Button.prototype.adjust = function() {
     ctx.font = this.font
     const m = ctx.measureText(this.text)
@@ -67,13 +72,14 @@ Button.prototype.onMouseUp = function() {
     this.toggled = false
 }
 
-// to capture mouse
+// needs to be defined to capture the mouse 
 Button.prototype.onMouseDrag = function() {}
 
-// need this for _hover flag to work
+// need this to be defined for _hover flag to be working
 Button.prototype.onMouseMove = function() {}
 
-
+// get current state name - active | disabled | toggled | hover
+// @returns {string} - button state based on flags
 Button.prototype.getState = function() {
     if (this.disabled) return 'disabled'
     if (this.toggled) return 'toggled'

@@ -3,11 +3,14 @@
 // @depends(/dna/hud/Pane)
 const Pane = dna.hud.Pane
 
+// shows image nodes
 function ImageInspector(st) {
     Pane.call(this, st)
 }
 ImageInspector.prototype = Object.create(Pane.prototype)
 
+// open an image contained in a node
+// @param {object/image} next
 ImageInspector.prototype.open = function(next) {
     this.img = null
 

@@ -2,6 +2,9 @@
 
 let instances = 0
 
+// a progress bar
+// The _value_ property contains a current progress value
+// and should be between _minValue_ and _maxValue_.
 const Progress = function(dat) {
     instances++
     this.name = 'progress_' + instances
@@ -29,6 +32,8 @@ const Progress = function(dat) {
     }
 }
 
+// a service methods used by draw() to get the progress text (e.g. "40%")
+// Redefine to provide a customized label, like "Loaded 70%".
 Progress.prototype.getText = function() {
     return '' + Math.round(((this.value-this.minValue)/(this.maxValue-this.minValue)) * 100) + '%'
 }
@@ -57,5 +62,3 @@ Progress.prototype.draw = function() {
 }
 
 module.exports = Progress
-
-

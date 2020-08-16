@@ -57,6 +57,10 @@ Bar.prototype.onMouseDrag = function(dx, dy) {
 }
 
 let instances = 0
+
+// can be used to select a range of values in the span between min and max
+// Use inside a composite component that needs a scrollbar-like functionality -
+// e.g. a scrollable text field.
 const Slider = function(dat) {
     instances++
     this.name = 'slider' + instances
@@ -125,27 +129,35 @@ Slider.prototype.onMouseWheel = function(d, x, y, e) {
     }
 }
 
+// move slider and trigger onScroll() event
+// @param {number} step - steps to move, can be negative if moving up
 Slider.prototype.drag = function(step) {
     this.slide(step)
     this.onScroll(this.pos)
 }
 
+// scroll event handler
 Slider.prototype.onScroll = function(pos) {}
 
+// slide for specified steps
+// @param {number} step - number of steps, can be negative if moving up
 Slider.prototype.slide = function(step) {
     const maxPos = max(this.max-this.span, 0)
     this.pos = limit(this.pos+step, 0, maxPos)
 }
 
+// set the slider position
 Slider.prototype.set = function(pos) {
     const maxPos = max(this.max-this.span, 0)
     this.pos = limit(pos, 0, maxPos)
 }
 
+// get current value
 Slider.prototype.val = function() {
     return Math.round(this.pos)
 }
 
+// get the slider top value - it's position + span limited by max
 Slider.prototype.top = function() {
     const top = Math.round(this.pos + this.span)
     return min(top, this.max)

@@ -300,6 +300,8 @@ const defaults = {
 }
 
 let instances = 0
+
+// nodes explorer component
 const Explorer = function(dat) {
     if (!this.name) this.name = 'explorer' + ++instances
     sys.supplement(this, defaults)

@@ -90,6 +90,8 @@ const defaults = {
 }
 
 let instances = 0
+
+// magnifies an area around the mouse cursor
 const Magnify = function(dat) {
     if (!this.name) this.name = 'magnify' + ++instances
     sys.supplement(this, defaults)

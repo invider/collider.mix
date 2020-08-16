@@ -13,6 +13,7 @@ const defaultStyle = {
 
 let instances = 0
 
+// multiline text viewer with a slider for scrolling
 function TextView(st) {
     if (!this.name) this.name = 'textView' + ++instances
 

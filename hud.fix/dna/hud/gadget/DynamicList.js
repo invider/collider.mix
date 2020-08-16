@@ -6,6 +6,10 @@ const Container = dna.hud.Container
 const Slider = dna.hud.gadget.Slider
 
 let instances = 0
+
+// a list, that obtains it's items dynamically from the outside source
+// Use, when the items can change any time,
+// and you don't want to manage the sync with the list structure.
 const DynamicList = function(dat) {
     if (!this.name) this.name = 'dlist' + ++instances
 

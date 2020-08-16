@@ -1,3 +1,4 @@
+// Utility math functions 
 'use strict'
 
 // LCG random generator implementation
