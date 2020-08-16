@@ -133,7 +133,11 @@ assert.notEmpty = function(val, msg) {
     if (!isEmpty(val)) return true
     throw msg
 }
-
+function dist(x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    return Math.sqrt(dx*dx + dy*dy)
+}
 
 function mix() {
     let mixin = {}
@@ -1126,8 +1130,19 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
                 if (val) last = val
             }
         } else if (node._sizable) {
-            if (lx >= node.x && lx <= node.x + node.w
-                    && ly >= node.y && ly <= node.y + node.h) {
+            if ((node._centered && node.circular
+                        && dist(lx, ly, node.x, node.y) <= node.r)
+                    || (node._centered
+                        && lx >= node.x - node.w/2
+                        && lx <= node.x + node.w/2
+                        && ly >= node.y - node.h/2
+                        && ly <= node.y + node.h/2)
+                    || (!node._centered
+                        && lx >= node.x
+                        && lx <= node.x + node.w
+                        && ly >= node.y
+                        && ly <= node.y + node.h)
+            ) {
                 if (fn) {
                     if (fn(node)) {
                         ls.push(node)
@@ -1137,7 +1152,6 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
                     ls.push(node)
                     last = node
                 }
-
             }
         }
     }
@@ -2548,11 +2562,7 @@ const Mod = function(dat) {
             return Math.sqrt(x*x + y*y)
         },
 
-        dist: function(x1, y1, x2, y2) {
-            const dx = x2 - x1;
-            const dy = y2 - y1;
-            return Math.sqrt(dx*dx + dy*dy)
-        },
+        dist: dist,
 
         angleTo: function(x, y) {
             return Math.atan2(y, x)
