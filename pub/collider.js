@@ -433,17 +433,16 @@ const touchFun = function(nodeFactory) {
 
 /**
  * @alias sys.Frame
- * @param initObj
  * @constructor
  */
-const Frame = function(dat) {
+const Frame = function(st) {
     this._ = this
     this._ls = []
     this._dir = {}
-    if (isString(dat)) {
-        this.name = dat 
-    } else if (isObj(dat)) {
-        augment(this, dat)
+    if (isString(st)) {
+        this.name = st
+    } else if (isObj(st)) {
+        augment(this, st)
     }
 }
 Frame.prototype._frame = true
@@ -523,6 +522,9 @@ Frame.prototype.onAttached = function(node, name, parent) {
     if (this.__) this.__.onAttached(node, name, parent)
 }
 
+// TODO split to 2 different methods by intent
+//      now when you want to detach a node that happend to be null,
+//      you end up with the whole frame detached... Not good.
 Frame.prototype.detach = function(node) {
     if (node === undefined) {
         // detaching this
