@@ -1409,7 +1409,7 @@ function extractMeta(script) {
                     prefixSpaces = 0
 
                 } else {
-                    lineChars ++
+                    if (!isSpace(prevc)) lineChars ++
                 }
 
             } else {

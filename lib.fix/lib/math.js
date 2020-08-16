@@ -157,6 +157,7 @@ const math = {
 
     /**
      * square of the distance from a point to a segment
+     *
      * @param {number} px - point x 
      * @param {number} py - point y
      * @param {number} x1 - first segment point x
