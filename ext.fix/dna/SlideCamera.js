@@ -150,7 +150,6 @@ SlideCamera.prototype.lx = function(x) {
 // translate global y to local coordinates
 // @param {number} y
 // @returns {number} - local y
-// @returns {object/2d-vector} - object with local x and y
 SlideCamera.prototype.ly = function(y) {
     return (y-ctx.height/2)/this.scale + this.y
 }
@@ -158,6 +157,7 @@ SlideCamera.prototype.ly = function(y) {
 // translate global x and y to local coordinates
 // @param {number} x
 // @param {number} y
+// @returns {object/2d-vector} - object with local x and y
 SlideCamera.prototype.lxy = function(x, y) {
     return {
         x: (x-ctx.width/2)/this.scale + this.x,
