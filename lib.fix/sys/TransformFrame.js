@@ -1,5 +1,5 @@
+
 // @depends(/sys/InjectLabFrame)
-const InjectLabFrame = sys.InjectLabFrame
 
 const df = {
     x: 0,
@@ -8,13 +8,25 @@ const df = {
     scale: 1,
 }
 
-function TransformNode(st) {
+// an injectable node, capable to translate, scale and rotate the view
+//
+// Note, that regular lx(), ly(), gx() and gy() don't work here
+// and have been disabled due to rotation logic.
+//
+// Use lxy() and gxy() instead.
+//
+function TransformFrame(st) {
     augment(this, df)
     InjectLabFrame.call(this, st)
 }
-TransformNode.prototype = Object.create(InjectLabFrame.prototype)
+TransformFrame.prototype = Object.create(sys.InjectLabFrame.prototype)
 
-TransformNode.prototype.draw = function() {
+// transform and draw all subnodes
+// Following transformations are performed:
+// * translate to -x, -y
+// * scale to 1/scale
+// * rotate to -angle
+TransformFrame.prototype.draw = function() {
     save()
     translate(-this.x, -this.y)
     scale(1/this.scale, 1/this.scale)
@@ -25,15 +37,19 @@ TransformNode.prototype.draw = function() {
     restore()
 }
 
-TransformNode.prototype.lx = false
+TransformFrame.prototype.lx = false
 
-TransformNode.prototype.ly = false
+TransformFrame.prototype.ly = false
 
-TransformNode.prototype.gx = false
+TransformFrame.prototype.gx = false
 
-TransformNode.prototype.gy = false
+TransformFrame.prototype.gy = false
 
-TransformNode.prototype.lxy = function(x, y) {
+// translate x,y to local coordinate system
+// @param {number} x - global x
+// @param {number} y - global y
+// @returns {object/2d-vector} - {x,y} in local coordinates
+TransformFrame.prototype.lxy = function(x, y) {
     const lx = (x - this.x)/this.scale
     const ly = (y - this.y)/this.scale
 
@@ -44,7 +60,11 @@ TransformNode.prototype.lxy = function(x, y) {
     }
 }
 
-TransformNode.prototype.gxy = function(x, y) {
+// translate x,y to parent node coordinate system
+// @param {number} x - local x
+// @param {number} y - local y
+// @returns {object/2d-vector} - {x,y} in parent node coordinates
+TransformFrame.prototype.gxy = function(x, y) {
     return {
         x: (x * cos(this.angle) - y * sin(this.angle))
                 * this.scale + this.x,
@@ -53,7 +73,10 @@ TransformNode.prototype.gxy = function(x, y) {
     }
 }
 
-TransformNode.prototype.labVector = function(v) {
+// calculate a vector translated to the _/lab_ coordinate system
+// @param {object/2d-vector} v - source 2d vector
+// @returns {object/2d-vector} - {x,y} in _/lab_ coordinates
+TransformFrame.prototype.labVector = function(v) {
     const s = this.scale
     return this.__.labVector({
         x: (x * cos(this.angle) - y/s * sin(this.angle)) * s,
