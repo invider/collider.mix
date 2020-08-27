@@ -1,6 +1,8 @@
 const df = {
     x: 0,
     y: 0,
+    w: 0,
+    h: 0,
     iw: 0,
     ih: 0,
     step: 32,
@@ -62,6 +64,12 @@ class Tiles {
     constructor(st) {
         augment(this, df)
         augment(this, st)
+        this.adjust()
+    }
+
+    adjust() {
+        if (!this.w) this.w = this.iw * this.step
+        if (!this.h) this.h = this.ih * this.step
     }
 
     draw() {
