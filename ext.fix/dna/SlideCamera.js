@@ -86,7 +86,7 @@ const SlideCamera = function(st) {
     this.pinOnTarget = false
     this.keepFollowing = false
     this.targetingPrecision = 1
-    this.speed = 1
+    this.speed = 100
     this.zoomOnPlusMinus = false
     this.keys = []
 
