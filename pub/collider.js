@@ -400,10 +400,10 @@ const removeExtension = function(path) {
 // system definitions
 // =======================================================
 const touchFun = function(nodeFactory) {
-    return function(path) {
+    return function(path, st) {
         if (path === undefined || path === '') return this
-        if (path.startsWith('@')) return this.touch(path.substring(1))
-        if (path.startsWith('/')) return this._.touch(path.substring(1))
+        if (path.startsWith('@')) return this.touch(path.substring(1), st)
+        if (path.startsWith('/')) return this._.touch(path.substring(1), st)
         
         const i = path.indexOf('/')
         if (i >= 0) {
@@ -413,10 +413,10 @@ const touchFun = function(nodeFactory) {
             let nextNode = this[nextName]
             if (!nextNode) {
                 // no existing node, provide a new one
-                return this.attach(nodeFactory(nextName, this)).touch(nextPath)
+                return this.attach(nodeFactory(nextName, this)).touch(nextPath, st)
             } else {
                 if (isFun(nextNode.touch)) {
-                    return nextNode.touch(nextPath)
+                    return nextNode.touch(nextPath, st)
                 } else {
                     // looks like next node is not a frame
                     throw new Error("can't touch - the node is not a frame! [" + path + "]")
@@ -428,9 +428,14 @@ const touchFun = function(nodeFactory) {
             // TODO should we check that the final type is frame or object?
             // TODO should we replace it if not etc...
             // we got the name of the final frame in the path
-            if (this[path]) return this[path]
+            if (this[path]) {
+                if (st) augment(this[path], st)
+                return this[path]
+            }
             // node seems to be missing - create a new one
-            return this.attach(nodeFactory(path, this))
+            const node = nodeFactory(path, this)
+            if (st) augment(node, st)
+            return this.attach(node)
         }
     }
 }
