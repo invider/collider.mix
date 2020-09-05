@@ -3022,10 +3022,13 @@ Mod.prototype.start = function() {
             }
         })
 
-        // run in-lab setup function
+        // run in-lab setup functions
         if (isFun(this.lab.setup)) {
             this.lab.setup()
         }
+        this.lab.applyAll((node) => {
+            if (isFun(node.setup)) node.setup()
+        })
 
         this.status = 'started'
     }
