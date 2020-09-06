@@ -224,6 +224,7 @@ function kill(e, st) {
         e.__.detach(e)
     } else {
         _scene.log.warn("can't find kill function for " + e)
+        _scene.log.dump(e)
     }
 }
 
