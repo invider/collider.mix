@@ -189,6 +189,24 @@ const math = {
         return Math.sqrt(this.distanceToSegmentSq(px, py, x1, y1, x2, y2))
     },
 
+    /**
+     * normal vector to a line
+     * @param {number} x1 - first point x
+     * @param {number} y1 - first point y
+     * @param {number} x2 - second point x
+     * @param {number} y2 - second point y
+     * @returns {array/2d-vector} - normal vector
+     */
+    normalVector: function(x1, y1, x2, y2) {
+        const dx = x2 - x1
+        const dy = y2 - y1
+        const len = Math.sqrt(dy*dy + dx*dx)
+        return [
+            -dy / len, // normal x component
+            dx / len,  // normal y component
+        ]
+    },
+
     // angle of direction vector from *[x1, y1]* to *[x2, y2]* in relation to OX axis
     // @param {number} x1 - first vector x coordinate
     // @param {number} y1 - first vector y coordinate
