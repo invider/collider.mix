@@ -65,12 +65,23 @@ Container.prototype.onClick = function(x, y, e) {
         if (!g || g.hidden || g.disabled) continue
 
         if (pending && (!g._sizable
-                || (x >= g.x
-                    && x <= g.x + g.w
-                    && y >= g.y
-                    && y <= g.y + g.h))) {
-
-            // map to local coordinates
+                || (g.within && g.within(x, y))
+                || (!g.within && (
+                    (g._circular
+                        && dist(g.x, g.y, x, y) <= g.r)
+                    || (g._centered
+                        && x >= g.x - g.w/2
+                        && x <= g.x + g.w/2
+                        && y >= g.y - g.h/2
+                        && y <= g.y + g.w/2)
+                    || (x >= g.x
+                        && x <= g.x + g.w
+                        && y >= g.y
+                        && y <= g.y + g.h)
+                    )
+                )
+        )) {
+            // map to node-local coordinates
             let lx, ly
             if (g.lx) {
                 lx = g.lx(x)
@@ -106,10 +117,22 @@ Container.prototype.onDblClick = function(x, y, e) {
         if (!g || g.hidden || g.disabled) continue
 
         if (pending && (!g._sizable
-                || (x >= g.x
-                    && x <= g.x + g.w
-                    && y >= g.y
-                    && y <= g.y + g.h))) {
+                || (g.within && g.within(x, y))
+                || (!g.within && (
+                    (g._circular
+                        && dist(g.x, g.y, x, y) <= g.r)
+                    || (g._centered
+                        && x >= g.x - g.w/2
+                        && x <= g.x + g.w/2
+                        && y >= g.y - g.h/2
+                        && y <= g.y + g.w/2)
+                    || (x >= g.x
+                        && x <= g.x + g.w
+                        && y >= g.y
+                        && y <= g.y + g.h)
+                    )
+                )
+        )) {
 
             // map to local coordinates
             let lx, ly
@@ -144,11 +167,22 @@ Container.prototype.onMouseDown = function(x, y, b, e) {
         if (!g || g.hidden || g.disabled) continue
 
         if (pending && (!g._sizable
-                || (x >= g.x
-                    && x <= g.x + g.w
-                    && y >= g.y
-                    && y <= g.y + g.h))) {
-
+                || (g.within && g.within(x, y))
+                || (!g.within && (
+                    (g._circular
+                        && dist(g.x, g.y, x, y) <= g.r)
+                    || (g._centered
+                        && x >= g.x - g.w/2
+                        && x <= g.x + g.w/2
+                        && y >= g.y - g.h/2
+                        && y <= g.y + g.w/2)
+                    || (x >= g.x
+                        && x <= g.x + g.w
+                        && y >= g.y
+                        && y <= g.y + g.h)
+                    )
+                )
+        )) {
             // map to local coordinates
             let lx, ly
             if (g.lx) {
@@ -191,10 +225,23 @@ Container.prototype.onMouseUp = function(x, y, b, e) {
 
         if (sys.isFun(g.onMouseUp)) {
 
-            if (!g._captured && (!g._sizable
-                    || (x >= g.x && x <= g.x + g.w
-                            && y >= g.y && y <= g.y + g.h))) {
-
+            if (!g._sizable
+                    || (g.within && g.within(x, y))
+                    || (!g.within && (
+                        (g._circular
+                            && dist(g.x, g.y, x, y) <= g.r)
+                        || (g._centered
+                            && x >= g.x - g.w/2
+                            && x <= g.x + g.w/2
+                            && y >= g.y - g.h/2
+                            && y <= g.y + g.w/2)
+                        || (x >= g.x
+                            && x <= g.x + g.w
+                            && y >= g.y
+                            && y <= g.y + g.h)
+                        )
+                    )
+            ) {
                 // map to local coordinates
                 let lx, ly
                 if (g.lx) {
@@ -223,10 +270,23 @@ Container.prototype.onMouseMove = function(x, y, e) {
         if (!g || g.hidden || g.disabled) return
 
         if (sys.isFun(g.onMouseMove)) {
-            if (!g._captured && (!g._sizable
-                    || (x >= g.x && x <= g.x + g.w
-                            && y >= g.y && y <= g.y + g.h))) {
-
+            if (!g._sizable
+                    || (g.within && g.within(x, y))
+                    || (!g.within && (
+                        (g._circular
+                            && dist(g.x, g.y, x, y) <= g.r)
+                        || (g._centered
+                            && x >= g.x - g.w/2
+                            && x <= g.x + g.w/2
+                            && y >= g.y - g.h/2
+                            && y <= g.y + g.w/2)
+                        || (x >= g.x
+                            && x <= g.x + g.w
+                            && y >= g.y
+                            && y <= g.y + g.h)
+                        )
+                    )
+            ) {
                 // map to local coordinates
                 let lx, ly
                 if (g.lx) {
@@ -262,9 +322,23 @@ Container.prototype.onMouseWheel = function(d, x, y, e) {
         if (!g || g.hidden || g.disabled) return
         if (sys.isFun(g.onMouseWheel)) {
 
-            if (!g._sizable || (x >= g.x && x <= g.x + g.w
-                    && y >= g.y && y <= g.y + g.h)) {
-
+            if (!g._sizable
+                    || (g.within && g.within(x, y))
+                    || (!g.within && (
+                        (g._circular
+                            && dist(g.x, g.y, x, y) <= g.r)
+                        || (g._centered
+                            && x >= g.x - g.w/2
+                            && x <= g.x + g.w/2
+                            && y >= g.y - g.h/2
+                            && y <= g.y + g.w/2)
+                        || (x >= g.x
+                            && x <= g.x + g.w
+                            && y >= g.y
+                            && y <= g.y + g.h)
+                        )
+                    )
+            ) {
                 // map to local coordinates
                 let lx, ly
                 if (g.lx) {
@@ -295,9 +369,22 @@ Container.prototype.onTouchStart = function(x, y, e) {
         if (!g || g.hidden || g.disabled) continue
 
         if (focusPending && (!g._sizable
-                || (x >= g.x && x <= g.x + g.w
-                    && y >= g.y && y <= g.y + g.h))) {
-
+                || (g.within && g.within(x, y))
+                || (!g.within && (
+                    (g._circular
+                        && dist(g.x, g.y, x, y) <= g.r)
+                    || (g._centered
+                        && x >= g.x - g.w/2
+                        && x <= g.x + g.w/2
+                        && y >= g.y - g.h/2
+                        && y <= g.y + g.w/2)
+                    || (x >= g.x
+                        && x <= g.x + g.w
+                        && y >= g.y
+                        && y <= g.y + g.h)
+                    )
+                )
+        )) {
             // map to local coordinates
             let lx, ly
             if (g.lx) {
