@@ -2584,6 +2584,10 @@ const Mod = function(dat) {
 
         kill: kill,
 
+        gtrap: function(name, st) {
+            $.trap(name, st)
+        },
+
         sfx: function(src, vol, pan) {
             if (!pan) pan = 0
             if (!vol) vol = 1
