@@ -938,7 +938,7 @@ LabFrame.prototype.promoteNode = function(node) {
         node._positional = (isNumber(node.x) && isNumber(node.y))
         node._sizable = (node._positional && isNumber(node.w) && isNumber(node.h))
         node._circular = (node._positional && isNumber(node.r))
-        node._centered = true
+        if (node._centered !== false) node._centered = true
 
         if (isNumber(node.Z)) this.orderZ()
     }
@@ -1136,7 +1136,8 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
                 if (val) last = val
             }
         } else if (node._sizable) {
-            if ((node._centered && node.circular
+            if ((node.within && node.within(lx, ly))
+                    || (node._centered && node.circular
                         && dist(lx, ly, node.x, node.y) <= node.r)
                     || (node._centered
                         && lx >= node.x - node.w/2
