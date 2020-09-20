@@ -41,6 +41,12 @@ Container.prototype.adjust = function() {
     }
 }
 
+// nodes are not centered in hud by default
+Container.prototype.promoteNode = function(node) {
+    if (node._centered === undefined) node._centered = false
+    sys.LabFrame.prototype.promoteNode.call(this, node)
+}
+
 Container.prototype.onAttached = function(node) {
     sys.LabFrame.prototype.onAttached.call(this, node)
     this.adjust()
