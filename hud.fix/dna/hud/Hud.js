@@ -52,7 +52,7 @@ let Hud = function(dat) {
 
         const x = hud.lx(e.pageX)
         const y = hud.ly(e.pageY)
-        hud.onMouseDown(x, y, e.button, e)
+        hud.onMouseDown(x, y, e.buttons, e)
     })
 
     sys.after(trap, 'mouseUp', function(e) {
@@ -61,7 +61,7 @@ let Hud = function(dat) {
 
         const x = hud.lx(e.pageX)
         const y = hud.ly(e.pageY)
-        hud.onMouseUp(x, y, e.button, e)
+        hud.onMouseUp(x, y, e.buttons, e)
     })
 
 
