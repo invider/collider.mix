@@ -214,7 +214,7 @@ const math = {
     // @param {number} y2 - second vector y coordinate
     // @returns {number/radians} - an angle of direction vector from [x1:y1] to [x2:y2]
     bearing: function(x1, y1, x2, y2) {
-        return Math.atan2(x2 - x1, y2 - y1)
+        return Math.atan2(y2 - y1, x2 - x1)
     },
 
     // normalize an angle to [0..2**PI] range

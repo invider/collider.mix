@@ -2577,7 +2577,7 @@ const Mod = function(dat) {
 
         // angle from source to target vectors
         bearing: function(sx, sy, tx, ty) {
-            return Math.atan2(tx - sx, ty - sy)
+            return Math.atan2(ty - sy, tx - sx)
         },
 
         $$: $$,
