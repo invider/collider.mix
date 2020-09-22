@@ -1,20 +1,5 @@
 // mutable array-based 2d vector operations
 
-// set additional functions on node attach
-// to avoid global scope name collisions
-function init() {
-
-    // scalar multiplication of 2d vector array
-    // @param {Array/vector2d} v - source 2d vector
-    // @returns {Array/vector2d} - scaled 2d vector array
-    this.scale = function scale(v1, val) {
-        return [ v1[0]*val, v1[1]*val ]
-    }
-    this.bearing = function bearing(s, t) {
-        return Math.atan2(s[0] - t[0], s[1] - t[1])
-    }
-}
-
 // construct a 2d vector from x and y values
 // @param {number} x
 // @param {number} y
@@ -115,4 +100,34 @@ function angle(v) {
 
 function dump(v) {
     return ('[' + round(v[0]) + ':' + round(v[1]) + ']')
+}
+
+module.exports = {
+
+    // scalar multiplication of 2d vector array
+    // @param {Array/vector2d} v - source 2d vector
+    // @returns {Array/vector2d} - scaled 2d vector array
+    scale: function(v1, val) {
+        return [ v1[0]*val, v1[1]*val ]
+    },
+    bearing: function(s, t) {
+        return Math.atan2(s[0] - t[0], s[1] - t[1])
+    },
+
+    create,
+    clone,
+    unit,
+    normal,
+    inverse,
+    add,
+    addxy,
+    sub,
+    subxy,
+    dot,
+    mul,
+    mulxy,
+    length,
+    length2,
+    angle,
+    dump,
 }
