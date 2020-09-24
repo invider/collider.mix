@@ -2,7 +2,7 @@
 'use strict'
 
 // LCG random generator implementation
-function LCGSource () {
+function LCGSourceFactory () {
     let _rnd_m = 0xFFFFFFFF
     let _rnd_a = 1664525
     let _rnd_c = 1013904223
@@ -30,10 +30,21 @@ function LCGSource () {
     }
 }
 
-function createRandomGenerator(source) {
-    source = source || LCGSource
+/*
+ * create a source of pseudorandom numbers
+ *
+ * Uses LCGSourceFactory as a default.
+ *
+ * Create the source, set custom seed with setSeed(seed) and use provided functions
+ * to get pseudorandom sequence of numbers ( rndf(), rnd(n), rndi(N), rnds(), rnde(), shuffle() ).
+ *
+ * @param {function/sourceFactory} source - an optional factory function for pseudorandom number source
+ * @returns {object/pseudorandomSource} - a source of pseudorandom numbers
+ */
+function createRandomGenerator(factory) {
+    factory = factory || LCGSourceFactory
 
-    const generator = source()
+    const generator = factory()
     const rndf = generator.rndf
 
     function rnd(topLimit) {
