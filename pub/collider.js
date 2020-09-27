@@ -2584,6 +2584,10 @@ const Mod = function(dat) {
 
         kill: kill,
 
+        defer: function(fn) {
+            setTimeout(fn, 0)
+        },
+
         gtrap: function(name, st) {
             $.trap(name, st)
         },
@@ -4012,7 +4016,7 @@ const bootstrap = function() {
     let canvas = document.getElementById(canvasName)
     if (canvas == null) {
         // precreated canvas is not found, so create one
-        canvas = document.createElement(canvasName)
+        canvas = document.createElement('canvas')
         canvas.id = canvasName
         canvas.style.zIndex   = 1
         canvas.style.border   = "0px"
@@ -4020,7 +4024,13 @@ const bootstrap = function() {
         canvas.style.padding = "0px"
         canvas.style.position = "absolute"
         canvas.style.display = "block"
-        document.body.appendChild(canvas)
+
+        // place canvas in a container div
+        const container = document.createElement('div')
+        container.id = 'container'
+        container.appendChild(canvas)
+
+        document.body.appendChild(container)
         
         // style the body
         document.body.style.margin = "0"
