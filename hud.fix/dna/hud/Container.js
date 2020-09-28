@@ -33,6 +33,8 @@ Container.prototype.style = function(path, source) {
 
 Container.prototype.layout= function() {}
 
+// called when container needs to update it's position and size
+// Redefine this function for component to react on layout changes.
 Container.prototype.adjust = function() {
     this.layout()
     for (let i = this._ls.length-1; i >= 0; i--) {
@@ -47,11 +49,15 @@ Container.prototype.promoteNode = function(node) {
     sys.LabFrame.prototype.promoteNode.call(this, node)
 }
 
+// a service call to handle a node attached to the container.
+// Calls this.adjust() to rearrange layout with new component.
 Container.prototype.onAttached = function(node) {
     sys.LabFrame.prototype.onAttached.call(this, node)
     this.adjust()
 }
 
+// move a child node on top
+// @param {number} i - a node index
 Container.prototype.moveOnTop = function(i) {
     if (i < this._ls.length - 1) {
         const g = this._ls[i]
@@ -60,6 +66,10 @@ Container.prototype.moveOnTop = function(i) {
     }
 }
 
+// a service call to handle mouse click
+// @param {number} x
+// @param {number} y
+// @param {object} e - an original mouse event object
 Container.prototype.onClick = function(x, y, e) {
     //if (x < 0 || y < 0 || x > this.w || y > this.h) return
     //log.debug('click on [' + this.name + '] @' + x + 'x' + y)
@@ -114,6 +124,10 @@ Container.prototype.onClick = function(x, y, e) {
     return !pending
 }
 
+// a service call to handle mouse click
+// @param {number} x
+// @param {number} y
+// @param {object} e - an original mouse event object
 Container.prototype.onDblClick = function(x, y, e) {
     let pending = true
 
@@ -163,6 +177,12 @@ Container.prototype.onDblClick = function(x, y, e) {
     return !pending
 }
 
+// handles mouse down event
+// @param {number} x
+// @param {number} y
+// @param {number} b - buttons mask form the mouse event
+// @param {object} e - original mouse event
+// @returns {boolean} - true if focus is captured
 Container.prototype.onMouseDown = function(x, y, b, e) {
     //if (x < 0 || y < 0 || x > this.w || y > this.h) return
     //log.debug('mouse down on [' + this.name + '] @' + x + 'x' + y)
@@ -222,6 +242,12 @@ Container.prototype.onMouseDown = function(x, y, b, e) {
     return !pending
 }
 
+// handle mouse up event
+// @param {number} x
+// @param {number} y
+// @param {number} b - buttons mask form the mouse event
+// @param {object} e - original mouse event
+// @returns {boolean} - true if focus is captured
 Container.prototype.onMouseUp = function(x, y, b, e) {
     //if (x < 0 || y < 0 || x > this.w || y > this.h) return
     //log.debug('mouse up on [' + this.name + '] @' + x + 'x' + y)
@@ -268,6 +294,10 @@ Container.prototype.onMouseUp = function(x, y, b, e) {
     }
 }
 
+// handle mouse move event
+// @param {number} x
+// @param {number} y
+// @param {object} e - original mouse event
 Container.prototype.onMouseMove = function(x, y, e) {
     //if (x < 0 || y < 0 || x > this.w || y > this.h) return
     //log.debug('mouse move on [' + this.name + '] @' + x + 'x' + y)
@@ -319,6 +349,11 @@ Container.prototype.onMouseMove = function(x, y, e) {
     }
 }
 
+// a service call to handle mouse wheel scroll
+// @param {number} d - scroll delta
+// @param {number} x
+// @param {number} y
+// @param {object} e - an original mouse event object
 Container.prototype.onMouseWheel = function(d, x, y, e) {
     //if (x < 0 || y < 0 || x > this.w || y > this.h) return
     //log.debug('mouse move on [' + this.name + '] @' + x + 'x' + y)
@@ -365,6 +400,10 @@ Container.prototype.onMouseWheel = function(d, x, y, e) {
     }
 }
 
+// a service call to handle touch start events 
+// @param {number} x
+// @param {number} y
+// @param {object} e - an original touch event object
 Container.prototype.onTouchStart = function(x, y, e) {
     if (x < 0 || y < 0 || x > this.w || y > this.h) return
     //log.debug('touch down on [' + this.name + '] @' + x + 'x' + y)
@@ -440,6 +479,7 @@ Container.prototype.onTouchEnd = function(e) {
 }
 */
 
+// a service call to handle focus release
 Container.prototype.onReleasedFocus = function() {
     this._ls.forEach(g => {
         if (sys.isFun(g.onFocus)) {
@@ -449,41 +489,59 @@ Container.prototype.onReleasedFocus = function() {
             g.onReleasedFocus()
         }
     })
-
 }
 
+// a service call to propagate a gadget mouse capture
+// @param {object} gadget
 Container.prototype.captureMouse = function(gadget) {
     this.__.captureMouse(gadget)
 }
 
+// a service call to propagate a gadget mouse release
+// @param {object} gadget
 Container.prototype.releaseMouse = function(gadget) {
     this.__.releaseMouse(gadget)
 }
 
+// a service call to propagate a gadget touch capture
+// @param {object} gadget
 Container.prototype.captureTouch = function(gadget) {
     this.__.captureTouch(gadget)
 }
 
+// a service call to propagate a gadget touch release
+// @param {object} gadget
 Container.prototype.releaseTouch = function(gadget) {
     this.__.releaseTouch(gadget)
 }
 
+// a service call to propagate a gadget focus capture
+// @param {object} gadget
 Container.prototype.captureFocus = function(gadget) {
     this.__.captureFocus(gadget)
 }
 
+// a service call to propagate a gadget focus release
+// @param {object} gadget
 Container.prototype.releaseFocus = function(gadget) {
     this.__.releaseFocus(gadget)
 }
 
+// on focus handler
+// It is responsible for raising this.focus flag
+// and can contain any custom actions related to focus capture.
 Container.prototype.onFocus = function() {
     this.focus = true
 }
 
+// on loosing focus handler
+// It is responsible for reseting this.focus flag
+// and can contain any custom actions related to loosing focus.
 Container.prototype.onUnfocus = function() {
     this.focus = false
 }
 
+// draw container background layer
 Container.prototype.drawBackground = function() {
     if (this.transparent) return
 
@@ -499,6 +557,7 @@ Container.prototype.drawBackground = function() {
     }
 }
 
+// draw container child components
 Container.prototype.drawContent = function() {
     //for (let i = this._ls.length - 1; i >= 0; i--) {
     for (let i = 0; i < this._ls.length; i++) {
@@ -509,8 +568,12 @@ Container.prototype.drawContent = function() {
     }
 }
 
+// draw container foreground
 Container.prototype.drawForeground = function() {}
 
+// draw container
+// Performs necessary translations and clipping
+// and draws background, content and foreground.
 Container.prototype.draw = function() {
     if (this.hidden) return
     ctx.save()
