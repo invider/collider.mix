@@ -1265,7 +1265,7 @@ CueFrame.prototype.resume = function() {
 // =============================================================
 
 // JavaScript parser to extract metadata
-function extractMeta(script) {
+function extractMeta(script, requirements) {
     const meta = {}
 
     let pos = 0
@@ -1638,6 +1638,12 @@ function extractMeta(script) {
         return params
     }
 
+    function expectString() {
+        const next = nextToken()
+        if (next.t === STRING) return next.v
+        return null
+    }
+
     function parse() {
         let token = nextToken()
         let lastToken
@@ -1695,6 +1701,15 @@ function extractMeta(script) {
                     // <name>: [...]
                     defMeta('array', lastName, lastComment)
                     lastName = undefined
+
+                } else if (lastToken.t === ID
+                        && token.t === SPECIAL
+                        && token.v === '(') {
+                    // fn(
+                    if (lastToken.v === 'require') {
+                        const dependency = expectString()
+                        if (dependency) requirements.push(dependency)
+                    }
 
                 } else if (token.t === ID
                         && lastName) {
@@ -1853,10 +1868,23 @@ function evalJS(script, _) {
     script.def = ''
 
     let meta
+    const requirements = []
     if (_scene.env.config.debug) {
-        meta = extractMeta(script)
+        meta = extractMeta(script, requirements)
     }
     const code = generateSource(script, __)
+    if (requirements.length > 0) {
+        // determine if all requirements are satisfied
+        let missing
+        requirements.forEach(req => {
+            if (!_.selectOne(req)) missing = req
+        })
+        if (missing) {
+            _.log.sys('[eval]', `missing dependency [${missing}], rescheduling [${script.path}]`)
+            _.res._schedule(-1, script)
+            return 
+        }
+    }
 
     /*
     // TODO is there a better way to handle evaluation errors?
@@ -2652,10 +2680,23 @@ const Mod = function(dat) {
         _execList: [],
 
         _schedule: function(batch, script) {
+            if (batch < 0) {
+                // determine the batch
+                const lastBatch = this._execList[this._execList.length - 1]
+                if (lastBatch.indexOf(script) >= 0) {
+                    // create a new batch for this one
+                    batch = this._execList.length
+                } else {
+                    // schedule in the last batch
+                    batch = this._execList.length - 1
+                }
+            }
+
             if (!this._execList[batch]) {
                 this._execList[batch] = []
             }
             this._execList[batch].push(script)
+            return batch
         },
 
         _exec: function() {
