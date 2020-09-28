@@ -691,7 +691,16 @@ Frame.prototype.map = function(fn) {
     return res
 }
 
-Frame.prototype.flatMap = function(fn) {
+Frame.prototype.flatMap = function(fn, acc) {
+    const res = acc || []
+
+    for (let i = 0, l = this._ls.length; i < l; i++) {
+        const v = this._ls[i]
+        res.push( fn(v) )
+        if (v.flatMap) v.flatMap(fn, res)
+    }
+
+    return res
 }
 
 Frame.prototype.filter = function(fn) {
@@ -2607,7 +2616,7 @@ const Mod = function(dat) {
         },
 
         gtrap: function(name, st) {
-            $.trap(name, st)
+            return $.trap(name, st)
         },
 
         sfx: function(src, vol, pan) {
