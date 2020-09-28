@@ -1797,11 +1797,11 @@ function generateSource(script, __) {
     */
 
     // provide lexical scope for mod context and scope object for this. definitions
-    return '(function(_, ctx, _$, module, require, sys, lib, res, dna, env, lab, mod, pub, log, cue, job, trap) {'
+    return '(function(_, ctx, _$, module, sys, lib, res, dna, env, lab, mod, pub, log, cue, job, trap) {'
         + def 
         + script.src
         + script.def
-    + '}).call(scope, __, __.ctx, __._$, module, require, __.sys, __.lib, __.res, __.dna, __.env, __.lab, __.mod, __.pub, __.log, __.cue, __.job, __.trap)'
+    + '}).call(scope, __, __.ctx, __._$, module, __.sys, __.lib, __.res, __.dna, __.env, __.lab, __.mod, __.pub, __.log, __.cue, __.job, __.trap)'
     + '\n//# sourceURL=' + script.origin
 }
 
@@ -1853,18 +1853,6 @@ function evalJS(script, _) {
         __ = parent._
     }
 
-    function require(path) {
-        __.log.sys('getting: ' + path, 'require')
-        const rq = __.select(path)
-        if (rq && rq.length > 0) {
-            __.log.dump(rq)
-            if (rq.length === 1) return rq[0]
-            else return rq
-        } else {
-            throw 'no requirement found: [' + path + ']'
-        }
-    }
-
     script.def = ''
 
     let meta
@@ -1872,7 +1860,7 @@ function evalJS(script, _) {
     if (_scene.env.config.debug) {
         meta = extractMeta(script, requirements)
     }
-    const code = generateSource(script, __)
+
     if (requirements.length > 0) {
         // determine if all requirements are satisfied
         let missing
@@ -1885,6 +1873,8 @@ function evalJS(script, _) {
             return 
         }
     }
+
+    const code = generateSource(script, __)
 
     /*
     // TODO is there a better way to handle evaluation errors?
@@ -2663,6 +2653,17 @@ const Mod = function(dat) {
 
         cls: function() {
             return _.sys.cls.apply(_.sys, arguments)
+        },
+        require: function(path) {
+            _.log.sys('[require]', path)
+            const rq = _.select(path)
+            if (rq && rq.length > 0) {
+                _.log.dump(rq)
+                if (rq.length === 1) return rq[0]
+                else return rq
+            } else {
+                throw 'no requirement found: [' + path + ']'
+            }
         },
     }
     this.ctx = false
