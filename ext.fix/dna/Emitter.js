@@ -1,6 +1,40 @@
-//
-// particle emitter constructor
-//
+/*
+particle emitter constructor
+Create an emitter by providing a following structure to the constuctor:
+     target.spawn(dna.Emitter, {
+            x: x,  // emitter x position
+            y: y,  // emitter y position
+            color: color,   // particles color
+            lifespan: 0.05, // emitter life span (default: 1)
+            force: 1000,    // emitter force in particles/sec (default: 200)
+            radius: 0,      // particle spread radius
+            size: 1,        // particle size
+            speed: 10,      // particle speed
+            vspeed: 0,      // speed variety (a random shift)
+            angle: 0,          // base angle for particle direction
+            spread: 2*Math.PI, // particle spread angle - TAU for a full sicrle
+            minLifespan: 0.4,  // minimum particle lifespan
+            vLifespan: 0.2,    // particles lifespan variety
+            drawParticle: function() {
+                fill(this.color)
+                rect(floor(this.x), floor(this.y), this.r, this.r)
+            }
+        })
+Most of the provided configuration options can be skipped.
+
+The emitter is left-destroyed when it's lifespan is over and all particles are dead.
+
+
+=== Examples
+
+Following are some real-life examples of particles use:
+<li> [Explosions in Enceladus Dockyards](https://github.com/invider/enceladus-dockyards.mix/blob/master/boy-buf.mod/lib/vfx.js)
+<li> [Monster hits and magic in Master of Ritual](https://github.com/invider/master-of-ritual/blob/master/mod/dna/mob/Master.js)
+<li> [Teleports in station keeping](https://github.com/invider/station-keeping.mod/blob/master/lib/vfx.js)
+<li> [Cyber Sneeze](https://github.com/invider/cyber-sneeze.mod/blob/master/dna/Bot.js)
+*/
+
+
 let FADEOUT = 0.3 // default particle fadeout value
 
 let Particle = function(dat) {
