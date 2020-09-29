@@ -79,9 +79,12 @@ var Emitter = function(init) {
     this.particles = []
 }
 
+// executed when emitter is attached
 Emitter.prototype.init = function(parent, scene) {
 }
 
+// called when emitter lifespan is out
+// (but there are still can be particles flying out)
 Emitter.prototype.onExhausted = function() {
 }
 
@@ -130,6 +133,7 @@ Emitter.prototype.createParticle = function() {
     })
 }
 
+// find a free slot in the pool and spawn a particle
 Emitter.prototype.spawn = function() {
     var p = this.createParticle()
     if (!p.draw) p.draw = this.drawParticle
@@ -147,6 +151,7 @@ Emitter.prototype.spawn = function() {
     if (!placed) this.particles.push(p)
 }
 
+// emit all particles for current frame
 Emitter.prototype.emit = function(dt) {
     // emitting
     this.potential += dt
@@ -156,6 +161,7 @@ Emitter.prototype.emit = function(dt) {
     }
 }
 
+// evolve emitter
 Emitter.prototype.evo = function(dt) {
     if (this.dead) this.__.detach(this)
 
@@ -187,6 +193,7 @@ Emitter.prototype.evo = function(dt) {
     }
 }
 
+// draw all particles
 Emitter.prototype.draw = function() {
     ctx.save()
     ctx.translate(this.x, this.y)
