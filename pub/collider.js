@@ -75,12 +75,6 @@ const isNumber = function(s) {
 const isArray = function(a) {
     return Array.isArray(a)
 }
-// TODO deprecate - has no use whatsoever
-const isMutable = function(obj) {
-    return ((typeof obj === 'object')
-                || (typeof obj === 'function'))
-            && (!obj._locked);
-}
 const isFrame = function(f) {
     return !!(f && f._frame)
 }
@@ -3197,8 +3191,6 @@ Mod.prototype.draw = function() {
 }
 
 Mod.prototype.patch = function(target, path, node) {
-    if (!isMutable(target)) throw { src: this, msg: "can't attach to imutable node @" + path }
-
     if (path.startsWith('@')) path = path.substring(1)
     if (path.startsWith('/')) path = path.substring(1)
 
@@ -3925,7 +3917,6 @@ function constructScene(target) {
     mod.sys.attach(isNumber)
     mod.sys.attach(isString)
     mod.sys.attach(isArray)
-    mod.sys.attach(isMutable)
     mod.sys.attach(isFrame)
     mod.sys.attach(isEmpty)
 
