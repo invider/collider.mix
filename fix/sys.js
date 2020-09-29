@@ -203,6 +203,15 @@ module.exports = {
         return '?'
     },
 
+    // trigger an event and call all handlers in lab/
+    on: function(name, st) {
+        name = 'on' + name.substring(0, 1).toUpperCase() + name.substring(1)
+        lab.applyAll((node) => {
+            if (isFun(node[name])) {
+                node[name](st)
+            }
+        })
+    },
 
     textSurface: false,
 

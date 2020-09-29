@@ -2609,6 +2609,10 @@ const Mod = function(dat) {
             setTimeout(fn, 0)
         },
 
+        on: function(name, st) {
+            return _.sys.on.apply(_.sys, arguments)
+        },
+
         gtrap: function(name, st) {
             return $.trap(name, st)
         },
