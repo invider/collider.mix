@@ -3256,7 +3256,13 @@ Mod.prototype.patch = function(target, path, node) {
                 }
                 target[path][index] = node
             } else {
-                if (isObj(target[path])) {
+                if (isFrame(target[path])) {
+                    const t = target[path]
+                    Object.entries(node).forEach((e) => {
+                        if (e[0].startsWith('_')) t[e] = e[1]
+                        else t.attach(e[1], e[0])
+                    })
+                } if (isObj(target[path])) {
                     // TODO replace or augment? how to decide?
                     //      there might be different patch modes?
                     augment(target[path], node)
