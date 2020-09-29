@@ -2,24 +2,27 @@
  * core system functions
  * @alias sys
  */
-module.exports = {
+const system = {
 
     // copy source nodes to the target destination
+    // @param {string} source - a selector for nodes to copy
+    // @param {string|object/Frame} target - a copy destination
+    // @returns {number} - a number of copied nodes
     cp: function(source, target) {
         _.log.sys('copying ' + source + ' -> ' + target)
 
         let list = this._.select(source)
-        if (list.length === 0) return false
+        if (list.length === 0) return 0
         let dest 
         if (this._.sys.isString(target)) {
             dest = this._.select(target)
-            if (dest.length !== 1) return false // can't copy if no node or more than one found
+            if (dest.length !== 1) return 0 // can't copy if no node or more than one found
             dest = dest[0]
         } else {
             dest = target
         }
 
-        if (!this._.sys.isFrame(dest)) return false
+        if (!this._.sys.isFrame(dest)) return 0
         list.forEach( function(e) {
             dest.attach(e)
         })
@@ -35,6 +38,9 @@ module.exports = {
     */
 
     // attach an element to the specified target
+    // @param {object} target - a node for attachment
+    // @param {object} element - a child element
+    // @returns {object} - the attached node
     attachNode: function(target, element) {
         if (isFrame(target)) {
             target.attach(element)
@@ -49,6 +55,10 @@ module.exports = {
         return element
     },
 
+    // construct an object, most often used by _/sys/spawn()_
+    // @param {object|string} source
+    // @param {object} spawnData - optional init data
+    // @param {string} sbase - optinal dna lookup base
     construct: function(source, spawnData, sbase) {
         if (sbase === undefined) sbase = 'dna/'
 
@@ -106,6 +116,7 @@ module.exports = {
         return res
     },
 
+    // cache used for hot-reload logic
     spawnCache: {
         cache: [],
         push: function(descr) {
@@ -123,6 +134,17 @@ module.exports = {
     },
 
     // spawn an entity with provided constructor data
+    // @param {object|string} source
+    // @param {object} spawnData - optional init data
+    // @param {object|string} target - target to attach to
+    // @param {string} sbase - optinal dna lookup base
+    // @param {string} tbase - optinal target lookup base
+    //
+    // Usually you want to run a spawn function directly from
+    // the _/lab.spawn()_ function or similar functions on subnodes.
+    // It is more simple and straightforward.
+    // And it runs /sys/spawn() function under the hood.
+    //
     spawn: function(source, spawnData, target, sbase, tbase) {
         if (tbase === undefined) tbase = 'lab/'
 
@@ -155,6 +177,10 @@ module.exports = {
     // clone the object and augment it with metadata
     //
     // TODO maybe work on tree instead of generic?
+    //
+    // @param {object} obj
+    // @param {object} meta
+    // @return {object} - the cloned object
     clone: function(obj, meta) {
         if (!this.isObj(obj)) return
         if (this.isFun(obj.clone)) return obj.clone(meta)
@@ -176,14 +202,20 @@ module.exports = {
     },
 
     // extend a child object from the parent prototype
+    // @param {object} child
+    // @param {object} parent
+    // @returns {object} - returns the extended child
     extend: function(child, parent){
         child.prototype = Object.create(parent.prototype);
         child.prototype.constructor = child;
         child.prototype.__super__ = parent
         child.prototype.__superProto__ = parent.prototype
+        return child
     },
 
     // find absolute path of the node
+    // @param {object} node
+    // @returns {string} - absolute path
     path: function(node) {
         if (!node || !this.isObj(node) || !this.isObj(node.__)) return ''
         if (node.__.name === '/') return this.getName(node)
@@ -196,6 +228,8 @@ module.exports = {
     // Otherwise returns an index in the parent _ls (???)
     // TODO maybe try to locate in _dir first?
     //
+    // @param {object} node
+    // @returns {string} - node's name or '?' if unable to determine
     getName: function(node) {
         if (!node || !this.isObj(node)) return '?'
         if (this.isString(node.name)) return node.name
@@ -204,6 +238,7 @@ module.exports = {
     },
 
     // trigger an event and call all handlers in lab/
+    // Usually called from the global on() function
     on: function(name, st) {
         name = 'on' + name.substring(0, 1).toUpperCase() + name.substring(1)
         lab.applyAll((node) => {
@@ -215,6 +250,7 @@ module.exports = {
 
     textSurface: false,
 
+    // a service function used by print()/input() to create a text surface
     createTextSurface: function() {
         const _ = this.__.getMod()
 
@@ -242,11 +278,18 @@ module.exports = {
         this.textSurface = con
     },
 
+    // print implementation called from the global print()
+    // Redefine to get custom behavior from print().
+    // @param {string} message - message to print
     print: function(msg) {
         if (!this.textSurface) this.createTextSurface()
         this.textSurface.print(msg)
     },
 
+    // input implementation called from the global input()
+    // Redefine to get custom behavior from input().
+    // @param {string} message - input message
+    // @returns {string} - user-provided input string
     input: async function(msg) {
         if (!this.textSurface) this.createTextSurface()
         msg = msg || ''
@@ -260,17 +303,26 @@ module.exports = {
         })
     },
 
+    // ask implementation called from the global ask()
+    // Redefine to get custom behavior from ask().
+    // @param {string} ask message
+    // @returns {string} - user-provided input string
     ask: function(msg) {
         return this.input(msg)
     },
 
+    // say implementation called from the global say()
+    // Redefine to get custom behavior from say().
+    // @param {string} message - message to say
     say: function(msg) {
         return this.print(msg)
     },
 
+    // cls implementation called from the global cls()
+    // Redefine to get custom behavior from cls().
     cls: function() {
         if (!this.textSurface) return
         this.textSurface.clear()
     },
 }
-
+module.exports = system
