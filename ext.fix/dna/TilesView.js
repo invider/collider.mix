@@ -18,6 +18,7 @@ let Tiles = function(dat) {
     }
 }
 
+// fill map with 0
 Tiles.prototype.mapZero = function(w, h) {
     this.tw = w
     this.th = h
@@ -31,6 +32,7 @@ Tiles.prototype.mapZero = function(w, h) {
     }
 }
 
+// parse image tiles definition
 Tiles.prototype.mapImg = function(img, set) {
     this.mapZero(img.width, img.height)
 
@@ -55,6 +57,7 @@ Tiles.prototype.mapImg = function(img, set) {
     }
 }
 
+// parse text tiles definition
 Tiles.prototype.mapTxt = function(txt, set) {
     let lines = txt.src.match(/[^\r\n]+/g);
     this.mapZero(lines[0].length, lines.length)
@@ -74,6 +77,7 @@ Tiles.prototype.mapTxt = function(txt, set) {
     }
 }
 
+// a service called used during the construction to setup the map
 Tiles.prototype.mapArray = function(map, set) {
     this.tw = map.length
     this.th = map[0].length
@@ -81,6 +85,7 @@ Tiles.prototype.mapArray = function(map, set) {
     // TODO remap array with set?
 }
 
+// render tiles within viewport
 Tiles.prototype.draw = function() {
     let sx = this.x - this.w/2
     let sy = this.y - this.h/2

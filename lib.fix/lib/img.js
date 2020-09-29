@@ -13,10 +13,12 @@ var TileSet = function(img, sx, sy, tw, th) {
     this.ih = floor((img.height - this.sy) / this.th)
 }
 
+// a service call to setup the drawing context
 TileSet.prototype.init = function() {
     this.drawImage = image
 }
 
+// draw the tiles
 TileSet.prototype.draw = function(tilex, x, y, w, h) {
     w = w || this.tw
     h = h || this.th
@@ -89,6 +91,8 @@ module.exports = {
         return context.getImageData(0, 0, img.width, img.height)
     },
 
+    // determine if object is a drawable image
+    // @param {object} target
     isDrawableImage: function(target) {
         return (
                target instanceof HTMLImageElement

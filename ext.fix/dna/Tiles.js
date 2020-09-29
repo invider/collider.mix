@@ -67,11 +67,13 @@ class Tiles {
         this.adjust()
     }
 
+    // a service call to adjust tiles position and size
     adjust() {
         if (!this.w) this.w = this.iw * this.step
         if (!this.h) this.h = this.ih * this.step
     }
 
+    // render tiles within viewport
     draw() {
         const sx = this.x
         const sy = this.y

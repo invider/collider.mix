@@ -138,6 +138,7 @@ Hud.prototype.isResized = function() {
 Hud.prototype.adjust = function() {
     Container.prototype.adjust.call(this)
     this.saveSize()
+}
 
 
 // translate global x to local coordinates
