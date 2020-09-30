@@ -75,6 +75,9 @@ const isNumber = function(s) {
 const isArray = function(a) {
     return Array.isArray(a)
 }
+const isContainer = function(o) {
+    return isObj(o) || isFun(o)
+}
 const isFrame = function(f) {
     return !!(f && f._frame)
 }
@@ -829,15 +832,57 @@ Frame.prototype.select = function(predicate) {
 				// move up
 				if (!this.__) return []
 				return this.__
-			} else if (predicate === '*') return this._ls.slice()
 
-			let res = []
-			for (let k in this._dir) {
-				let o = this._dir[k]
-                // TODO make possible * matching and direct #tag specifiers
-				if (k === predicate || (o.tag && isString(o.tag) && o.tag.includes(predicate))) res.push(o)
-			}
-			return res
+			} else if (predicate === '*') {
+                return this._ls.slice()
+
+            } else if (predicate.startsWith('#')) {
+                // select deep by id
+                const id = predicate.substring(1)
+
+                const res = []
+                this.applyAll((e) => {
+                    if (isContainer(e) && e.id === di) res.push(e)
+                })
+                return res
+
+            } else if (predicate.startsWith('&')) {
+                // select deep by name
+                const name = predicate.substring(1)
+
+                const res = []
+                console.log('===== looking in ' + this.name)
+                this.applyAll((e) => {
+                    console.log(e.name + ' === ' + name)
+                    console.log(isContainer(e))
+                    if (isContainer(e) && e.name === name) {
+                        res.push(e)
+                    }
+                })
+                console.dir(res)
+                return res
+
+            } else if (predicate.startsWith('^')) {
+                // select by tag
+                const tag = predicate.substring(1)
+
+                const res = []
+                for (let i = 0; i < this._ls; i++) {
+                    const e = this._ls[i]
+                    if (e.tag && isString(e.tag) && e.tag.includes(tag)) {
+                        res.push(e)
+                    }
+                }
+
+            } else {
+                const res = []
+                for (let k in this._dir) {
+                    let o = this._dir[k]
+                    if (k === predicate)
+                    res.push(o)
+                }
+                return res
+            }
 		}
 
 		/*
@@ -869,6 +914,8 @@ Frame.prototype.select = function(predicate) {
     */
 	} else if (isFun(predicate)) {
         // TODO shouldn't we search deep?
+        //      probably not - there is find() for that!
+        //      maybe even remove this branch completely?
         return this._ls.filter(predicate)
 	} else return []
 }
@@ -2508,6 +2555,7 @@ const Mod = function(dat) {
         isNumber: isNumber,
         isFrame: isFrame,
         isArray: isArray,
+        isContainer: isContainer,
         isEmpty: isEmpty,
         assert: assert,
 
@@ -2604,6 +2652,14 @@ const Mod = function(dat) {
         $$: $$,
 
         kill: kill,
+
+        select: function(q) {
+            return _.lab.select(q)
+        },
+
+        selectOne: function(q) {
+            return _.lab.selectOne(q)
+        },
 
         defer: function(fn) {
             setTimeout(fn, 0)
