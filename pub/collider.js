@@ -851,15 +851,25 @@ Frame.prototype.select = function(predicate) {
                 const name = predicate.substring(1)
 
                 const res = []
-                console.log('===== looking in ' + this.name)
                 this.applyAll((e) => {
-                    console.log(e.name + ' === ' + name)
-                    console.log(isContainer(e))
                     if (isContainer(e) && e.name === name) {
                         res.push(e)
                     }
                 })
-                console.dir(res)
+                return res
+
+            } else if (predicate.startsWith('~')) {
+                // select deep by type
+                const name = '&' + predicate.substring(1)
+                const mod = this.getMod()
+                let dna = this.getMod().dna.selectOne(name)
+                if (!dna) dna = this.getMod().getRoot().dna.selectOne(name)
+
+                const res = []
+                if (!dna) return res
+                this.applyAll((e) => {
+                    if (e instanceof dna) res.push(e)
+                })
                 return res
 
             } else if (predicate.startsWith('^')) {
