@@ -241,11 +241,14 @@ const system = {
     // Usually called from the global on() function
     on: function(name, st) {
         name = 'on' + name.substring(0, 1).toUpperCase() + name.substring(1)
+
+        let last
         lab.applyAll((node) => {
             if (isFun(node[name])) {
-                node[name](st)
+                last = node[name](st)
             }
         })
+        return last
     },
 
     textSurface: false,
