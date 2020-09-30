@@ -2698,6 +2698,27 @@ const Mod = function(dat) {
             if (src && (src instanceof Audio
                         || src instanceof HTMLAudioElement)
                     && src.readyState >= 2) {
+            
+                if (src.channels) {
+                    const next = src.channels.sfx[src.channels.cur++]
+                    if (src.channels.cur >= src.channels.sfx.length) {
+                        src.channels.cur = 0
+                    }
+                    src = next
+
+                } else if (src.currentTime > 0 && src.currentTime < src.duration) {
+                    src.channels = {
+                        cur: 0,
+                        sfx: [],
+                    }
+                    for (let i = 0; i < 8; i++) {
+                        src.channels.sfx.push(new Audio(src.src))
+                    }
+                    src.currentTime = 0
+
+                }
+                console.dir(src)
+                //src.pan = pan
                 src.volume = vol
                 src.play()
             }
