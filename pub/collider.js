@@ -2717,8 +2717,6 @@ const Mod = function(dat) {
                     src.currentTime = 0
 
                 }
-                console.dir(src)
-                //src.pan = pan
                 src.volume = vol
                 src.play()
             }
