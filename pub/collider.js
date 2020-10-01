@@ -2070,6 +2070,7 @@ function evalLoadedContent(script, _) {
 
                     const node = _.sys.construct(dna, val) 
                     _.patch(script.base, script.path, node)
+                    if (isFun(node.onSpawn)) node.onSpawn(val)
 
                 } else if (_.lib.ext && _.lib.ext.js && isFun(_.lib.ext.js[script.classifier])) {
                     _.log.sys("using a custom post-processor for *." + script.classifier)

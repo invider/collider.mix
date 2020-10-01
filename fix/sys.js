@@ -163,7 +163,11 @@ const system = {
         const entity = this.construct(source, spawnData, sbase)
         if (entity === undefined) return false
 
-        return sys.attachNode(dest, entity)
+        const node = sys.attachNode(dest, entity)
+        if (isFun(entity.onSpawn)) {
+            entity.onSpawn(spawnData)
+        }
+        return node
 
         //if (!sys.isFrame(dest)) return false
         /*
