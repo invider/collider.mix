@@ -114,6 +114,7 @@ Emitter.prototype.drawParticle = function() {
 Emitter.prototype.createParticle = function() {
     let x = 0
     let y = 0
+    // TODO rename into spread
     if (this.radius) {
         let r = lib.math.rnd(this.radius)
         let fi = lib.math.rndfi()
@@ -121,7 +122,7 @@ Emitter.prototype.createParticle = function() {
         y = Math.sin(fi) * r
     }
 
-    return new Particle({
+    const particle = new Particle({
         img: this.img,
         color: this.color,
         x: x,
@@ -131,6 +132,8 @@ Emitter.prototype.createParticle = function() {
         angle: this.angle + lib.math.rnd(this.spread),
         lifespan: this.minLifespan + lib.math.rnd(this.vLifespan)
     })
+
+    return particle
 }
 
 // find a free slot in the pool and spawn a particle

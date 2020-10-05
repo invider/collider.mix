@@ -16,7 +16,8 @@ module.exports = function(init) {
         },
 
         spawnLine: function(msg) {
-            sys.spawn('text/fadeText', {
+            const layer = this.layer || lab
+            layer.spawn('text/fadeText', {
                 rx: this.rx,
                 ry: this.ry,
                 text: msg,
