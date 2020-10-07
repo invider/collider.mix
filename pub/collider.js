@@ -838,24 +838,46 @@ Frame.prototype.select = function(predicate) {
 
             } else if (predicate.startsWith('#')) {
                 // select deep by id
+                const res = []
                 const id = predicate.substring(1)
 
-                const res = []
-                this.applyAll((e) => {
-                    if (isContainer(e) && e.id === di) res.push(e)
-                })
+                if (id.includes('*')) {
+                    const rexp = new RegExp(id.replaceAll('*', '.*'))
+
+                    this.applyAll((e) => {
+                        if (isContainer(e) && isString(e.id) && e.id.match(rexp)) {
+                            res.push(e)
+                        }
+                    })
+
+                } else {
+                    this.applyAll((e) => {
+                        if (isContainer(e) && e.id == id) res.push(e)
+                    })
+                }
                 return res
 
             } else if (predicate.startsWith('&')) {
                 // select deep by name
+                const res = []
                 const name = predicate.substring(1)
 
-                const res = []
-                this.applyAll((e) => {
-                    if (isContainer(e) && e.name === name) {
-                        res.push(e)
-                    }
-                })
+                if (name.includes('*')) {
+                    const rexp = new RegExp(name.replaceAll('*', '.*'))
+
+                    this.applyAll((e) => {
+                        if (isContainer(e) && e.name && e.name.match(rexp)) {
+                            res.push(e)
+                        }
+                    })
+
+                } else {
+                    this.applyAll((e) => {
+                        if (isContainer(e) && e.name === name) {
+                            res.push(e)
+                        }
+                    })
+                }
                 return res
 
             } else if (predicate.startsWith('.')) {
@@ -884,12 +906,25 @@ Frame.prototype.select = function(predicate) {
                     }
                 }
 
+            } else if (predicate.includes('*')) {
+                const res = []
+                const rexp = new RegExp(predicate.replaceAll('*', '.*'))
+
+                for (let key in this._dir) {
+                    if (key.match(rexp)) {
+                        const obj = this._dir[key]
+                        res.push(obj)
+                    }
+                }
+                return res
+
             } else {
                 const res = []
-                for (let k in this._dir) {
-                    let o = this._dir[k]
-                    if (k === predicate)
-                    res.push(o)
+                for (let key in this._dir) {
+                    if (key === predicate) {
+                        const obj = this._dir[key]
+                        res.push(obj)
+                    }
                 }
                 return res
             }
