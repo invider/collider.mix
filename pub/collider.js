@@ -858,7 +858,7 @@ Frame.prototype.select = function(predicate) {
                 })
                 return res
 
-            } else if (predicate.startsWith('~')) {
+            } else if (predicate.startsWith('.')) {
                 // select deep by type
                 const name = '&' + predicate.substring(1)
                 const mod = this.getMod()
