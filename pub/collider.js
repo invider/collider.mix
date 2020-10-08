@@ -984,15 +984,6 @@ Frame.prototype.selectOneNumber = function(predicate) {
 }
 */
 
-Frame.prototype.kill = function() {
-    // TODO shouldn't it be killThemAll?
-    // kill() probably should be only on LabFrame
-    this._ls.forEach(node => {
-        if (isFun(node.kill)) node.kill()
-    })
-}
-
-
 
 /**
  * @alias sys.LabFrame
@@ -1259,6 +1250,17 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
     }
     return last
 }
+
+LabFrame.prototype.killAll = function() {
+    this._ls.forEach(node => {
+        setTimeout(() => kill(node), 0)
+    })
+}
+
+LabFrame.prototype.kill = function() {
+    this.__.detach(this)
+}
+
 
 const CueFrame = function(st) {
     Frame.call(this, st)
