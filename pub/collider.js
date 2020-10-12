@@ -212,17 +212,23 @@ function $$(q) {
     return _scene.select(q)
 }
 
-function kill(e, st) {
-    if (isFun(e.onKill)) e.onKill(st)
+function defer(fn) {
+    setTimeout(fn, 0)
+}
 
-    if (isFun(e.kill)) {
-        e.kill(st)
-    } else if (e.__) {
-        e.__.detach(e)
-    } else {
-        _scene.log.warn("can't find kill function for " + e)
-        _scene.log.dump(e)
-    }
+function kill(e, st) {
+    defer(() => {
+        if (isFun(e.onKill)) e.onKill(st)
+
+        if (isFun(e.kill)) {
+            e.kill(st)  // killing with a specified procedure
+        } else if (e.__) {
+            e.__.detach(e) // just detaching the node from the parent
+        } else {
+            _scene.log.warn("can't determine kill procedure for " + e)
+            _scene.log.dump(e)
+        }
+    })
 }
 
 function limit(val, min, max) {
@@ -1253,12 +1259,12 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
 
 LabFrame.prototype.killAll = function() {
     this._ls.forEach(node => {
-        setTimeout(() => kill(node), 0)
+        kill(node)
     })
 }
 
 LabFrame.prototype.kill = function() {
-    this.__.detach(this)
+    kill(this)
 }
 
 
@@ -2709,9 +2715,7 @@ const Mod = function(dat) {
             return _.lab.selectOne(q)
         },
 
-        defer: function(fn) {
-            setTimeout(fn, 0)
-        },
+        defer: defer,
 
         on: function(name, st) {
             return _.sys.on.apply(_.sys, arguments)
