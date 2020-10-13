@@ -4280,7 +4280,9 @@ function startCycle() {
 
     // initiate the game loop
     console.log('*** [jam] starting main cycle ***')
+    _scene.env.startedTime = Date.now()
     _scene.env.lastFrame = performance.now()
+    _scene.env.time = 0
     window.requestAnimFrame(cycle) /*
     // old-fasioned way to setup animation
     if (!_scene.env.TARGET_FPS) {
@@ -4431,6 +4433,7 @@ function expandView() {
 function cycle(now) {
     //var now = Date.now()
     let dt = (now - _scene.env.lastFrame)/1000
+    _scene.env.time += dt
 
     // show, react and update cycle
     _scene.dt = dt
