@@ -69,9 +69,16 @@ function createRandomGenerator(factory) {
             return rndf()*PI2 - PI
         },
 
-        // random sign multiplicator [1/-1]
-        rnds: function rnds() {
-            return rndf() < .5? -1 : 1
+        // random sign multiplicator [-1/1]
+        rnds: function rnds(n) {
+            n = n || .5
+            return rndf() < n? -1 : 1
+        },
+
+        // random value multiplicator [0/1]
+        rndo: function rndo(n) {
+            n = n || .5
+            return rndf() < n? 0 : 1
         },
 
         // select random element from an object or an array
