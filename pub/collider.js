@@ -217,6 +217,7 @@ function defer(fn) {
 }
 
 function kill(e, st) {
+    if (!isObj(e)) return
     defer(() => {
         if (isFun(e.onKill)) e.onKill(st)
 
