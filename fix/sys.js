@@ -196,9 +196,7 @@ const system = {
             if (isFun(obj[k])) clone[k] = obj[k]
         })
 
-        if (isFun(clone.onSpawn)) {
-            clone.onSpawn(meta)
-        } else {
+        if (!isFun(clone.onSpawn)) {
             this.augment(clone, meta)
         }
 
