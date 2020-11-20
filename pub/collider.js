@@ -1769,7 +1769,7 @@ function extractMeta(script, requirements) {
                 lastComment = token
                 if (commentCount === 1) {
                     const next = lookupToken()
-                    if (next.t !== LINE_COMMENT) {
+                    if (!next || next.t !== LINE_COMMENT) {
                         defMeta('module', script.name, token)
                     }
                 }
