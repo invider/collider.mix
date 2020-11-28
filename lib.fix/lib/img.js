@@ -20,15 +20,19 @@ TileSet.prototype.init = function() {
 
 // draw the tiles
 TileSet.prototype.draw = function(tilex, x, y, w, h) {
-    w = w || this.tw
-    h = h || this.th
+    w = (w || this.tw) | 0
+    h = (h || this.th) | 0
 
     const ix = tilex % this.iw
     const iy = floor(tilex / this.iw)
-    const tx = ix * this.tw + this.sx
-    const ty = iy * this.th + this.sy
+    const tx = (ix * this.tw + this.sx) | 0
+    const ty = (iy * this.th + this.sy) | 0
 
-    this.drawImage(this.img, tx, ty, this.tw, this.th, x, y, w, h)
+    // WARNING! A dirty hack is needed to prevent tile artifacts!
+    // For some stupid reason we need to fix integer coordinates with floats
+    // to avoid out-of-range pixels getting rendered :(
+    // The sub-pixel 0.1 shift is selected empirically and seems to work.
+    this.drawImage(this.img, tx+.1, ty+.1, this.tw-.2, this.th-.2, x, y, w, h)
 }
 
 module.exports = {
