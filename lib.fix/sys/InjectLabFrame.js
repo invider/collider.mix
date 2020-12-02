@@ -2,6 +2,7 @@ const LabFrame = sys.LabFrame
 
 // TODO maybe make 'replace' as a feature of attach?
 //      explore if that is feasable for all cases
+//      maybe inject() should be a feature of any frame?
 
 // A special frame able to inject into a particular place on the tree and preserve all the structure below
 function InjectLabFrame(st) {
