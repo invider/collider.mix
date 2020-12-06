@@ -1230,7 +1230,7 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
             }
         } else if (node._sizable) {
             if ((node.within && node.within(lx, ly))
-                    || (node._centered && node.circular
+                    || (node._centered && node._circular
                         && dist(lx, ly, node.x, node.y) <= node.r)
                     || (node._centered
                         && lx >= node.x - node.w/2
