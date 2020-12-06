@@ -1029,7 +1029,7 @@ LabFrame.prototype.promoteNode = function(node) {
         // TODO probably shouldn't be called here
         //if (isFun(node.spawn)) node.spawn() // spawn handler
         node._positional = (isNumber(node.x) && isNumber(node.y))
-        node._sizable = (node._positional && isNumber(node.w) && isNumber(node.h))
+        node._rectangular = (node._positional && isNumber(node.w) && isNumber(node.h))
         node._circular = (node._positional && isNumber(node.r))
         if (node._centered !== false) node._centered = true
 
@@ -1228,30 +1228,29 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
                 val = node.pick(lx, ly, ls, opt)
                 if (val) last = val
             }
-        } else if (node._sizable) {
-            if ((node.within && node.within(lx, ly))
-                    || (node._centered && node._circular
-                        && dist(lx, ly, node.x, node.y) <= node.r)
-                    || (node._centered
-                        && lx >= node.x - node.w/2
-                        && lx <= node.x + node.w/2
-                        && ly >= node.y - node.h/2
-                        && ly <= node.y + node.h/2)
-                    || (!node._centered
-                        && lx >= node.x
-                        && lx <= node.x + node.w
-                        && ly >= node.y
-                        && ly <= node.y + node.h)
-            ) {
-                if (fn) {
-                    if (fn(node)) {
-                        ls.push(node)
-                        last = node
-                    }
-                } else {
+        } else if ((node.within && node.within(lx, ly))
+                || (node._centered && node._circular
+                    && dist(lx, ly, node.x, node.y) <= node.r)
+                || (node._centered
+                    && lx >= node.x - node.w/2
+                    && lx <= node.x + node.w/2
+                    && ly >= node.y - node.h/2
+                    && ly <= node.y + node.h/2)
+                || (node._rectangular
+                    && !node._centered
+                    && lx >= node.x
+                    && lx <= node.x + node.w
+                    && ly >= node.y
+                    && ly <= node.y + node.h)
+        ) {
+            if (fn) {
+                if (fn(node)) {
                     ls.push(node)
                     last = node
                 }
+            } else {
+                ls.push(node)
+                last = node
             }
         }
     }
