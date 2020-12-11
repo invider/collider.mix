@@ -5,7 +5,7 @@ function copy(v) {
     }
 }
 
-function vector(x, y) {
+function create(x, y) {
     return {
         x: x,
         y: y,
