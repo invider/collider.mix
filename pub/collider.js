@@ -2408,7 +2408,7 @@ function augmentCtx(ctx) {
         },
 
         plot: function(x, y) {
-            ctx.fillRect(x, y, ctx.lineWidth, ctx.lineWidth)
+            ctx.fillRect(x-ctx.lineWidth/2, y-ctx.lineWidth/2, ctx.lineWidth, ctx.lineWidth)
         },
         triangle: function(x1, y1, x2, y2, x3, y3) {
             ctx.beginPath()
