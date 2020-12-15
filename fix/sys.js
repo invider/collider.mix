@@ -84,12 +84,10 @@ const system = {
             if (/[A-Z]/.test(cons.name[0])) {
                 // uppercase means constructor
                 res = new cons(spawnData)
-                res._dna = cons.name
                 //return sys.attachNode(dest, res)
             } else {
                 // lowercase means factory
                 res = cons(spawnData)
-                res._dna = cons.name
                 //return sys.attachNode(dest, res)
             }
         } else if (sys.isObj(cons)) {
@@ -103,6 +101,7 @@ const system = {
                 res = this.clone(cons, spawnData)
             }
         }
+        res._dna = cons
 
         if (res && env.config && env.config.flow) {
             const descriptor = {
@@ -201,6 +200,7 @@ const system = {
         } else {
             this.augment(clone, meta)
         }
+        clone._dna = obj
 
         return clone
     },
