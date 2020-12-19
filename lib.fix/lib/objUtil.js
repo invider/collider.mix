@@ -5,7 +5,7 @@ var objUtil = {
     assertIsPositionalObj: function(obj){
         lib.asserts.assertTrue(sys.isObj(obj), "Object must be provided");
         lib.asserts.assertTrue(obj.x !== undefined, "Object must have x");
-        lib.asserts.assertTrue(obj.y !== undefined, "Object must have x");
+        lib.asserts.assertTrue(obj.y !== undefined, "Object must have y");
     },
     /**angle
      * Calculates distance between objects
