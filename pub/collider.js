@@ -3702,15 +3702,15 @@ Mod.prototype.patchNode = function(unitId, unitUrl, path) {
                     if (kids.length > 0) {
                         _scene.log.sys('[patch]', 'repatching '
                             + kids.length + ' entities')
-                    }
 
-                    for (let i = 0, l = kids.length; i < l; i++) {
-                        const ds = kids[i]
-                        if (ds.entity.name) {
-                            _scene.log.sys('[patch]', 'repatching '
-                                + ds.entity.name)
+                        for (let i = 0, l = kids.length; i < l; i++) {
+                            const ds = kids[i]
+                            if (ds.entity.name) {
+                                _scene.log.sys('[patch]', 'repatching '
+                                    + ds.entity.name)
+                            }
+                            repatchNode(nextNode, ds.entity)
                         }
-                        repatchNode(nextNode, ds.entity)
                     }
                 }
             }
