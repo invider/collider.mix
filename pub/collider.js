@@ -419,6 +419,13 @@ function lighten(c, factor) {
     return hsl(chsl[0], chsl[1], chsl[2])
 }
 
+function saturate(c, factor) {
+    const crgba = color2rgba(c)
+    const chsl = rgb2hsl(crgba[0], crgba[1], crgba[2])
+    chsl[1] = limit(chsl[1] * factor, 0, 1)
+    return hsl(chsl[0], chsl[1], chsl[2])
+}
+
 // TODO make into regular obj.fn = before(patch, obj.fn)
 const before = function(obj, fun, patch) {
     var orig = obj[fun]
@@ -2683,6 +2690,7 @@ function augmentCtx(ctx) {
         color2RGBA: color2RGBA,
         color2rgba: color2rgba,
         lighten: lighten,
+        saturate: saturate,
     }
     return ctx
 }
