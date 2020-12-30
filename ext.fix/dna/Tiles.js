@@ -124,7 +124,14 @@ class Tiles {
     }
 
     // pick a tilex at coordinates
-    pick(x, y, ls) {
+    pick(x, y) {
+        const tx = floor((x - this.x)/this.step)
+        const ty = floor((y - this.y)/this.step)
+        return this.map[ty * this.iw + tx]
+    }
+
+    // collect a tilex to the list
+    collect(x, y, ls) {
         const tx = floor((x - this.x)/this.step)
         const ty = floor((y - this.y)/this.step)
         const tilex = this.map[ty * this.iw + tx]
