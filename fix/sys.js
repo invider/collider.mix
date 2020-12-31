@@ -102,6 +102,7 @@ const system = {
             }
         }
         res._dna = cons
+        res._DNA = cons.name
 
         if (res && env.config && env.config.flow) {
             const descriptor = {
