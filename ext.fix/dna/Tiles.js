@@ -130,6 +130,14 @@ class Tiles {
         return this.map[ty * this.iw + tx]
     }
 
+    gx(tx) {
+        return this.x + tx * this.step
+    }
+
+    gy(ty) {
+        return this.y + ty * this.step
+    }
+
     // collect a tilex to the list
     collect(x, y, ls) {
         const tx = floor((x - this.x)/this.step)
