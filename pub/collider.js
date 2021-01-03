@@ -2863,12 +2863,12 @@ const Mod = function(dat) {
                     }
                     src = next
 
-                } else if (src.currentTime > 0 && src.currentTime < src.duration) {
+                } else if (!src.ended || (src.currentTime > 0 && src.currentTime < src.duration)) {
                     src.channels = {
                         cur: 0,
                         sfx: [],
                     }
-                    for (let i = 0; i < 8; i++) {
+                    for (let i = 0; i < 16; i++) {
                         src.channels.sfx.push(new Audio(src.src))
                     }
                     src.currentTime = 0
