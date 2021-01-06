@@ -616,9 +616,10 @@ Frame.prototype.attach = function(node, name) {
     }
     this._ls.push(node)
 
+    if (isNumber(node.Z)) this.orderZ()
     this.onAttached(node, name, this)
-    if (isFun(node.init)) node.init() // initialize node
     if (prevNode && isFun(node.onReplace)) node.onReplace(prevNode)
+    if (isFun(node.init)) node.init() // initialize node
 
     return node
 }
@@ -1087,6 +1088,17 @@ Frame.prototype.selectOne = function(predicate) {
 	return undefined
 }
 
+Frame.prototype.orderZ = function() {
+    this._ls.sort((a, b) => {
+        if (!isNumber(a.Z) && !isNumber(b.Z)) return 0;
+        if (!isNumber(a.Z) && isNumber(b.Z)) return 1;
+        if (isNumber(a.Z) && !isNumber(b.Z)) return -1;
+        if (a.Z > b.Z) return 1;
+        if (a.Z < b.Z) return -1;
+        return 0;
+    })
+}
+
 /*
 Frame.prototype.selectOneNumber = function(predicate) {
     let list = this.select(predicate)
@@ -1117,17 +1129,6 @@ LabFrame.prototype.spawn = function(dna, st) {
     return this._.sys.spawn(dna, st, this)
 }
 
-LabFrame.prototype.orderZ = function() {
-    this._ls.sort((a, b) => {
-        if (!isNumber(a.Z) && !isNumber(b.Z)) return 0;
-        if (!isNumber(a.Z) && isNumber(b.Z)) return 1;
-        if (isNumber(a.Z) && !isNumber(b.Z)) return -1;
-        if (a.Z > b.Z) return 1;
-        if (a.Z < b.Z) return -1;
-        return 0;
-    })
-}
-
 LabFrame.prototype.promoteNode = function(node) {
     //this._.log.sys('spawned ' + node.name)
     // normalize and augment the node
@@ -1142,7 +1143,7 @@ LabFrame.prototype.promoteNode = function(node) {
         node._circular = (node._positional && isNumber(node.r))
         if (node._centered !== false) node._centered = true
 
-        if (isNumber(node.Z)) this.orderZ()
+        //if (isNumber(node.Z)) this.orderZ()
     }
 
     // TODO make arbitrary augmentation and dependency injection possible
