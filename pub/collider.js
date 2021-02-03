@@ -65,6 +65,9 @@ const isObj = function(o) {
 const isFun = function(f) {
     return !!(f && f.constructor && f.call && f.apply)
 }
+const isClass = function(f) {
+    return (f && typeof f === 'function' && /^\s*class\s+/.test(f.toString()))
+}
 const isString = function(s) {
     return toString.call(s) == "[object String]"
 }
@@ -1477,9 +1480,15 @@ CueFrame.prototype.resume = function() {
 //                          LOADER 
 // =============================================================
 
+
+// ------------------------------------------
 // JavaScript parser to extract metadata
 function extractMeta(script, requirements) {
     const meta = {}
+
+    if (script.path === 'dna/Hero') {
+        script.debug = true
+    }
 
     let pos = 0
     let line = 0
@@ -1711,14 +1720,34 @@ function extractMeta(script, requirements) {
             return tokenBuffer.token
         } else {
             tokenBuffer.token = getToken()
+            //if (script.debug) console.log( ">>>>> " + tokenToString(tokenBuffer.token) )
             return tokenBuffer.token
         }
+    }
+
+    function tokenToString(token) {
+        if (!token) return 'none'
+
+        let type = 'unknown'
+        switch(token.t) {
+            case ID:            type = 'id'; break;
+            case SPECIAL:       type = 'special'; break;
+            case STRING:        type = 'string'; break;
+            case LINE_COMMENT:  type = 'line-comment'; break;
+            case BLOCK_COMMENT: type = 'block-comment'; break;
+        }
+        return type + ': [' + token.v + ']'
     }
 
     function lookupToken() {
         const token = nextToken()
         tokenBuffer.buffered = true
         return token
+    }
+
+    function returnToken() {
+        if (tokenBuffer.buffered) throw 'token is already buffered!'
+        tokenBuffer.buffered = true
     }
 
     function nextWord(line) {
@@ -1862,6 +1891,9 @@ function extractMeta(script, requirements) {
         let lastToken
         let lastName
         let lastComment
+        const state = {
+            level: 0,
+        }
 
         while(token) {
 
@@ -1888,6 +1920,9 @@ function extractMeta(script, requirements) {
             token = nextToken()
 
             if (token && lastToken) {
+                if (token.t === SPECIAL && token.v === '{') state.level ++
+                else if (token.t === SPECIAL && token.v === '}') state.level --
+
                 if (lastToken.t === ID
                         && token.t === SPECIAL
                         && (token.v === ':' || token.v === '=')) {
@@ -1923,6 +1958,25 @@ function extractMeta(script, requirements) {
                         const dependency = expectString()
                         if (dependency) requirements.push(dependency)
                     }
+                    if (state.class && state.level === 1) {
+                        // class method declaration
+                        returnToken()
+                        const params = parseFunctionParams(false)
+                        defMeta('function', lastToken.v, lastComment, params)
+                        /*
+                        if (script.debug) {
+                            console.log('=============== class method ' + lastToken.v + '()')
+                            console.log(lastComment)
+                            console.dir(params)
+                            debugger
+                        }
+                        */
+                    }
+                    /*
+                    if (script.debug) {
+                        console.log('#' + state.level + ' function ' + lastToken.v + '()')
+                    }
+                    */
 
                 } else if (token.t === ID
                         && lastName) {
@@ -1948,7 +2002,8 @@ function extractMeta(script, requirements) {
                         && token.t === ID) {
                     // const <name>
                     defMeta('class', token.v, lastComment)
-                    
+                    state.class = true
+
                 } else {
                     lastName = undefined
                 }
@@ -1957,6 +2012,13 @@ function extractMeta(script, requirements) {
     }
 
     parse()
+
+    if (script.debug) {
+        console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        console.dir(meta)
+        console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    }
+
     if (metaCount > 0) return meta
 }
 
@@ -2720,6 +2782,7 @@ const Mod = function(dat) {
         after: after,
         chain: chain,
         isFun: isFun,
+        isClass: isClass,
         isObj: isObj,
         isString: isString,
         isNumber: isNumber,
