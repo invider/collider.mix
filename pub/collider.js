@@ -1491,7 +1491,11 @@ function extractMeta(script, requirements) {
     let bufc
     let buffered = false
     let metaCount = 0
-    let commentCount = 0
+    const state = {
+        level: 0,
+        tokens: 0,
+        commentCount: 0,
+    }
 
     // parsing utils
     function isSpace(c) {
@@ -1589,7 +1593,7 @@ function extractMeta(script, requirements) {
     }
 
     function matchComment(type) {
-        commentCount ++
+        state.commentCount ++
         let comment = ''
 
         let c = getc()
@@ -1715,9 +1719,11 @@ function extractMeta(script, requirements) {
             tokenBuffer.buffered = false
             return tokenBuffer.token
         } else {
-            tokenBuffer.token = getToken()
+            const token = getToken()
+            tokenBuffer.token = token
+            if (token && (token.t === SPECIAL || token.t === ID || token.t === STRING)) state.tokens ++
             //if (script.debug) console.log( ">>>>> " + tokenToString(tokenBuffer.token) )
-            return tokenBuffer.token
+            return token
         }
     }
 
@@ -1822,6 +1828,8 @@ function extractMeta(script, requirements) {
     function defMeta(type, name, comment, params) {
         if (name === 'exports') name = script.name
 
+        if (type === 'module' && state.tokens > 1) comment = null
+
         if (comment && comment.l + 2 > line) {
             let head = comment.v.trim()
             let details
@@ -1887,24 +1895,23 @@ function extractMeta(script, requirements) {
         let lastToken
         let lastName
         let lastComment
-        const state = {
-            level: 0,
-        }
 
         while(token) {
 
             if (token.t === BLOCK_COMMENT) {
                 lastComment = token
-                if (commentCount === 1) defMeta('module', script.name, token)
+                if (state.commentCount === 1) defMeta('module', script.name, token)
 
             } else if (token.t === LINE_COMMENT) {
                 if (lastComment && lastComment.l + 1 >= token.l) {
                     // join with previous comment
                     token.v = lastComment.v + '\n' + token.v
-                    commentCount --
+                    state.commentCount --
                 }
                 lastComment = token
-                if (commentCount === 1) {
+                if (state.commentCount === 1) {
+                    console.log('------')
+                    console.dir(token)
                     const next = lookupToken()
                     if (!next || next.t !== LINE_COMMENT) {
                         defMeta('module', script.name, token)
