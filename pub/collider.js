@@ -1910,8 +1910,6 @@ function extractMeta(script, requirements) {
                 }
                 lastComment = token
                 if (state.commentCount === 1) {
-                    console.log('------')
-                    console.dir(token)
                     const next = lookupToken()
                     if (!next || next.t !== LINE_COMMENT) {
                         defMeta('module', script.name, token)
