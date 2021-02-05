@@ -1486,10 +1486,6 @@ CueFrame.prototype.resume = function() {
 function extractMeta(script, requirements) {
     const meta = {}
 
-    if (script.path === 'dna/Hero') {
-        script.debug = true
-    }
-
     let pos = 0
     let line = 0
     let bufc
@@ -2012,12 +2008,6 @@ function extractMeta(script, requirements) {
     }
 
     parse()
-
-    if (script.debug) {
-        console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        console.dir(meta)
-        console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    }
 
     if (metaCount > 0) return meta
 }
