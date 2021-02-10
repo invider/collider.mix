@@ -1483,6 +1483,7 @@ CueFrame.prototype.resume = function() {
 
 // ------------------------------------------
 // JavaScript parser to extract metadata
+// Parse js tokens and figure out meaningful comments
 function extractMeta(script, requirements) {
     const meta = {}
 
@@ -1764,7 +1765,7 @@ function extractMeta(script, requirements) {
         return line.substring(prefix.length, line.length)
     }
 
-    function extractTagsFromDetails(details) {
+    function extractParamsFromDetails(details) {
         const dt = {
             body: '',
         }
@@ -1773,30 +1774,36 @@ function extractMeta(script, requirements) {
             const originalLine = lines[i]
             let line = originalLine.trim()
             if (line.startsWith('@')) {
-                const tag = {}
-                tag.id = nextWord(line)
-                line = cutPrefix(line, tag.id).trim()
-                tag.id = tag.id.substring(1, tag.id.length)
+                const param = {}
+                param.id = nextWord(line)
+                line = cutPrefix(line, param.id).trim()
+                param.id = param.id.substring(1, param.id.length)
 
                 if (line.startsWith('{')) {
                     // type declaration
-                    tag.type = nextWord(line)
-                    line = cutPrefix(line, tag.type).trim()
-                    tag.type = tag.type.substring(1, tag.type.length-1)
+                    param.type = nextWord(line)
+                    line = cutPrefix(line, param.type).trim()
+                    param.type = param.type.substring(1, param.type.length-1)
                 }
                 // expecting the name here
-                tag.name = nextWord(line)
-                line = cutPrefix(line, tag.name).trim()
+                param.name = nextWord(line)
+                line = cutPrefix(line, param.name).trim()
 
                 if (line.startsWith('-')) {
                     line = line.substring(1, line.length).trim()
                 }
                 if (line.length > 0) {
-                    tag.line = line
+                    param.line = line
                 }
 
                 if (!dt.at) dt.at = []
-                dt.at.push(tag)
+                dt.at.push(param)
+
+            } else if (line.startsWith('#')) {
+                if (!dt.tags) dt.tags = []
+                const tag = nextWord(line).substring(1)
+                dt.tags.push(tag)
+                debugger
 
             } else {
                 dt.body += originalLine + '\n'
@@ -1845,8 +1852,9 @@ function extractMeta(script, requirements) {
                 head: head
             }
             if (details) {
-                const detailsMeta = extractTagsFromDetails(details)
+                const detailsMeta = extractParamsFromDetails(details)
                 if (detailsMeta.body) def.details = detailsMeta.body
+                if (detailsMeta.tags) def.tags = detailsMeta.tags.join(',')
                 if (detailsMeta.at) def.at = detailsMeta.at
             }
             meta[name] = def
