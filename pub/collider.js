@@ -1803,7 +1803,6 @@ function extractMeta(script, requirements) {
                 if (!dt.tags) dt.tags = []
                 const tag = nextWord(line).substring(1)
                 dt.tags.push(tag)
-                debugger
 
             } else {
                 dt.body += originalLine + '\n'
