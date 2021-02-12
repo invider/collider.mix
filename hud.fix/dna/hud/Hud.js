@@ -24,11 +24,23 @@ let Hud = function(st) {
     
     // fix preset if not present
     //env.attach(sys.clone(dna.hud.preset), 'hud')
+    this.saveSize()
+}
 
+const Container = dna.hud.Container
+Hud.prototype = Object.create(Container.prototype)
+
+Hud.prototype.init = function() {
+    this.injectTraps()
+}
+
+Hud.prototype.injectTraps = function() {
     // append another trap on click event
-    let hud = this
+    const hud = this
+    const mod = this.getMod()
+    const localTrap = mod.trap
 
-    sys.after(trap, 'click', function(e) {
+    sys.after(localTrap, 'click', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
@@ -37,7 +49,7 @@ let Hud = function(st) {
         hud.onClick(x, y, e)
     })
 
-    sys.after(trap, 'dblClick', function(e) {
+    sys.after(localTrap, 'dblClick', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
@@ -46,7 +58,7 @@ let Hud = function(st) {
         hud.onDblClick(x, y, e)
     })
 
-    sys.after(trap, 'mouseDown', function(e) {
+    sys.after(localTrap, 'mouseDown', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
@@ -55,7 +67,7 @@ let Hud = function(st) {
         hud.onMouseDown(x, y, e.buttons, e)
     })
 
-    sys.after(trap, 'mouseUp', function(e) {
+    sys.after(localTrap, 'mouseUp', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
@@ -65,7 +77,7 @@ let Hud = function(st) {
     })
 
 
-    sys.after(trap, 'mouseMove', function(e) {
+    sys.after(localTrap, 'mouseMove', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
@@ -74,7 +86,7 @@ let Hud = function(st) {
         hud.onMouseMove(x, y, e)
     })
 
-    sys.after(trap, 'mouseWheel', function(e) {
+    sys.after(localTrap, 'mouseWheel', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
@@ -83,7 +95,7 @@ let Hud = function(st) {
         hud.onMouseWheel(e.wheelDelta, x, y, e)
     })
 
-    sys.after(trap, 'touchStart', function(e) {
+    sys.after(localTrap, 'touchStart', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
@@ -92,30 +104,25 @@ let Hud = function(st) {
         hud.onTouchStart(x, y, e)
     })
 
-    sys.after(trap, 'touchEnd', function(e) {
+    sys.after(localTrap, 'touchEnd', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
         hud.onTouchEnd(e)
     })
 
-    sys.after(trap, 'keyDown', function(e) {
+    sys.after(localTrap, 'keyDown', function(e) {
         hud.onKeyDown(e)
     })
 
-    sys.after(trap, 'keyUp', function(e) {
+    sys.after(localTrap, 'keyUp', function(e) {
         hud.onKeyUp(e)
     })
 
-    sys.after(trap, 'resize', function(e) {
+    sys.after(localTrap, 'resize', function(e) {
         hud.expand()
         hud.adjust()
     })
-
-    this.saveSize()
 }
-
-const Container = dna.hud.Container
-Hud.prototype = Object.create(Container.prototype)
 
 Hud.prototype.style = function(path, source) {
     source = source? source : this._style
