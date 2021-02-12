@@ -3688,6 +3688,13 @@ Mod.prototype.disableAll = function() {
     this.mod._ls.forEach(mod => mod.disableAll())
 }
 
+Mod.prototype.disableOthers = function() {
+    if (this.___) {
+        this.___.disableAll()
+    }
+    this.enable()
+}
+
 Mod.prototype.enable = function() {
     this.disabled = false
 }
@@ -3695,6 +3702,12 @@ Mod.prototype.enable = function() {
 Mod.prototype.enableAll = function() {
     this.disabled = false
     this.mod._ls.forEach(mod => mod.enableAll())
+}
+
+Mod.prototype.enableOthers = function() {
+    if (this.___) {
+        this.___.enableAll()
+    }
 }
 
 Mod.prototype.on = function() {
