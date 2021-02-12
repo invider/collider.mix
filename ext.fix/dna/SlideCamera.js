@@ -376,7 +376,7 @@ SlideCamera.prototype.draw = function(dt) {
     this._ls.forEach( e => {
         if (e.draw && !e.dead && !e.hidden) {
             // culling
-            if (e._sizable) {
+            if (e._rectangular) {
                 if ((e._centered
                             && e.x+e.w/2 >= vp[0]
                             && e.x-e.w/2 <= vp[2]
