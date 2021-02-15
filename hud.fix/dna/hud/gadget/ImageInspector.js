@@ -22,7 +22,16 @@ ImageInspector.prototype.open = function(next) {
 ImageInspector.prototype.drawContent = function() {
     if (this.img) {
         blocky()
-        image(this.img, 0, 0, this.w, this.h)
+        const hScale = this.w/this.img.width
+        const vScale = this.h/this.img.height
+        const scale = hScale > vScale? vScale : hScale
+
+        const w = this.img.width * scale
+        const h = this.img.height * scale
+        const x = (this.w - w)/2
+        const y = (this.h - h)/2
+
+        image(this.img, x, y, w, h)
     } else {
         fill(.7, .3, .3)
     }
