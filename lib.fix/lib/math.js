@@ -45,24 +45,43 @@ function createRandomGenerator(factory) {
     factory = factory || LCGSourceFactory
 
     const generator = factory()
-    const rndf = generator.rndf
+    const rndf = generator.rndf // rndf() is the RNG core provided by the factory
 
-    function rnd(topLimit) {
-        return rndf() * topLimit 
+    function rnd(v1, v2) {
+        if (v2) {
+            return v1 + rndf() * (v2 - v1)
+        } else if (v1) {
+            return rndf() * v1
+        } else {
+            return rndf()
+        }
     }
 
     // random int in [0..maxValue)
-    function rndi(topLimit) {
-        return ~~rnd(topLimit)
+    function rndi(v1, v2) {
+        if (v2) {
+            return ~~(v1 + rndf() * (v2 - v1))
+        } else {
+            return ~~(rndf() * v1)
+        }
+    }
+
+    function RND(v1, v2) {
+        if (v2) {
+            return ~~(v1 + rndf() * ((v2 + 1) - v1))
+        } else {
+            return ~~(rndf() * v1)
+        }
     }
 
     return {
         getSeed: generator.getSeed,
         setSeed: generator.setSeed,
-
         rndf: rndf,
-        rnd: rnd,
+
+        rnd:  rnd,
         rndi: rndi,
+        RND:  RND,
 
         // random angle in radians
         rndfi: function rndfi() {
@@ -75,8 +94,8 @@ function createRandomGenerator(factory) {
             return rndf() < n? -1 : 1
         },
 
-        // random value multiplicator [0/1]
-        rndo: function rndo(n) {
+        // random zero/one value multiplicator [0/1]
+        rndz: function rndz(n) {
             n = n || .5
             return rndf() < n? 0 : 1
         },
