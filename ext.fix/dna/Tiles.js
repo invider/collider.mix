@@ -7,6 +7,7 @@ const df = {
     ih: 0,
     step: 32,
     blocky: true,
+    _centered: false,
 }
 
 /*
