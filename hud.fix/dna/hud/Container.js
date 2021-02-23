@@ -43,6 +43,34 @@ Container.prototype.adjust = function() {
     }
 }
 
+// map x from parent to local coordinate space
+// @param {number} x
+// @returns {number} x in local coordinate space
+Container.prototype.lx = function(x) {
+    return x - this.x
+}
+
+// map y from parent to local coordinate space
+// @param {number} y
+// @returns {number} y in local coordinate space
+Container.prototype.ly = function(y) {
+    return y - this.y
+}
+
+// map x from local to parent coordinate space
+// @param {number} x
+// @returns {number} x in parnet coordinate space
+Container.prototype.gx = function(x) {
+    return this.x + x
+}
+
+// map y from local to parent coordinate space
+// @param {number} y
+// @returns {number} y in parnet coordinate space
+Container.prototype.gy = function(y) {
+    return this.y + y
+}
+
 // nodes are not centered in hud by default
 Container.prototype.promoteNode = function(node) {
     if (node._centered === undefined) node._centered = false
