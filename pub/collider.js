@@ -508,9 +508,8 @@ const getParentPath = function(path) {
     return path.replace(/[^\/]+$/, '')
 }
 
-const removeExtension = function(path) {
-    //return path.replace(/^.*[\\\/]/, '') // remove path
-    return path.replace(/\.[^/.]+$/, '') // remove extension
+const cutUnitExtension = function(path) {
+    return path.replace(/^.*[\\\/]/, '') // remove path
 }
 
 
@@ -3740,11 +3739,9 @@ function getResourceName(url) {
     return name.replace(/\.[^/.]+$/, '') // remove extension
 }
 
-/*
 function removeExtension(url) {
     return url.replace(/\.[^/.]+$/, '') // remove extension
 }
-*/
 
 function attachTTF(name, url) {
     const fontStyle = document.createElement('style')
@@ -4005,7 +4002,7 @@ function randomizeUrl(url) {
 }
 
 function fixUnitMountPoint(unit) {
-    unit.name = removeExtension(unit.id)
+    unit.name = cutUnitExtension(unit.id)
     unit.name = (unit.name
             .replace('.mod', '')
             .replace('.fix', '')
