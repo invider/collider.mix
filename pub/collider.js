@@ -509,7 +509,8 @@ const getParentPath = function(path) {
 }
 
 const removeExtension = function(path) {
-    return path.replace(/^.*[\\\/]/, '') // remove path
+    //return path.replace(/^.*[\\\/]/, '') // remove path
+    return path.replace(/\.[^/.]+$/, '') // remove extension
 }
 
 
@@ -3739,9 +3740,11 @@ function getResourceName(url) {
     return name.replace(/\.[^/.]+$/, '') // remove extension
 }
 
-function removeExtention(url) {
+/*
+function removeExtension(url) {
     return url.replace(/\.[^/.]+$/, '') // remove extension
 }
+*/
 
 function attachTTF(name, url) {
     const fontStyle = document.createElement('style')
@@ -3878,7 +3881,7 @@ Mod.prototype.patchNode = function(unitId, unitUrl, path) {
     const unit = _scene._units[unitId]
     if (unit) {
         const targetPath = addPath(unit.mount,
-                    removeExtention(removeExtention(path)))
+                    removeExtension(removeExtension(path)))
 
         const prevNode = _scene.selectOne(targetPath)
 
@@ -4117,7 +4120,7 @@ Mod.prototype.loadUnits = function(baseMod, target) {
                 const ls = unit.ls || []
                 ls.forEach(resLocalUrl => {
                     // remove ext and classifier and add unit mount point to get mod path
-                    const targetPath = addPath(unit.mount, removeExtention(removeExtention(resLocalUrl)))
+                    const targetPath = addPath(unit.mount, removeExtension(removeExtension(resLocalUrl)))
                     const url = addPath(unit.id, resLocalUrl)
 
                     if (isIgnored(url, ignoreList)) {
@@ -4252,6 +4255,7 @@ function constructScene(target) {
     mod.sys.attach(isEmpty)
 
     mod.sys.attach(addPath)
+    mod.sys.attach(removeExtension)
     mod.sys.attach(reconstructScene)
 
     mod.sys.attach(placeCanvas)
