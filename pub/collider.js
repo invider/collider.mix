@@ -4181,6 +4181,9 @@ function constructLog() {
         console.log.bind(window.console, '.'),
         'debug')
     log.attach(
+        console.log.bind(window.console, ':'),
+        'trace')
+    log.attach(
         console.log.bind(window.console, '$'),
         'sys')
     log.attach(
@@ -4192,6 +4195,21 @@ function constructLog() {
     log.attach(
         console.table.bind(window.console),
         'tab')
+    log.attach(
+        (e) => {
+            if (isArray(e)) {
+                for (let i = 0; i < e.length; i++) {
+                    console.log(`${i}: ${e[i]}`)
+                }
+            } else if (isObj(e)) {
+                Object.keys(e).forEach(k => {
+                    console.log(`${k}: ${e[k]}`)
+                })
+            } else {
+                console.log(e)
+            }
+        },
+        'list')
 
     return log
 }
