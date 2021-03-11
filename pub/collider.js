@@ -3103,7 +3103,7 @@ const Mod = function(dat) {
     // prototypes/constructors
     this.attach(new Frame(), 'dna')
 
-    this.attach(new LabFrame(), 'lib')
+    this.attach(new Frame(), 'lib')
 
     // augment functions
     // TODO remove in favor of .aug
