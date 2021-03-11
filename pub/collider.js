@@ -72,8 +72,8 @@ const isString = function(s) {
     return toString.call(s) == "[object String]"
 }
 const isNumber = function(s) {
-    //return toString.call(s) == "[object Number]"
-    return !isNaN(s)
+    return toString.call(s) == "[object Number]"
+    //return !isNaN(s) // this one returns true for "3"!
 }
 const isArray = function(a) {
     return Array.isArray(a)
