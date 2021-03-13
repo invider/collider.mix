@@ -215,8 +215,9 @@ function $$(q) {
     return _scene.select(q)
 }
 
-function defer(fn) {
-    setTimeout(fn, 0)
+function defer(fn, timeout) {
+    timeout = (timeout || 0)/1000
+    setTimeout(fn, timeout)
 }
 
 function kill(e, st) {
