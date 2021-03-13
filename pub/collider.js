@@ -216,7 +216,7 @@ function $$(q) {
 }
 
 function defer(fn, timeout) {
-    timeout = (timeout || 0)/1000
+    timeout = (timeout || 0)*1000
     setTimeout(fn, timeout)
 }
 
