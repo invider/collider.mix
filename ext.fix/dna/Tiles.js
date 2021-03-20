@@ -131,12 +131,24 @@ class Tiles {
         return this.map[ty * this.iw + tx]
     }
 
+    // transform local tile x to parent's coordinate space
     gx(tx) {
         return this.x + tx * this.step
     }
 
+    // transform local tile y to parent's coordinate space
     gy(ty) {
         return this.y + ty * this.step
+    }
+
+    // transform parent's x into local tile x coordinate
+    lx(x) {
+        return floor((x - this.x)/this.step)
+    }
+
+    // transform parent's y into local tile y coordinate
+    ly(y) {
+        return floor((y - this.y)/this.step)
     }
 
     // collect a tilex to the list
