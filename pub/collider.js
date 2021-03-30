@@ -142,10 +142,33 @@ function dist(x1, y1, x2, y2) {
 function mix() {
     let mixin = {}
     for (let arg = 0; arg < arguments.length; arg++) {
-        for (let prop in arguments[arg]) {
-            if (arguments[arg].hasOwnProperty(prop)) {
-                mixin[prop] = arguments[arg][prop]
+        const source = arguments[arg]
+        for (let prop in source) {
+            if (source.hasOwnProperty(prop)) {
+                mixin[prop] = source[prop]
             }
+        }
+        if (isFun(source.onMixin)) {
+            source.onMixin.call(mixin)
+        }
+    }
+    return mixin
+}
+
+function mixin() {
+    let mixin = arguments[0]
+    for (let arg = 1; arg < arguments.length; arg++) {
+        const source = arguments[arg]
+        for (let prop in source) {
+            if (source.hasOwnProperty(prop)
+                    && !prop.startsWith('_')
+                    && prop !== 'id'
+                    && prop !== 'name') {
+                mixin[prop] = source[prop]
+            }
+        }
+        if (isFun(source.onMixin)) {
+            source.onMixin.call(mixin)
         }
     }
     return mixin
@@ -154,10 +177,14 @@ function mix() {
 function extend() {
     let mixin = arguments[0]
     for (let arg = 1; arg < arguments.length; arg++) {
-        for (let prop in arguments[arg]) {
-            if (arguments[arg].hasOwnProperty(prop)) {
-                mixin[prop] = arguments[arg][prop]
+        const source = arguments[arg]
+        for (let prop in source) {
+            if (source.hasOwnProperty(prop)) {
+                mixin[prop] = source[prop]
             }
+        }
+        if (isFun(source.onMixin)) {
+            source.onMixin.call(mixin)
         }
     }
     return mixin
@@ -180,8 +207,13 @@ function augment() {
                     }
                 }
             }
+            /*
             if (isFun(source.onAugment)) {
                 source.onAugment.call(mixin)
+            }
+            */
+            if (isFun(source.onMixin)) {
+                source.onMixin.call(mixin)
             }
         }
     }
@@ -203,8 +235,8 @@ function supplement() {
                     }
                 }
             }
-            if (isFun(source.onSupplement)) {
-                source.onSupplement.call(mixin)
+            if (isFun(source.onMixin)) {
+                source.onMixin.call(mixin)
             }
         }
     }
@@ -4250,6 +4282,7 @@ function constructScene(target) {
     }))
     mod.sys.attach(assert)
     mod.sys.attach(mix)
+    mod.sys.attach(mixin)
     mod.sys.attach(extend)
     mod.sys.attach(augment)
     mod.sys.attach(supplement)
