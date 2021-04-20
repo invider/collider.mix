@@ -4,12 +4,12 @@
 // @param {array/string} exclude - list of entities to exclude
 // @returns {object} - data object without functions and excluded keys
 function toData(entity, exclude) {
-    const data = {}
+    const out = {}
     Object.keys(entity).forEach(k => {
         if (exclude && exclude.indexOf(k) >= 0) return // skipping
         const o = entity[k]
         if (isFun(o)) return
-        data[k] = o
+        out[k] = o
     })
-    return data
+    return out
 }
