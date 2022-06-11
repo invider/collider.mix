@@ -28,10 +28,15 @@ function unit(fi) {
 // normalize provided vector to unit size
 // @param {Array/vector2d} - vector to normalize
 // @returns {Array/vector2d} - normalized original vector
-function normal(v) {
+function normalize(v) {
     const l = Math.sqrt(v[0]*v[0] + v[1]*v[1])
-    v[0] /= l
-    v[1] /= l
+    if (l !== 0) {
+        v[0] /= l
+        v[1] /= l
+    } else {
+        v[0] = 0
+        v[1] = 0
+    }
     return v
 }
 
@@ -117,7 +122,7 @@ module.exports = {
     create,
     clone,
     unit,
-    normal,
+    normalize,
     inverse,
     add,
     addxy,

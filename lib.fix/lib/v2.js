@@ -26,11 +26,18 @@ function zero() {
     }
 }
 
-function normal(v) {
+function normalize(v) {
     const l = Math.sqrt(v.x*v.x + v.y*v.y)
-    return {
-        x: v.x/l,
-        y: v.y/l,
+    if (l !== 0) {
+        return {
+            x: v.x/l,
+            y: v.y/l,
+        }
+    } else {
+        return {
+            x: 0,
+            y: 0,
+        }
     }
 }
 
