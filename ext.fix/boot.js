@@ -30,16 +30,25 @@ let fadeBase = hsl(.1, 0, 0)
 //const COLOR = hsl(.3, 1, .5)
 //const COLOR = hsl(.35, 1, .5)
 
-let power = 1.5
-let hold = 3.5
-let fade = 1
-let wait = 0.5
-let bootSfx = 'boot'
+const df = {
+    power:    1.5,
+    hold:     3.5,
+    fade:     1,
+    wait:     0.5,
+    blackout: 2,
+}
+
+let power    = df.power
+let hold     = df.hold
+let fade     = df.fade
+let wait     = df.wait
+let blackout = df.blackout
+let bootSfx  = 'boot'
 let sfxVolume = .5
 
 // boot state
-let time = 0
-let state = 'loading'
+let bootState = 'loading'
+let bootTimer = 0
 let label = ''
 
 
@@ -103,6 +112,21 @@ function init() {
     }
     //if (env.config.fast) hold = 0 // no hold on fast flag
     if (env.config.debug && !env.config.slow) hold = 0 // no hold on debug
+}
+
+function reset() {
+    init()
+    worms.length = 0
+    bootTimer = 0
+    bootState = 'blackout'
+    label    = ''
+    power    = df.power
+    hold     = df.hold
+    fade     = df.fade
+    wait     = df.wait
+    blackout = df.blackout
+    spawnedPoweredBy = false
+    $.boot   = this
 }
 
 function evoWorm(dt) {
@@ -457,7 +481,7 @@ function spawnWorm() {
 
 let spawnedPoweredBy = false
 function evoContent(dt) {
-    if (state !== 'loading' && state !== 'holding') return
+    if (bootState !== 'blackout' && bootState !== 'loading' && bootState !== 'holding') return
 
     worms.forEach(w => {
         if (w.state < DEAD) w.evo(dt)
@@ -470,7 +494,7 @@ function evoContent(dt) {
     
 
     // spawn powered by
-    if (!spawnedPoweredBy && time > power) {
+    if (!spawnedPoweredBy && bootTimer > power) {
         const w = spawnWorm()
         spawnTextSegment(w, rx(.5), ry(.9), 0, POWERED_BY, 1)
         spawnedPoweredBy = true
@@ -497,7 +521,6 @@ function drawContent() {
     text(label, x, y)
 }
 
-
 // ************************
 // generic bootloader logic
 
@@ -506,11 +529,11 @@ function updateLoadingStatus() {
     let included = this._.___.res._included
 
     let amount = 1
-    if (state === 'loading' || state === 'holding') {
+    if (bootState === 'blackout' || bootState === 'loading' || bootState === 'holding') {
         // we are faking percentage to include time left to hold
         if (hold === 0) amount = min(loaded/included, 1)
         else {
-            const holdRate = min(time/hold, 1)
+            const holdRate = min(bootTimer/hold, 1)
             amount = min((loaded/included + holdRate)/2, 1)
         }
     }
@@ -525,19 +548,26 @@ function updateLoadingStatus() {
 }
 
 function evoBoot(dt) {
-    time += dt
+    bootTimer += dt
 
-    switch (state) {
+    switch (bootState) {
+    case 'blackout':
+        if (bootTimer >= blackout) {
+            bootTimer = 0
+            bootState = 'loading'
+        }
+        break
+
     case 'loading':
         if (env._started) {
-            state = 'holding'
+            bootState = 'holding'
         }
         break;
 
     case 'holding':
-        if (time >= hold) {
-            time = 0
-            state = 'fading'
+        if (bootTimer >= hold) {
+            bootTimer = 0
+            bootState = 'fading'
 
             const sound = !res.sfx || res.sfx[bootSfx]
             if (sound) sfx(sound, sfxVolume)
@@ -545,20 +575,22 @@ function evoBoot(dt) {
         break;
 
     case 'fading':
-        if (time >= fade) {
-            time = 0
-            state = 'waiting'
+        if (bootTimer >= fade) {
+            bootTimer = 0
+            bootState = 'waiting'
         }
         break;
 
     case 'waiting':
-        if (time >= wait) {
-            state = 'self-destruct'
+        if (bootTimer >= wait) {
+            bootState= 'self-destruct'
         }
         break;
 
     case 'self-destruct':
         kill(this)
+        delete $.boot
+        $._boot = this
         trap('postBoot')
         break;
     }
@@ -571,9 +603,13 @@ function evo(dt) {
 }
 
 function draw() {
-    if (state === 'waiting' || state === 'self-destruct') {
+    if (bootState === 'waiting' || bootState === 'self-destruct') {
+
         background(fadeBase)
         return
+    }
+    if (bootState === 'blackout') {
+        ctx.globalAlpha = bootTimer/blackout
     }
 
     background(base)
@@ -585,10 +621,19 @@ function draw() {
 
     drawContent()
 
-    if (state === 'fading') {
-        ctx.globalAlpha = time/fade
+    if (bootState === 'fading') {
+        ctx.globalAlpha = bootTimer/fade
         background(fadeBase)
     }
 
     ctx.restore()
+}
+
+function getStatus() {
+    return {
+        bootState,
+        bootTimer,
+        loaded: this._.___.res._loaded,
+        included: this._.___.res._included,
+    }
 }
