@@ -2200,7 +2200,19 @@ function evalJS(script, _) {
     // TODO parse the source for require('')
     //      and try to resolve those before the execution
     //      if not resolved - postpone the evaluation until later in the batch
-    const val = eval(code)
+    let val
+    try {
+        script.evalTries = script.evalTries + 1 || 1
+        val = eval(code)
+    } catch (e) {
+        if (e && e.includes('no requirement found') && script.evalTries < 64) {
+            // TODO I don't like the test for a string and what can we do with cyclic dependencies?
+            //      Maybe there should be a limit on script reexecution?
+            _.log.sys('[eval]', `${e}, rescheduling [${script.path}]`)
+            _.res._schedule(-1, script)
+            return 
+        }
+    }
 
     if (val !== undefined) {
         return withMeta(val, meta, script.name)
