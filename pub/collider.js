@@ -2205,7 +2205,7 @@ function evalJS(script, _) {
         script.evalTries = script.evalTries + 1 || 1
         val = eval(code)
     } catch (e) {
-        if (e && e.includes('no requirement found') && script.evalTries < 64) {
+        if (e && isString(e) && e.includes('no requirement found') && script.evalTries < 64) {
             // TODO I don't like the test for a string and what can we do with cyclic dependencies?
             //      Maybe there should be a limit on script reexecution?
             _.log.sys('[eval]', `${e}, rescheduling [${script.path}]`)
