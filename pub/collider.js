@@ -3158,6 +3158,7 @@ const Mod = function(dat) {
     this.attach(new Frame({
         name: "env",
         _started: false,
+        _evoSpeed: 1,
     }))
 
     // container for acting entities - actors, ghosts, props
@@ -4542,6 +4543,7 @@ function startCycle() {
     _scene.env.startedTime = Date.now()
     _scene.env.lastFrame = performance.now()
     _scene.env.time = 0
+    _scene.env.realTime = 0
     window.requestAnimFrame(cycle) /*
     // old-fasioned way to setup animation
     if (!_scene.env.TARGET_FPS) {
@@ -4688,10 +4690,15 @@ function expandView() {
     if (_scene.trap) _scene.trap('resize')
 }
 
-// ******************************************************
+// *****************************************************************
+// core game update-draw cycle
+// @param now - high-presicion timestamp, equal to performance.now()
 function cycle(now) {
-    //var now = Date.now()
     let dt = (now - _scene.env.lastFrame)/1000
+    _scene.env.realTime += dt
+
+    // adjust according to evo speed
+    dt *= _scene.env._evoSpeed
     _scene.env.time += dt
 
     // show, react and update cycle
