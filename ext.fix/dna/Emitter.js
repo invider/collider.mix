@@ -53,40 +53,44 @@ let Particle = function(dat) {
     }
 }
 
-var Emitter = function(init) {
-    // tuning
-    this.dead = false
-    this.blend = 'source-over'
+const df = {
+    dead:       false,
+    blend:      'source-over',
+    lifespan:   1,
+    force:      200,
+    radius:     0,
+    size:       1,
+    vsize:      0,
+    speed:      100,
+    vspeed:     0,
+    angle:      0,
+    spread:     Math.PI * 2,
+    minLifespan: 1,
+    vLifespan:  0,
+}
 
-    this.lifespan = 1
-    this.force = 200
-    this.radius = 0
-    this.size = 1
-    this.vsize = 0
-    this.speed = 100
-    this.vspeed = 0
-    this.angle = 0
-    this.spread = Math.PI * 2
-    this.minLifespan = 1
-    this.vLifespan = 0
-
-    // augmenting
-    augment(this, init)
-
+var Emitter = function(st) {
+    augment(this, df, st)
     if (this.force) this.frequency = 1/this.force
 
     this.potential = 0
     this.particles = []
 }
 
-// executed when emitter is attached
-Emitter.prototype.init = function(parent, scene) {
+// executed when emitter is attached and needs to be initialized
+Emitter.prototype.init = function() {}
+
+Emitter.prototype.reignite = function(st) {
+    augment(this, df, st)
+    if (this.force) this.frequency = 1/this.force
+    this.potential = 0
 }
 
 // called when emitter lifespan is out
 // (but there are still can be particles flying out)
-Emitter.prototype.onExhausted = function() {
-}
+Emitter.prototype.onExhausted = function() {}
+
+Emitter.prototype.onKill = function() {}
 
 Emitter.prototype.moveParticle = function(dt) {
     this.x += this.dx * dt
@@ -97,7 +101,7 @@ Emitter.prototype.drawParticle = function() {
     if (this.img) {
         ctx.globalAlpha = 0.5
         ctx.imageSmoothingEnabled = true
-        ctx.drawImage(this.img, this.x-this.r, this.y-this.r, this.r*2, this.r*2);
+        ctx.drawImage(this.img, this.x-this.r, this.y-this.r, this.r*2, this.r*2)
     } else {
         ctx.beginPath();
         if (this.lifespan < FADEOUT) {
@@ -105,9 +109,9 @@ Emitter.prototype.drawParticle = function() {
         } else {
             ctx.globalAlpha = 1
         }
-        ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
+        ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI)
         ctx.fillStyle = this.color
-        ctx.fill();
+        ctx.fill()
     }
 }
 
@@ -166,7 +170,7 @@ Emitter.prototype.emit = function(dt) {
 
 // evolve emitter
 Emitter.prototype.evo = function(dt) {
-    if (this.dead) this.__.detach(this)
+    //if (this.dead) this.__.detach(this)
 
     if (this.dx) this.x += this.dx * dt
     if (this.dy) this.y += this.dy * dt
@@ -182,13 +186,15 @@ Emitter.prototype.evo = function(dt) {
     this.emit(dt)
 
     // mutating particles
-    var pn = 0
-    this.particles.forEach( p => {
+    let pn = 0
+    const len = this.particles.length
+    for (let i = 0; i < len; i++) {
+        const p = this.particles[i]
         if (p.alive) {
             pn++
             p.evo(dt)
         }
-    })
+    }
 
     if (pn === 0 && this.lifespan === 0) {
         this.dead = true
@@ -202,11 +208,11 @@ Emitter.prototype.draw = function() {
     ctx.translate(this.x, this.y)
     ctx.globalCompositeOperation = this.blend
 
-    var i = 0
-    this.particles.forEach( p => {
-        i++
+    const len = this.particles.length
+    for (let i = 0; i < len; i++) {
+        const p = this.particles[i]
         if (p.alive) p.draw()
-    })
+    }
     ctx.restore()
 }
 
