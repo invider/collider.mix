@@ -30,6 +30,8 @@ const canvasName = 'canvas'
 
 const GAMEPADS = 4
 
+const LOAD_RETRIES = 16
+
 // *********
 // flags
 let _key = {}
@@ -2180,7 +2182,11 @@ function evalJS(script, _) {
             if (!_.selectOne(req)) missing = req
         })
         if (missing) {
+            if (script.retries > LOAD_RETRIES) {
+                throw '[eval]', `unable to find dependency [${missing}] in [${script.path}]`
+            } 
             _.log.sys('[eval]', `missing dependency [${missing}], rescheduling [${script.path}]`)
+            script.retries = script.retries? script.retries + 1 : 1
             _.res._schedule(-1, script)
             return 
         }
@@ -3020,7 +3026,6 @@ const Mod = function(dat) {
             _.log.sys('[require]', path)
             const rq = _.select(path)
             if (rq && rq.length > 0) {
-                _.log.dump(rq)
                 if (rq.length === 1) return rq[0]
                 else return rq
             } else {
