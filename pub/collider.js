@@ -254,7 +254,9 @@ function defer(fn, timeout) {
 
 function kill(e, st) {
     if (!isObj(e)) return
+    e.dead = true
     defer(() => {
+        // notify the entity about the kill
         if (isFun(e.onKill)) e.onKill(st)
 
         if (isFun(e.kill)) {
