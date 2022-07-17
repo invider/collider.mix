@@ -4883,6 +4883,16 @@ function handleKeyUp(e) {
     return true
 }
 
+function handleGameBlur(e) {
+    _scene.trap('blur', e, true)
+    return false
+}
+
+function handleGameFocus(e) {
+    _scene.trap('focus', e, true)
+    return false
+}
+
 function handleHashChange() {
     if (location.hash.startsWith('#test')) {
         doTest(_scene, location.hash.substring(1))
@@ -4968,6 +4978,9 @@ function bindHandlers(target) {
     target.addEventListener('touchend', handleTouchEnd)
     target.addEventListener('touchmove', handleTouchMove)
     target.addEventListener('touchcancel', handleTouchCancel)
+
+    target.addEventListener('blur', handleGameBlur)
+    target.addEventListener('focus', handleGameFocus)
 }
 bindHandlers(window)
 
