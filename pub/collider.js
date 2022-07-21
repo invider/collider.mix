@@ -180,13 +180,15 @@ function extend() {
     let mixin = arguments[0]
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
-        for (let prop in source) {
-            if (source.hasOwnProperty(prop)) {
-                mixin[prop] = source[prop]
+        if (source && source !== mixin) {
+            for (let prop in source) {
+                if (source.hasOwnProperty(prop)) {
+                    mixin[prop] = source[prop]
+                }
             }
-        }
-        if (isFun(source.onMixin)) {
-            source.onMixin.call(mixin)
+            if (isFun(source.onMixin)) {
+                source.onMixin.call(mixin)
+            }
         }
     }
     return mixin
@@ -2831,6 +2833,7 @@ const Mod = function(dat) {
         pad: _pad,
         mouse: _mouse,
         mix: mix,
+        extend: extend,
         augment: augment,
         supplement: supplement,
         before: before,

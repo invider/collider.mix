@@ -206,11 +206,11 @@ const system = {
         return clone
     },
 
-    // extend a child object from the parent prototype
+    // inherit a child object from the parent prototype
     // @param {object} child
     // @param {object} parent
     // @returns {object} - returns the extended child
-    extend: function(child, parent){
+    inherit: function(child, parent){
         child.prototype = Object.create(parent.prototype);
         child.prototype.constructor = child;
         child.prototype.__super__ = parent
