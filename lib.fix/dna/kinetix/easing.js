@@ -1,22 +1,22 @@
 const easing = {
 
-    saw: function(v) {
+    saw: function(t) {
         // detect next step
-        const fv = floor(v)
+        const fv = floor(t)
         if (fv > this.mark) this.step()
         this.mark = fv
 
-        return v % 1
+        return t % 1
     },
 
-    triangle: function(v) {
+    triangle: function(t) {
         // detect next step
-        const m = floor(v)
+        const m = floor(t)
         if (m > this.mark) this.step()
         this.mark = m
 
-        const w = v % 1
-        const odd = (v|0) % 2 === 1
+        const w = t % 1
+        const odd = (t|0) % 2 === 1
         return odd? 1-w : w
     },
 
@@ -29,41 +29,45 @@ const easing = {
         return abs(sin(t * HALF_PI))
     },
 
-    quad: function(v) {
+    quad: function(t) {
         // detect next step
-        const m = floor(v)
+        const m = floor(t)
         if (m > this.mark) this.step()
         this.mark = m
 
-        const w = v % 1
-        const odd = (v|0) % 2 === 1
+        const w = t % 1
+        const odd = (t|0) % 2 === 1
         return odd? 1-w*w : w*w
     },
 
-    cubic: function(v) {
+    cubic: function(t) {
 
         // detect next step
-        const m = floor(v)
+        const m = floor(t)
         if (m > this.mark) this.step()
         this.mark = m
 
-        const w = v % 1
-        const odd = (v|0) % 2 === 1
+        const w = t % 1
+        const odd = (t|0) % 2 === 1
         return odd? 1-w*w*w : w*w*w
     },
 
-    quart: function(v) {
+    quart: function(t) {
         // detect next step
-        const m = floor(v)
+        const m = floor(t)
         if (m > this.mark) this.step()
         this.mark = m
 
-        const w = v % 1
-        const odd = (v|0) % 2 === 1
+        const w = t % 1
+        const odd = (t|0) % 2 === 1
         return odd? 1-w*w*w*w : w*w*w*w
     },
 
     elastic: function(t) {
+        const m = floor(t)
+        if (m > this.mark) this.step()
+        this.mark = m
+
         t = t % HALF_PI
         return (.04 - .04/t) * Math.sin(25*t) + 1;
         /*
@@ -75,6 +79,11 @@ const easing = {
     },
 
     cubicBezier: function(t) {
+        // detect next step
+        const m = floor(t)
+        if (m > this.mark) this.step()
+        this.mark = m
+
         t = t % 1
         const p1x = this.p1x || .17
         const p1y = this.p1y || .67

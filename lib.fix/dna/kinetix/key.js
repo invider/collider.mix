@@ -13,7 +13,7 @@
 const df = {
     timer: 0,
     mark: 0,
-    period: 1,
+    freq: 1,
 }
 
 function tickWithHold(dt) {
@@ -59,7 +59,7 @@ module.exports = {
         this.timer += dt
     },
 
-    step() {
+    step(t, v) {
         if (this.onCompleted) this.onCompleted()
         if (!this.loop) this.kill()
     },
@@ -76,7 +76,7 @@ module.exports = {
     evo: function(dt) {
         this.tick(dt)
 
-        const t = this.timer / this.period
+        const t = this.timer * this.freq
         this.apply( this.map( this.easing(t)))
     },
 
