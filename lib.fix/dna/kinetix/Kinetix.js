@@ -33,6 +33,7 @@
  *
  */
 class Kinetix {
+
     constructor(st) {
         this.name = 'kinetix'
         this.keys = []
@@ -52,21 +53,51 @@ class Kinetix {
         // TODO allow alternative key implementations
         const proto = dna.kinetix.key
 
+        if (opt.exclusive) {
+            this.clearTarget(target)
+        }
+
         const key = {}
         augment(key, proto)
 
         opt.kinetix = this
         opt.target = target
         key.setup(opt)
+
+        if (opt.follow) {
+            const prevKey = this.locateTargetKey(target)
+            if (prevKey) prevKey.thenKey(key)
+        }
         this.push(key)
 
         return key
     }
 
+    locateTargetKey(target) {
+        for (let i = this.keys.length - 1; i >= 0; i--) {
+            const key = this.keys[i]
+            if (key.verifyTarget(target)) return key
+        }
+    }
+
+    clearTarget(target) {
+        let keyCount = 0
+        for (let i = 0; i < this.keys.length; i++) {
+            const key = this.keys[i]
+            if (!key.dead && key.verifyTarget(target)) {
+                log('canceling one!')
+                console.dir(key)
+                key.cancel()
+                keyCount ++
+            }
+        }
+        return keyCount
+    }
+
     evo(dt) {
         for (let i = 0; i < this.keys.length; i++) {
             const key = this.keys[i]
-            if (key.active) {
+            if (!key.dead && key.active) {
                 key.evo(dt)
             }
         }

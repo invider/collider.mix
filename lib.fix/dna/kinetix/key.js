@@ -8,6 +8,12 @@
  *  * easing() - calculate current easing value
  *  * map(val) - map easing value to property value
  *  * apply(val) - apply updated value to the property
+ *
+ * You can also can handle events like:
+ *
+ *   * onComplete()
+ *   * onCancel()
+ *
  */
 
 const df = {
@@ -27,12 +33,12 @@ function tickWithHold(dt) {
 module.exports = {
 
     setup: function(st) {
-        augment(this, df)
+        extend(this, df)
         this.next = []
 
         this.easing = dna.kinetix.easing.triangle
         if (st) {
-            if (!st.prev) this.activate()
+            extend(this, st)
             if (st.shape) {
                 const easing = dna.kinetix.easing[st.shape]
                 if (!easing) {
@@ -40,9 +46,8 @@ module.exports = {
                 }
                 this.easing = easing
             }
+            if (!st.prev) this.activate()
         }
-
-        augment(this, st)
 
         // configure tick
         if (this.hold && this.hold > 0) {
@@ -52,7 +57,7 @@ module.exports = {
 
     activate() {
         this.active = true
-        if (this.onActivated) this.onActivated()
+        if (this.onActivate) this.onActivate()
     },
 
     tick(dt) {
@@ -60,7 +65,7 @@ module.exports = {
     },
 
     step(t, v) {
-        if (this.onCompleted) this.onCompleted()
+        if (this.onComplete) this.onComplete()
         if (!this.loop) this.kill()
     },
 
@@ -85,6 +90,23 @@ module.exports = {
         const key = this.kinetix.key(target, opt)
         this.next.push(key)
         return key
+    },
+
+    thenKey(key) {
+        if (!key) return
+        this.next.push(key)
+        log('next key is')
+        console.dir(key)
+    },
+
+    verifyTarget(target) {
+        return this.target === target
+    },
+
+    cancel() {
+        if (this.onCancel) this.onCancel()
+        else if (this.onComplete) this.onComplete()
+        this.kill()
     },
 
     kill() {
