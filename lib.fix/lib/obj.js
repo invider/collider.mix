@@ -14,18 +14,24 @@ function toData(entity, exclude) {
     return out
 }
 
-// transfer object to data url
-function toDataURL(obj) {
+// transfer object to a json data url
+function toJsonURL(obj) {
     return "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(obj, 4))
+}
+
+// transfer a string to a text data url
+function toPlainTextURL(txt) {
+    return "data:text/plain;charset=utf-8," + encodeURIComponent(txt)
 }
 
 // download a data url by creating a hyperlink and clicking it
 function downloadDataURL(dataURL, name, ext) {
-    if (!name) name = 'data'
-    if (!ext) ext = 'json'
+    name = name || 'data'
+    if (!ext) ext = ''
+    else ext = '.' + ext
     let a  = document.createElement('a');
     a.href = dataURL;
-    a.download = name + '.' + ext
+    a.download = name + ext
     a.click()
 }
 
