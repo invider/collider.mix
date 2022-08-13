@@ -31,6 +31,12 @@
  *
  *     v => node.value = v * 100
  *
+ *
+ * There are some flags you can use for setup of a animation key:
+ *
+ *     * loop:      is the key should be infinitely looped
+ *     * exclusive: when true, all other keys on the same target will be canceled
+ *     * follow:    follow the last key on the target if present
  */
 class Kinetix {
 

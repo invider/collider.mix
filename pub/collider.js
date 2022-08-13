@@ -684,6 +684,30 @@ Frame.prototype.link = function(node, name) {
     return node
 }
 
+// exclusive link
+Frame.prototype.xlink = function(node, name) {
+    if (node === undefined) return
+    if (isObj(node) || isFun(node)) {
+        // take name from the node if not defined
+        if (!name && node.name) name = node.name
+	}
+
+    if (name) {
+        if (this._dir[name]) {
+            // have a collision - exclude previous node
+            this.detach(this._dir[name])
+        }
+
+        // make sure we are not shaddowing prototype definitions
+        if (!Frame.prototype[name]) {
+            this[name] = node
+        }
+        this._dir[name] = node
+    }
+    this._ls.push(node)
+    return node
+}
+
 Frame.prototype.onAttached = function(node, name, parent) {
     if (this.__) this.__.onAttached(node, name, parent)
 }
@@ -729,7 +753,11 @@ Frame.prototype.detachByName = function(name) {
     //
     //  FINISH called when element detached
     //
+    // TODO shouldn't that be onDetach()?
     if (obj.finish) obj.finish();
+
+    // TODO what is the purpose of this? Is that should be generic?
+    //      Or maybe that can be covered by finish()/onDetach()?
     if (obj.propagateDetach){
         if (obj.propagateDetach instanceof Array){
             obj.propagateDetach.forEach(o => o.__.detach(o));
