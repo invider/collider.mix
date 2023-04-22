@@ -559,12 +559,22 @@ const touchFun = function(nodeFactory) {
         const i = path.indexOf('/')
         if (i >= 0) {
             // switch to the next target
-            let nextName = path.substring(0, i)
-            let nextPath = path.substring(i + 1)
-            let nextNode = this[nextName]
+            const nextName = path.substring(0, i)
+            const nextPath = path.substring(i + 1)
+            const nextNode = this[nextName]
             if (!nextNode) {
                 // no existing node, provide a new one
-                return this.attach( nodeFactory(nextName, this, st) ).touch(nextPath, st)
+                if (nextPath) {
+                    const newNode = this.attach( nodeFactory(nextName, this) )
+                    if (newNode.touch) {
+                        return newNode.touch(nextPath, st)
+                    } else {
+                        throw new Error("can't touch - the node is not a frame! [" + path + "]")
+                    }
+
+                } else {
+                    return this.attach( nodeFactory(nextName, this, st) )
+                }
             } else {
                 if (isFun(nextNode.touch)) {
                     return nextNode.touch(nextPath, st)
@@ -621,7 +631,13 @@ Frame.prototype.getMod = function() {
     return this.__.getMod()
 }
 
-Frame.prototype.touch = touchFun((name, __, st) => new Frame(name, st))
+Frame.prototype.touch = touchFun((name, __, st) => {
+    if (st && st.DNA) {
+        return __.getMod().sys.construct(st.DNA, st) 
+    } else {
+        return new Frame(name, st)
+    }
+})
 
 Frame.prototype.attach = function(node, name) {
     if (node === undefined || node === null) return
@@ -1189,7 +1205,13 @@ const LabFrame = function(st, extra) {
 }
 LabFrame.prototype = Object.create(Frame.prototype)
 
-LabFrame.prototype.touch = touchFun((name, __, st) => new LabFrame(name, st))
+LabFrame.prototype.touch = touchFun((name, __, st) => {
+    if (st && st.DNA) {
+        return __.getMod().sys.construct(st.DNA, st) 
+    } else {
+        return new LabFrame(name, st)
+    }
+})
 
 LabFrame.prototype.spawn = function(dna, st) {
     return this._.sys.spawn(dna, st, this)
