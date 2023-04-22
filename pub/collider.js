@@ -571,11 +571,11 @@ const touchFun = function(nodeFactory) {
                     } else {
                         throw new Error("can't touch - the node is not a frame! [" + path + "]")
                     }
-
                 } else {
                     return this.attach( nodeFactory(nextName, this, st) )
                 }
             } else {
+                if (!nextPath) return nextNode
                 if (isFun(nextNode.touch)) {
                     return nextNode.touch(nextPath, st)
                 } else {
@@ -2216,6 +2216,7 @@ function evalJS(script, _, batch) {
         }
     }
 
+
     if (!script.patch) {
         parent = __.touch(parentPath, st)
         if (parent && parent._) {
@@ -3743,18 +3744,18 @@ Mod.prototype.patch = function(target, path, node) {
                 target.push(node)
             }
         } else if (isObj(target)) {
-            if (path === '') throw { src: this, msg: "can't attach anonymous node to " + target }
+            if (path === '') throw { src: this, msg: "can't attach anonymous node to " + target.name }
             if (index >= 0) {
                 if (!isArray(target[path])) {
                     target[path] = []
                 }
                 target[path][index] = node
+            } else if (isFun(target.attach)) {
+                target.attach(node, path)
             } else if (isObj(target[path])) {
                 augment(target[path], node)
-            } else if (target[path] !== undefined) {
-                // TODO doesn't work property for frames - _dir and _ls stays the same
+            } else {
                 target[path] = node
-                target._dir[path] = node
             }
         }
 
