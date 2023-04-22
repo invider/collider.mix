@@ -147,7 +147,7 @@ Console.prototype.evo = function(dt) {
 }
 
 Console.prototype.drawForeground = function() {
-    ctx.font = env.hud.font
+    ctx.font = this.font
     ctx.fillStyle = this.color.content
     ctx.textAlign = 'left'
     ctx.textBaseline = 'bottom'

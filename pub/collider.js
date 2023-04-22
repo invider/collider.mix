@@ -211,11 +211,6 @@ function augment() {
                     }
                 }
             }
-            /*
-            if (isFun(source.onAugment)) {
-                source.onAugment.call(mixin)
-            }
-            */
             if (isFun(source.onMixin)) {
                 source.onMixin.call(mixin)
             }
@@ -560,7 +555,7 @@ const touchFun = function(nodeFactory) {
         if (path === undefined || path === '') return this
         if (path.startsWith('@')) return this.touch(path.substring(1), st)
         if (path.startsWith('/')) return this._.touch(path.substring(1), st)
-        
+
         const i = path.indexOf('/')
         if (i >= 0) {
             // switch to the next target
@@ -569,7 +564,7 @@ const touchFun = function(nodeFactory) {
             let nextNode = this[nextName]
             if (!nextNode) {
                 // no existing node, provide a new one
-                return this.attach(nodeFactory(nextName, this)).touch(nextPath, st)
+                return this.attach( nodeFactory(nextName, this, st) ).touch(nextPath, st)
             } else {
                 if (isFun(nextNode.touch)) {
                     return nextNode.touch(nextPath, st)
@@ -589,7 +584,7 @@ const touchFun = function(nodeFactory) {
                 return this[path]
             }
             // node seems to be missing - create a new one
-            const node = nodeFactory(path, this)
+            const node = nodeFactory(path, this, st)
             if (st) augment(node, st)
             return this.attach(node)
         }
@@ -600,12 +595,13 @@ const touchFun = function(nodeFactory) {
  * @alias sys.Frame
  * @constructor
  */
-const Frame = function(st) {
+const Frame = function(st, extra) {
     this._ = this
     this._ls = []
     this._dir = {}
     if (isString(st)) {
         this.name = st
+        if (isObj(extra)) augment(this, extra)
     } else if (isObj(st)) {
         augment(this, st)
     }
@@ -625,7 +621,7 @@ Frame.prototype.getMod = function() {
     return this.__.getMod()
 }
 
-Frame.prototype.touch = touchFun((name) => new Frame(name))
+Frame.prototype.touch = touchFun((name, __, st) => new Frame(name, st))
 
 Frame.prototype.attach = function(node, name) {
     if (node === undefined || node === null) return
@@ -1188,12 +1184,12 @@ Frame.prototype.selectOneNumber = function(predicate) {
  * @param initObj
  * @constructor
  */
-const LabFrame = function(st) {
-    Frame.call(this, st)
+const LabFrame = function(st, extra) {
+    Frame.call(this, st, extra)
 }
 LabFrame.prototype = Object.create(Frame.prototype)
 
-LabFrame.prototype.touch = touchFun((name) => new LabFrame(name))
+LabFrame.prototype.touch = touchFun((name, __, st) => new LabFrame(name, st))
 
 LabFrame.prototype.spawn = function(dna, st) {
     return this._.sys.spawn(dna, st, this)
@@ -1448,12 +1444,12 @@ LabFrame.prototype.kill = function() {
 }
 
 
-const CueFrame = function(st) {
-    Frame.call(this, st)
+const CueFrame = function(st, extra) {
+    Frame.call(this, st, extra)
 }
 CueFrame.prototype = Object.create(Frame.prototype)
 
-CueFrame.prototype.touch = touchFun((name) => new CueFrame(name))
+CueFrame.prototype.touch = touchFun((name, __, st) => new CueFrame(name, st))
 
 function parseCueTime(df) {
     if (!df || df.length === 0) return 0
@@ -2043,7 +2039,6 @@ function extractMeta(script, requirements) {
                             console.log('=============== class method ' + lastToken.v + '()')
                             console.log(lastComment)
                             console.dir(params)
-                            debugger
                         }
                         */
                     }
@@ -2182,7 +2177,7 @@ function withMeta(val, meta, name) {
     return val
 }
 
-function evalJS(script, _) {
+function evalJS(script, _, batch) {
     const scope = {}
     const module = {}
 
@@ -2190,11 +2185,22 @@ function evalJS(script, _) {
     let __ = _ // default scope is loader mod
     const parentPath = getParentPath(script.path)
     // TODO should be loader mod?
-    let parent = __.touch(parentPath)
-    if (parent && parent._) {
-        // found context from the parent node
-        // TODO should search up the path until we got suitable context
-        __ = parent._
+    let st
+    if (batch && batch._patch) {
+        const patch = batch._patch[parentPath]
+        if (patch && !patch._patched) {
+            patch._patched = true
+            st = evalJS(patch, _, batch)
+        }
+    }
+
+    if (!script.patch) {
+        parent = __.touch(parentPath, st)
+        if (parent && parent._) {
+            // found context from the parent node
+            // TODO should search up the path until we got suitable context
+            __ = parent._
+        }
     }
 
     script.def = ''
@@ -2356,11 +2362,12 @@ function parseProp(src) {
     return prop
 }
 
-function evalLoadedContent(script, _) {
+function evalLoadedContent(script, _, batch) {
     //try {
     switch(script.ext) {
         case 'js':
-            const val = evalJS(script, _)
+            const val = evalJS(script, _, batch)
+            if (script.patch) return val
 
             if (script.classifier) {
                 // try to find a post-processor for this classifier
@@ -2465,7 +2472,9 @@ const checkScriptDependencies = function(script, batch) {
 
 const sortLoadedBatch = function(batch) {
     //this._execList[batch].sort((a, b) => a.path.localeCompare(b.path))
-    let res = []
+    const res = []
+    // carry on the patching nodes
+    res._patch = batch._patch
 
     var workBatch = batch.slice()
     let check = function(script) {
@@ -2480,18 +2489,49 @@ const sortLoadedBatch = function(batch) {
     while(workBatch.length > 0) {
         check(workBatch[0])
     }
-
     return res
 }
 
-const evalLoadedBatch = function(ibatch, batch, _) {
+const extractPatches = function(batch) {
+    const patch = {}
+    for (let i = 0; i < batch.length; i++) {
+        const e = batch[i]
 
-    let sortedBatch = sortLoadedBatch(batch)
+        if (e.name && e.ext === 'js') {
+            e.parentPath = e.path.slice(0, -(e.name.length))
+            const parentPath = e.parentPath.endsWith('/')? e.parentPath.slice(0, -1) : e.parentPath
+            e.parentName = parentPath.substring(parentPath.lastIndexOf('/') + 1)
+            if ('_' + e.parentName === e.name) {
+                // got a patch for a node!
+                e.patch = true
+                patch[e.parentPath] = e
+            }
+        }
+    }
+    const filteredBatch = batch.filter(e => !e.patch)
+    filteredBatch._patch = patch
+    return filteredBatch
+}
+
+const applySkippedPatches = function(batch, _) {
+    Object.keys(batch._patch).forEach(key => {
+        const patch = batch._patch[key]
+        if (!patch._patched) {
+            const val = evalLoadedContent(patch, _, batch)
+            _.touch(patch.parentPath, val)
+        }
+    })
+}
+
+const evalLoadedBatch = function(ibatch, batch, _) {
+    const patchedBatch = extractPatches(batch)
+    const sortedBatch = sortLoadedBatch(patchedBatch)
 
     sortedBatch.forEach( script => {
-        _.log.sys('eval-'+ibatch, '=> ' + script.path)
-        evalLoadedContent(script, _)
+        _.log.sys('eval-' + ibatch, '=> ' + script.path)
+        evalLoadedContent(script, _, sortedBatch)
     })
+    applySkippedPatches(sortedBatch, _)
 }
 
 function augmentCtx(ctx) {
@@ -3229,7 +3269,7 @@ const Mod = function(dat) {
     }
     augment(mod, new LabFrame())
 
-    mod.touch = touchFun((name) => {
+    mod.touch = touchFun((name, __, st) => {
         let mod
         if (name.endsWith('-buf')) {
             // find different convention for buffered?
@@ -3237,10 +3277,10 @@ const Mod = function(dat) {
             const canvas = document.createElement('canvas')
             const ctx = augmentCtx(canvas.getContext('2d'))
 
-            mod = new Mod({
+            mod = new Mod( extend({
                 name: name,
                 ctx: ctx,
-            })
+            }), st)
         } else {
             mod = new Mod(name)
         }
@@ -3295,11 +3335,11 @@ Mod.prototype.getRoot = function() {
     return this._$
 }
 
-Mod.prototype.touch = touchFun((name, dir) => {
-    const node = new Frame(name)
+Mod.prototype.touch = touchFun((name, __, st) => {
+    const node = new Frame(name, st)
     if (name === 'box') {
-        // mod/box should create mods on touch
-        node.touch = dir.mod.touch
+        // _/box should create mods on touch - just like _/mod
+        node.touch = __.mod.touch
     }
     return node
 })
@@ -3959,9 +3999,10 @@ Mod.prototype.patchNode = function(unitId, unitUrl, path) {
         }
     }
 
+    let targetPath
     const unit = _scene._units[unitId]
     if (unit) {
-        const targetPath = addPath(unit.mount,
+        targetPath = addPath(unit.mount,
                     removeExtension(removeExtension(path)))
 
         const prevNode = _scene.selectOne(targetPath)
@@ -3995,7 +4036,7 @@ Mod.prototype.patchNode = function(unitId, unitUrl, path) {
         )
 
     } else {
-        _scene.log.err('[patch]', `unable to patch ${targetPath}`)
+        _scene.log.err('[patch]', `unable to patch [${path}] from [${unitId}]`)
     }
 }
 
