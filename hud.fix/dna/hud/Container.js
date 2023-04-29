@@ -328,7 +328,7 @@ Container.prototype.onMouseMove = function(x, y, e) {
     //log.debug('mouse move on [' + this.name + '] @' + x + 'x' + y)
     for (let i = this._ls.length-1; i >= 0; i--) {
         const g = this._ls[i]
-        if (!g || g.hidden || g.disabled) return
+        if (!g || g.hidden || g.disabled) continue
 
         if (sys.isFun(g.onMouseMove)) {
             if ((g.within && g.within(x, y))
@@ -384,7 +384,7 @@ Container.prototype.onMouseWheel = function(d, x, y, e) {
     for (let i = this._ls.length-1; i >= 0; i--) {
         const g = this._ls[i]
 
-        if (!g || g.hidden || g.disabled) return
+        if (!g || g.hidden || g.disabled) continue
         if (sys.isFun(g.onMouseWheel)) {
 
             if ((g.within && g.within(x, y))
