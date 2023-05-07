@@ -141,6 +141,26 @@ function dist(x1, y1, x2, y2) {
     return Math.sqrt(dx*dx + dy*dy)
 }
 
+function mixCopy(src) {
+    if (isArray(src)) {
+        const res = []
+        for (let i = 0; i < src.length; i++) {
+            res[i] = mixCopy(src[i])
+        }
+        return res
+    } else if (isObj(src)) {
+        const res = {}
+        for (let prop in src) {
+            if (src.hasOwnProperty(prop)) {
+                res[prop] = mixCopy(src[prop])
+            }
+        }
+        return res
+    } else {
+        return src
+    }
+}
+
 function mix() {
     let mixin = {}
     for (let arg = 0; arg < arguments.length; arg++) {
@@ -178,6 +198,8 @@ function mixin() {
 
 function extend() {
     let mixin = arguments[0]
+    if (!isObj(mixin) && !isFun(mixin)) throw 'object or function is expected!'
+
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
         if (source && source !== mixin) {
@@ -203,11 +225,16 @@ function augment() {
         if (source && source !== mixin) {
             for (let prop in source) {
                 if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
-                    if (isObj(mixin[prop]) && isObj(arguments[arg][prop])) {
+                    if (isObj(mixin[prop]) && isObj(source[prop])) {
                         // property is already assigned - augment it
                         if (mixin !== source[prop]) augment(mixin[prop], source[prop])
                     } else {
-                        mixin[prop] = source[prop];
+                        const val = source[prop]
+                        if (isArray(val)) {
+                            mixin[prop] = val.slice() // shallow array copy
+                        } else {
+                            mixin[prop] = val
+                        }
                     }
                 }
             }

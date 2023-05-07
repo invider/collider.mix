@@ -9,7 +9,7 @@ const Slider = dna.hud.gadget.Slider
 let instances = 0
 
 // a text console component - can be used in a chatbot-like or a command-response loop scenarios
-const Console = function(dat) {
+const Console = function(st) {
     if (!this.name) this.name = 'console' + ++instances
 
     this.focus = false
@@ -33,7 +33,7 @@ const Console = function(dat) {
     this.color = {
         content: '#e0b000',
     }
-    dna.hud.Container.call(this, dat)
+    dna.hud.Container.call(this, st)
 
     this.attach(new Slider({
         name: 'slider',
