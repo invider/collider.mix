@@ -165,13 +165,15 @@ function mix() {
     let mixin = {}
     for (let arg = 0; arg < arguments.length; arg++) {
         const source = arguments[arg]
-        for (let prop in source) {
-            if (source.hasOwnProperty(prop)) {
-                mixin[prop] = source[prop]
+        if (source) {
+            for (let prop in source) {
+                if (source.hasOwnProperty(prop)) {
+                    mixin[prop] = source[prop]
+                }
             }
-        }
-        if (isFun(source.onMixin)) {
-            source.onMixin.call(mixin)
+            if (isFun(source.onMixin)) {
+                source.onMixin.call(mixin)
+            }
         }
     }
     return mixin
