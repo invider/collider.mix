@@ -3,7 +3,7 @@
 // image manipulation tools
 
 // construct tileset from the image
-var TileSet = function(img, sx, sy, tw, th) {
+const TileSet = function(img, sx, sy, tw, th) {
     this.img = img
     this.sx = sx
     this.sy = sy
@@ -16,6 +16,11 @@ var TileSet = function(img, sx, sy, tw, th) {
 // a service call to setup the drawing context
 TileSet.prototype.init = function() {
     this.drawImage = image
+}
+
+// clone current tileset
+TileSet.prototype.clone = function() {
+    return new TileSet(this.img, this.sx, this.sy, this.tw, this.th)
 }
 
 // draw the tiles
