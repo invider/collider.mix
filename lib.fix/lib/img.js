@@ -25,8 +25,8 @@ TileSet.prototype.clone = function() {
 
 // draw the tiles
 TileSet.prototype.draw = function(tilex, x, y, w, h) {
-    w = (w || this.tw) | 0
-    h = (h || this.th) | 0
+    w = (w || this.tw)
+    h = (h || this.th)
 
     const ix = tilex % this.iw
     const iy = floor(tilex / this.iw)
