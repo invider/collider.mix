@@ -5023,7 +5023,7 @@ function handleHashChange() {
     } else if (location.hash.startsWith('#box')) {
         doBox(_scene, location.hash.substring(1), true)
     } else {
-        _scene.trap('hash', location.hash)
+        _scene.trap('hash', location.hash, true)
     }
 }
 
