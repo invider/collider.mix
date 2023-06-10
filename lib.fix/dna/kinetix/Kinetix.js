@@ -91,8 +91,6 @@ class Kinetix {
         for (let i = 0; i < this.keys.length; i++) {
             const key = this.keys[i]
             if (!key.dead && key.verifyTarget(target)) {
-                log('canceling one!')
-                console.dir(key)
                 key.cancel()
                 keyCount ++
             }
@@ -101,9 +99,17 @@ class Kinetix {
     }
 
     evo(dt) {
-        for (let i = 0; i < this.keys.length; i++) {
-            const key = this.keys[i]
-            if (!key.dead && key.active) {
+        const keys = this.keys
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i]
+            if (key.dead) {
+                defer(() => {
+                    const i = keys.indexOf(key)
+                    if (i >= 0) {
+                        keys.splice(i, 1)
+                    }
+                })
+            } else if (key.active) {
                 key.evo(dt)
             }
         }

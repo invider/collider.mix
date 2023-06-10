@@ -95,8 +95,6 @@ module.exports = {
     thenKey(key) {
         if (!key) return
         this.next.push(key)
-        log('next key is')
-        console.dir(key)
     },
 
     verifyTarget(target) {
