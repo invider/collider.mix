@@ -47,10 +47,16 @@ class Kinetix {
         augment(this, st)
     }
 
+    // push a new animation key
+    // @param key - a key object
     push(key) {
         this.keys.push(key)
     }
 
+    // create a key on the provided target
+    // @param {object} target - a target object
+    // @param {object} opt - key options
+    // @returns key - created key
     key(target, opt) {
         if (!target) {
             log.warn('skipping the key - no kinetix target specified!')

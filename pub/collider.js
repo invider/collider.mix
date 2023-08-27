@@ -2187,11 +2187,11 @@ function generateSource(script, __) {
     */
 
     // provide lexical scope for mod context and scope object for this. definitions
-    return '(function(_, ctx, $, _$, module, sys, lib, res, dna, env, lab, mod, pin, pub, log, cue, job, trap) {'
+    return '(function(_, ctx, $, _$, module, sys, lib, math, res, dna, env, lab, mod, pin, pub, log, cue, job, trap) {'
         + def 
         + script.src
         + script.def
-    + '}).call(scope, __, __.ctx, __._$, __._$, module, __.sys, __.lib, __.res, __.dna, __.env, __.lab, __.mod, __.pin, __.pub, __.log, __.cue, __.job, __.trap)'
+    + '}).call(scope, __, __.ctx, __._$, __._$, module, __.sys, __.lib, __.lib.math,  __.res, __.dna, __.env, __.lab, __.mod, __.pin, __.pub, __.log, __.cue, __.job, __.trap)'
     + '\n//# sourceURL=' + script.origin
 }
 
@@ -3585,9 +3585,10 @@ Mod.prototype.inherit = function() {
 
     this.link(this.___.pub)
     extend(this.sys, this.___.sys)
-    //supplement(this.sys, this.___.sys)
+    this.lib.attach({ name: 'math' })
+    extend(this.lib.math, this.___.lib.math)
     /*
-        function log(msg, post) {
+    function log(msg, post) {
         log.out(msg, post)
     }
     */
