@@ -3327,6 +3327,7 @@ const Mod = function(dat) {
             // find different convention for buffered?
             _scene.log.sys(`creating custom canvas for ${name}`)
             const canvas = document.createElement('canvas')
+            // TODO how to define and switch to webgl buffer? by '-glbuf?'
             const ctx = augmentCtx(canvas.getContext('2d'))
 
             mod = new Mod( extend({
@@ -4517,6 +4518,7 @@ function reconstructScene() {
 
     Mod.call(_scene)
     constructScene(_scene)
+    // TODO we are taking it again? what if it is webgl?
     _scene.ctx = augmentCtx(canvas.getContext("2d"))
     _scene.populateAlt()
 
@@ -4616,6 +4618,7 @@ const bootstrap = function() {
     }
 
     // bind context
+    // TODO how to define, select and switch to a webgl context?
     _scene.ctx = augmentCtx(canvas.getContext("2d"))
     _scene.populateAlt()
 
@@ -4737,6 +4740,7 @@ function placeCanvas(name, baseX, baseY, baseWidth, baseHeight) {
     const viewportWidth = baseWidth
     const viewportHeight = baseHeight
 
+    // TODO how to define, select and switch to a webgl context?
     const ctx = canvas.getContext("2d")
 
     let mode = canvas.getAttribute('mode')
