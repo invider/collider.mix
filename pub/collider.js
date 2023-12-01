@@ -27,6 +27,7 @@ const UNITS_MAP = 'units.map'
 const JAM_CONFIG = 'jam.config'
 // TODO it shouldn't be global, but rather a property of a mod
 const canvasName = 'canvas'
+const defaultCanvasName = 'canvas'
 
 const GAMEPADS = 4
 
@@ -3156,9 +3157,13 @@ const Mod = function(dat) {
             }
         },
     }
-    this.ctx = false
     this.paused = false
     this.hidden = false
+
+    // rendering context
+    this.canvasName = defaultCanvasName
+    this.canvas = null
+    this.ctx = null
 
     Frame.call(this, dat)
 
@@ -3324,15 +3329,17 @@ const Mod = function(dat) {
     mod.touch = touchFun((name, __, st) => {
         let mod
         if (name.endsWith('-buf')) {
-            // find different convention for buffered?
-            _scene.log.sys(`creating custom canvas for ${name}`)
+            // TODO find different convention for buffered?
+            _scene.log.sys(`creating a buffer canvas for ${name}`)
             const canvas = document.createElement('canvas')
             // TODO how to define and switch to webgl buffer? by '-glbuf?'
             const ctx = augmentCtx(canvas.getContext('2d'))
 
             mod = new Mod( extend({
-                name: name,
-                ctx: ctx,
+                name:       name,
+                canvasName: '',
+                canvas:     canvas,
+                ctx:        ctx,
             }), st)
         } else {
             mod = new Mod(name)
@@ -3412,12 +3419,15 @@ Mod.prototype.populateAlt = function() {
 
 Mod.prototype.init = function() {
     this.___ = this._ // save node context as parent mod
-    this._ = this // must be in init, since it is assigned during the regular node.attach()
+    this._ = this // must be redefined in init, since it is assigned during the regular node.attach()
     Object.defineProperty(this, '___', { enumerable: false })
     Object.defineProperty(this, '_', { enumerable: false })
 
+    // clone the rendering context from the parent mod if not set explicitly
     if (!this.ctx) {
-        this.ctx = this.___.ctx // clone draw context from parent mod if not set explicitly
+        this.canvasName = this.___.canvasName
+        this.canvas     = this.___.canvas
+        this.ctx        = this.___.ctx
     }
     this.populateAlt()
 
@@ -3488,7 +3498,9 @@ Mod.prototype._runTests = function() {
                 //_scene.log.sys('test [' + name + ']')
                 try {
                     const mod = constructScene()
-                    mod.ctx = _scene.ctx
+                    mod.canvasName = _scene.canvasName
+                    mod.canvas     = _scene.canvas
+                    mod.ctx        = _scene.ctx
                     mod.populateAlt()
                     repatchScene(mod, _scene)
 
@@ -4744,7 +4756,7 @@ function placeCanvas(name, baseX, baseY, baseWidth, baseHeight) {
     const ctx = canvas.getContext("2d")
 
     let mode = canvas.getAttribute('mode')
-    if (!mode) mode = 'fullscreen'
+    mode = mode || 'fullscreen'
 
     if (_scene.env.canvasStyle === 'preserve' || _scene.env.config.preserveCanvas) { 
         _scene.ctx.width = canvas.width
