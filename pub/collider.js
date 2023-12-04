@@ -26,10 +26,11 @@ const SCRIPT_SRC = 'collider.mix/collider.js'
 const UNITS_MAP = 'units.map'
 const JAM_CONFIG = 'jam.config'
 
-let container
-const defaultCanvasName = 'canvas'
-const glCanvasName     = 'gl-canvas'
-let glEnabled = false
+const containerName = 'container'
+const canvasName    = 'canvas'
+const glCanvasName  = 'gl-canvas'
+let   container
+const canvasList = []
 
 const GAMEPADS = 4
 
@@ -2190,11 +2191,11 @@ function generateSource(script, __) {
     */
 
     // provide lexical scope for mod context and scope object for this. definitions
-    return '(function(_, ctx, $, _$, module, sys, lib, math, color, res, dna, env, lab, mod, pin, pub, log, cue, job, trap) {'
+    return '(function(_, ctx, gl, $, _$, module, sys, lib, math, color, res, dna, env, lab, mod, pin, pub, log, cue, job, trap) {'
         + def 
         + script.src
         + script.def
-    + '}).call(scope, __, __.ctx, __._$, __._$, module, __.sys, __.lib, __.lib.math, __.lib.color, __.res, __.dna, __.env, __.lab, __.mod, __.pin, __.pub, __.log, __.cue, __.job, __.trap)'
+    + '}).call(scope, __, __.ctx, __.gl, __._$, __._$, module, __.sys, __.lib, __.lib.math, __.lib.color, __.res, __.dna, __.env, __.lab, __.mod, __.pin, __.pub, __.log, __.cue, __.job, __.trap)'
     + '\n//# sourceURL=' + script.origin
 }
 
@@ -2947,7 +2948,7 @@ function augmentCtx(ctx) {
 }
 
 // Mod context container
-const Mod = function(dat) {
+const Mod = function(st) {
     const _ = this
     this._patchLog = []
     this._testLog = []
@@ -3164,11 +3165,14 @@ const Mod = function(dat) {
     this.hidden = false
 
     // rendering context
-    this.canvasName = defaultCanvasName
-    this.canvas     = null
-    this.ctx        = null
+    this.canvasName   = canvasName
+    this.canvas       = null
+    this.ctx          = null
+    this.glCanvasName = glCanvasName
+    this.glCanvas     = null
+    this.gl           = null
 
-    Frame.call(this, dat)
+    Frame.call(this, st)
 
     // resources container
     this.attach(new Frame({
@@ -3335,31 +3339,8 @@ const Mod = function(dat) {
             _scene.log.sys(`creating a buffer canvas for ${name}`)
             const canvas = document.createElement('canvas')
             const ctx = augmentCtx(canvas.getContext('2d'))
-
-            mod = new Mod( extend({
-                name:       name,
-                canvasName: '',
-                canvas:     canvas,
-                ctx:        ctx,
-            }), st)
-        } else if (name.endsWith('-gl')) {
-            _scene.log.sys(`creating a webgl canvas for ${name}`)
-            const canvas = document.createElement('canvas')
-            canvas.id             = glCanvasName
-            canvas.style.zIndex   = 5
-            canvas.style.border   = "0px"
-            canvas.style.margin   = "0px"
-            canvas.style.padding  = "0px"
-            canvas.style.position = "absolute"
-            canvas.style.display  = "block"
-            container.appendChild(canvas)
-
-            const ctx = augmentCtx(canvas.getContext('webgl2', {
-                antialias: false,
-                depth: false,
-            }))
-            glEnabled = true
-            _scene.sys.expandCanvas(glCanvasName)
+            canvas.cl = true
+            canvas.buffer = true
 
             mod = new Mod( extend({
                 name:       name,
@@ -3451,9 +3432,14 @@ Mod.prototype.init = function() {
 
     // clone the rendering context from the parent mod if not set explicitly
     if (!this.ctx) {
-        this.canvasName = this.___.canvasName
-        this.canvas     = this.___.canvas
-        this.ctx        = this.___.ctx
+        this.canvasName   = this.___.canvasName
+        this.canvas       = this.___.canvas
+        this.ctx          = this.___.ctx
+    }
+    if (!this.gl) {
+        this.glCanvasName = this.___.glCanvasName
+        this.glCanvas     = this.___.glCanvas
+        this.gl           = this.___.gl
     }
     this.populateAlt()
 
@@ -4499,6 +4485,7 @@ function constructScene(target) {
 
     mod.sys.attach(placeCanvas)
     mod.sys.attach(expandCanvas)
+    mod.sys.attach(expandView)
     mod.sys.attach(evalLoadedContent)
     mod.sys.attach(doBox)
     mod.sys.attach(enableBox)
@@ -4560,7 +4547,7 @@ function reconstructScene() {
 
     Mod.call(_scene)
     constructScene(_scene)
-    // TODO we are taking it again? what if it is webgl?
+    // TODO we are taking it again? what if it is webgl? where is canvas coming from?
     _scene.ctx = augmentCtx(canvas.getContext("2d"))
     _scene.populateAlt()
 
@@ -4632,12 +4619,44 @@ const preboot = function() {
 const bootstrap = function() {
     _scene.log.sys('jam', '*** booting up ***')
 
-    // binding to the graphical context by convention
-    let canvas = document.getElementById(defaultCanvasName)
+    container = document.getElementById(containerName)
+    // place WebGL context
+    let glCanvas = document.getElementById(glCanvasName)
+    if (glCanvas == null) {
+        // precreated canvas is not found, so create one
+        glCanvas = document.createElement('canvas')
+        glCanvas.id = glCanvasName
+        glCanvas.style.zIndex   = 5
+        glCanvas.style.border   = "0px"
+        glCanvas.style.margin   = "0px"
+        glCanvas.style.padding  = "0px"
+        glCanvas.style.position = "absolute"
+        glCanvas.style.display  = "block"
+
+        // place canvas in a container div
+        if (!container) {
+            container = document.createElement('div')
+            container.id = 'container'
+            document.body.appendChild(container)
+        }
+        container.appendChild(glCanvas)
+        canvasList.push(glCanvas)
+        
+        // style the body
+        document.body.style.margin   = "0"
+        document.body.style.padding  = "0"
+        document.body.style.overflow = "hidden"
+        document.body.setAttribute("scroll", "no")
+    } else {
+        canvasList.push(glCanvas)
+    }
+
+    // binding to the graphical canvas/context by convention
+    let canvas = document.getElementById(canvasName)
     if (canvas == null) {
         // precreated canvas is not found, so create one
         canvas = document.createElement('canvas')
-        canvas.id = defaultCanvasName
+        canvas.id = canvasName
         canvas.style.zIndex   = 7
         canvas.style.border   = "0px"
         canvas.style.margin   = "0px"
@@ -4646,22 +4665,65 @@ const bootstrap = function() {
         canvas.style.display  = "block"
 
         // place canvas in a container div
-        container = document.createElement('div')
-        container.id = 'container'
+        if (!container) {
+            container = document.createElement('div')
+            container.id = 'container'
+            document.body.appendChild(container)
+        }
         container.appendChild(canvas)
+        canvasList.push(canvas)
 
-        document.body.appendChild(container)
-        
         // style the body
-        document.body.style.margin = "0"
-        document.body.style.padding = "0"
+        document.body.style.margin   = "0"
+        document.body.style.padding  = "0"
         document.body.style.overflow = "hidden"
         document.body.setAttribute("scroll", "no")
     }
 
     // bind context
-    // TODO how to define, select and switch to a webgl context?
-    _scene.ctx = augmentCtx(canvas.getContext("2d"))
+    if (canvas) {
+        _scene.canvas = canvas
+        _scene.ctx = augmentCtx(canvas.getContext('2d'))
+        canvas.cl = true
+        canvas.buffer = false
+        canvas.contextId = '2d'
+    }
+    if (glCanvas) {
+        glCanvas.buffer = false
+        _scene.glCanvas = glCanvas
+        _scene.gl = glCanvas.getContext('webgl2', {
+            antialias: false,
+            depth: false,
+        })
+        if (_scene.gl) {
+            glCanvas.gl = true
+            glCanvas.version = 2
+            glCanvas.contextId = 'webgl2'
+        } else {
+            _scene.gl = glCanvas.getContext('webgl', {
+                antialias: false,
+                depth: false,
+            })
+            if (_scene.gl) {
+                glCanvas.gl = true
+                glCanvas.version = 1
+                glCanvas.contextId = 'webgl'
+            } else {
+                _scene.gl = glCanvas.getContext('experimental-webgl')
+                if (_scene.gl) {
+                    glCanvas.gl = true
+                    glCanvas.version = 0
+                    glCanvas.contextId = 'experimental-webgl'
+                } else {
+                    // TODO no WebGL support, should we remove it from DOM completely?
+                    glCanvas.disabled = true
+                    glCanvas.gl = false
+                    glCanvas.version = -1
+                    _scene.log.err('No WebGL support!')
+                }
+            }
+        }
+    }
     _scene.populateAlt()
 
     _scene.loadUnits(_scene, _scene.env.syspath)
@@ -4716,7 +4778,7 @@ const bootstrap = function() {
 }
 
 function startCycle() {
-    _scene.sys.expandCanvas(defaultCanvasName)
+    expandView()
     focus()
     setInterval(focus, 100)
 
@@ -4726,13 +4788,14 @@ function startCycle() {
     _scene.env.lastFrame = performance.now()
     _scene.env.time = 0
     _scene.env.realTime = 0
-    window.requestAnimFrame(cycle) /*
-    // old-fasioned way to setup animation
-    if (!_scene.env.TARGET_FPS) {
-        setInterval(cycle, 1)
-    } else {
-        setInterval(cycle, 1000/_scene.env.TARGET_FPS)
-    }
+    window.requestAnimFrame(cycle)
+    /*
+        // old-fasioned way to setup animation
+        if (!_scene.env.TARGET_FPS) {
+            setInterval(cycle, 1)
+        } else {
+            setInterval(cycle, 1000/_scene.env.TARGET_FPS)
+        }
     */
 }
 
@@ -4773,7 +4836,6 @@ function startFlow(url) {
 }
 
 function placeCanvas(name, baseX, baseY, baseWidth, baseHeight) {
-    if (!name) name = defaultCanvasName
     var canvas = document.getElementById(name)
     if (!canvas) return
 
@@ -4782,9 +4844,7 @@ function placeCanvas(name, baseX, baseY, baseWidth, baseHeight) {
     const viewportWidth = baseWidth
     const viewportHeight = baseHeight
 
-    // TODO how to define, select and switch to a webgl context?
-    // TODO MUST BE fixed for webgl canvases!
-    const ctx = canvas.getContext("2d")
+    const ctx = canvas.getContext( canvas.contextId )
 
     let mode = canvas.getAttribute('mode')
     mode = mode || 'fullscreen'
@@ -4861,7 +4921,17 @@ function placeCanvas(name, baseX, baseY, baseWidth, baseHeight) {
         canvas.style.height = viewportHeight + 'px'
 
     }
-    _scene.draw() // it doesn't work without forced redraw
+    // TODO strange things are happening in canvas extension
+    // TODO how to refresh or force redraw the gl context?
+    _scene.draw() // it doesn't work without forced redraw (!?)
+    /*
+    if (canvas.gl) {
+        const gl = ctx
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        gl.clearColor(.1, .1, .1, 1)
+        gl.clear( gl.COLOR_BUFFER_BIT )
+    }
+    */
 }
 
 function expandCanvas(name) {
@@ -4869,9 +4939,13 @@ function expandCanvas(name) {
 }
 
 function expandView() {
-    // TODO modify to support multiple canvases and custom resize
-    _scene.sys.expandCanvas(defaultCanvasName)
-    if (glEnabled) _scene.sys.expandCanvas(glCanvasName)
+    for (let i = 0; i < canvasList.length; i++) {
+        const canvas = canvasList[i]
+        if (!canvas.buffer) {
+            //_scene.sys.expandCanvas(canvas.id)
+            _scene.sys.placeCanvas(canvas.id, 0, 0, window.innerWidth, window.innerHeight)
+        }
+    }
     if (_scene.trap) _scene.trap('resize')
 }
 
@@ -4906,6 +4980,7 @@ function cycle(now) {
         dt -= _scene.env.MAX_EVO_STEP
     }
     _scene.env.lastFrame = now
+
 	window.requestAnimFrame(cycle)
 }
 
