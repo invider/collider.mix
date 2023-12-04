@@ -25,9 +25,11 @@ $ = mix = (function(window) {
 const SCRIPT_SRC = 'collider.mix/collider.js'
 const UNITS_MAP = 'units.map'
 const JAM_CONFIG = 'jam.config'
-// TODO it shouldn't be global, but rather a property of a mod
-const canvasName = 'canvas'
+
+let container
 const defaultCanvasName = 'canvas'
+const glCanvasName     = 'gl-canvas'
+let glEnabled = false
 
 const GAMEPADS = 4
 
@@ -2950,48 +2952,48 @@ const Mod = function(dat) {
     this._patchLog = []
     this._testLog = []
     this._scope = {
-        key: _key,
-        pad: _pad,
-        mouse: _mouse,
-        mix: mix,
-        extend: extend,
-        augment: augment,
-        supplement: supplement,
-        before: before,
-        after: after,
-        chain: chain,
-        isFun: isFun,
-        isClass: isClass,
-        isObj: isObj,
-        isString: isString,
-        isNumber: isNumber,
-        isFrame: isFrame,
-        isArray: isArray,
+        key:         _key,
+        pad:         _pad,
+        mouse:       _mouse,
+        mix:         mix,
+        extend:      extend,
+        augment:     augment,
+        supplement:  supplement,
+        before:      before,
+        after:       after,
+        chain:       chain,
+        isFun:       isFun,
+        isClass:     isClass,
+        isObj:       isObj,
+        isString:    isString,
+        isNumber:    isNumber,
+        isFrame:     isFrame,
+        isArray:     isArray,
         isContainer: isContainer,
-        isEmpty: isEmpty,
-        assert: assert,
+        isEmpty:     isEmpty,
+        assert:      assert,
 
         // math
-        E: Math.E,
-        PI: Math.PI,
-        PI2: Math.PI * 2,
-        TAU: Math.PI * 2,
+        E:       Math.E,
+        PI:      Math.PI,
+        PI2:     Math.PI * 2,
+        TAU:     Math.PI * 2,
         HALF_PI: Math.PI / 2,
 
-        abs: Math.abs,
-        pow: Math.pow,
-        sqrt: Math.sqrt,
-        min: Math.min,
-        max: Math.max,
-        ceil: Math.ceil,
+        abs:   Math.abs,
+        pow:   Math.pow,
+        sqrt:  Math.sqrt,
+        min:   Math.min,
+        max:   Math.max,
+        ceil:  Math.ceil,
         floor: Math.floor,
         round: Math.round,
-        sin: Math.sin,
-        cos: Math.cos,
-        tan: Math.tan,
-        acos: Math.acos,
-        asin: Math.asin,
-        atan: Math.atan,
+        sin:   Math.sin,
+        cos:   Math.cos,
+        tan:   Math.tan,
+        acos:  Math.acos,
+        asin:  Math.asin,
+        atan:  Math.atan,
         atan2: Math.atan2,
 
         // TODO should we change to determenistic one and introduce seed?
@@ -3146,6 +3148,7 @@ const Mod = function(dat) {
         cls: function() {
             return _.sys.cls.apply(_.sys, arguments)
         },
+
         require: function(path) {
             _.log.sys('[require]', path)
             const rq = _.select(path)
@@ -3162,8 +3165,8 @@ const Mod = function(dat) {
 
     // rendering context
     this.canvasName = defaultCanvasName
-    this.canvas = null
-    this.ctx = null
+    this.canvas     = null
+    this.ctx        = null
 
     Frame.call(this, dat)
 
@@ -3329,11 +3332,34 @@ const Mod = function(dat) {
     mod.touch = touchFun((name, __, st) => {
         let mod
         if (name.endsWith('-buf')) {
-            // TODO find different convention for buffered?
             _scene.log.sys(`creating a buffer canvas for ${name}`)
             const canvas = document.createElement('canvas')
-            // TODO how to define and switch to webgl buffer? by '-glbuf?'
             const ctx = augmentCtx(canvas.getContext('2d'))
+
+            mod = new Mod( extend({
+                name:       name,
+                canvasName: '',
+                canvas:     canvas,
+                ctx:        ctx,
+            }), st)
+        } else if (name.endsWith('-gl')) {
+            _scene.log.sys(`creating a webgl canvas for ${name}`)
+            const canvas = document.createElement('canvas')
+            canvas.id             = glCanvasName
+            canvas.style.zIndex   = 5
+            canvas.style.border   = "0px"
+            canvas.style.margin   = "0px"
+            canvas.style.padding  = "0px"
+            canvas.style.position = "absolute"
+            canvas.style.display  = "block"
+            container.appendChild(canvas)
+
+            const ctx = augmentCtx(canvas.getContext('webgl2', {
+                antialias: false,
+                depth: false,
+            }))
+            glEnabled = true
+            _scene.sys.expandCanvas(glCanvasName)
 
             mod = new Mod( extend({
                 name:       name,
@@ -3935,7 +3961,7 @@ function removeExtension(url) {
     return url.replace(/\.[^/.]+$/, '') // remove extension
 }
 
-function attachTTF(name, url) {
+function attachFont(name, url) {
     const fontStyle = document.createElement('style')
     fontStyle.appendChild(document.createTextNode("\n\
     @font-face {\n\
@@ -4146,7 +4172,11 @@ Mod.prototype.batchLoad = function(batch, url, base, path, after) {
             break
 
         case 'ttf':
-            attachTTF(name, url)
+            attachFont(name, url)
+            break
+
+        case 'otf':
+            attachFont(name, url)
             break
 
         case 'wav':
@@ -4603,20 +4633,20 @@ const bootstrap = function() {
     _scene.log.sys('jam', '*** booting up ***')
 
     // binding to the graphical context by convention
-    let canvas = document.getElementById(canvasName)
+    let canvas = document.getElementById(defaultCanvasName)
     if (canvas == null) {
         // precreated canvas is not found, so create one
         canvas = document.createElement('canvas')
-        canvas.id = canvasName
-        canvas.style.zIndex   = 1
+        canvas.id = defaultCanvasName
+        canvas.style.zIndex   = 7
         canvas.style.border   = "0px"
-        canvas.style.margin = "0px"
-        canvas.style.padding = "0px"
+        canvas.style.margin   = "0px"
+        canvas.style.padding  = "0px"
         canvas.style.position = "absolute"
-        canvas.style.display = "block"
+        canvas.style.display  = "block"
 
         // place canvas in a container div
-        const container = document.createElement('div')
+        container = document.createElement('div')
         container.id = 'container'
         container.appendChild(canvas)
 
@@ -4686,7 +4716,7 @@ const bootstrap = function() {
 }
 
 function startCycle() {
-    _scene.sys.expandCanvas(canvasName)
+    _scene.sys.expandCanvas(defaultCanvasName)
     focus()
     setInterval(focus, 100)
 
@@ -4743,7 +4773,7 @@ function startFlow(url) {
 }
 
 function placeCanvas(name, baseX, baseY, baseWidth, baseHeight) {
-    if (!name) name = canvasName
+    if (!name) name = defaultCanvasName
     var canvas = document.getElementById(name)
     if (!canvas) return
 
@@ -4753,6 +4783,7 @@ function placeCanvas(name, baseX, baseY, baseWidth, baseHeight) {
     const viewportHeight = baseHeight
 
     // TODO how to define, select and switch to a webgl context?
+    // TODO MUST BE fixed for webgl canvases!
     const ctx = canvas.getContext("2d")
 
     let mode = canvas.getAttribute('mode')
@@ -4839,7 +4870,8 @@ function expandCanvas(name) {
 
 function expandView() {
     // TODO modify to support multiple canvases and custom resize
-    _scene.sys.expandCanvas(canvasName)
+    _scene.sys.expandCanvas(defaultCanvasName)
+    if (glEnabled) _scene.sys.expandCanvas(glCanvasName)
     if (_scene.trap) _scene.trap('resize')
 }
 
