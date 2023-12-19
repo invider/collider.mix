@@ -306,6 +306,10 @@ function limit(val, min, max) {
     return val<min? min : val>max? max : val
 }
 
+function clamp(val, min, max) {
+    return val<min? min : val>max? max : val
+}
+
 function hue2rgb(p, q, t) {
     if (t < 0) t += 1
     if (t > 1) t -= 1
@@ -3019,6 +3023,8 @@ const Mod = function(st) {
         },
 
         limit: limit,
+
+        clamp: clamp,
 
         within: function(val, min, max) {
             return (val >= min && val <= max)

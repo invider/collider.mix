@@ -270,12 +270,21 @@ const math = {
         return a < 0? a + 2*Math.PI : a
     },
 
-    // limit the value within provided [min..max] range
+    // limit (clamp) a value within the provided [min..max] range
     // @param {number} val - original value
     // @param {number} min
     // @param {number} max
     // @returns {number} - a value limited to [min..max] range
     limit: function(val, min, max) {
+        return val < min? min : val > max? max : val
+    },
+
+    // clamp (limit) a value within the provided [min..max] range
+    // @param {number} val - original value
+    // @param {number} min
+    // @param {number} max
+    // @returns {number} - a value limited to [min..max] range
+    clamp: function(val, min, max) {
         return val < min? min : val > max? max : val
     },
 
