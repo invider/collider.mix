@@ -734,6 +734,9 @@ Frame.prototype.link = function(node, name) {
 }
 
 // exclusive link
+// 
+// Detaches previous node in case of the name collision
+// TODO include in collider docs
 Frame.prototype.xlink = function(node, name) {
     if (node === undefined) return
     if (isObj(node) || isFun(node)) {
@@ -3457,7 +3460,7 @@ function enableBox(mod, box, start) {
     if (!box.env.patched) {
         supplement(box.res, mod.res)
         supplement(box.lib, mod.lib)
-        supplement(box.lib, mod.dna)
+        supplement(box.dna, mod.dna)
         box.env.patched = true
     }
     mod.mod.link(box)
@@ -3560,7 +3563,7 @@ Mod.prototype.start = function() {
     this.env._started = true
     this.inherit()
 
-    let captured = false
+    let captured = null
     if (_scene.env.config.test) captured = this._runTests()
 
     if (this === _scene && _scene.env.config.box) {

@@ -35,9 +35,11 @@ TileSet.prototype.draw = function(tilex, x, y, w, h) {
 
     // WARNING! A dirty hack is needed to prevent tile artifacts!
     // For some stupid reason we need to fix integer coordinates with floats
-    // to avoid out-of-range pixels getting rendered :(
+    // to avoid out-of-range pixels getting rendered and avoid gaps :(
     // The sub-pixel 0.1 shift is selected empirically and seems to work.
-    this.drawImage(this.img, tx+.1, ty+.1, this.tw-.2, this.th-.2, x, y, w, h)
+    const f = .1
+    const f2 = 2 * f
+    this.drawImage(this.img, tx + f, ty + f, this.tw - f2, this.th - f2, x - f, y - f, w + f2, h + f2)
 }
 
 module.exports = {
