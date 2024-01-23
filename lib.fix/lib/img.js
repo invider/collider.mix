@@ -37,9 +37,11 @@ TileSet.prototype.draw = function(tilex, x, y, w, h) {
     // For some stupid reason we need to fix integer coordinates with floats
     // to avoid out-of-range pixels getting rendered and avoid gaps :(
     // The sub-pixel 0.1 shift is selected empirically and seems to work.
-    const f = .1
+    const f = .1191
     const f2 = 2 * f
-    this.drawImage(this.img, tx + f, ty + f, this.tw - f2, this.th - f2, x - f, y - f, w + f2, h + f2)
+    const g = .4191
+    const g2 = 2 * g
+    this.drawImage(this.img, tx + f, ty + f, this.tw - f2, this.th - f2, x - g, y - g, w + g2, h + g2)
 }
 
 module.exports = {

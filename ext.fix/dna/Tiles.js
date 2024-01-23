@@ -1,3 +1,5 @@
+const OUT = -9
+
 const df = {
     x: 0,
     y: 0,
@@ -125,10 +127,33 @@ class Tiles {
     }
 
     // pick a tilex at coordinates
-    pick(x, y) {
+    pick(x, y, ls) {
         const tx = floor((x - this.x)/this.step)
         const ty = floor((y - this.y)/this.step)
-        return this.map[ty * this.iw + tx]
+        if (tx < 0 || tx >= this.iw || ty < 0 || ty >= this.ih) {
+            return null
+        }
+        const tilex = this.map[ty * this.iw + tx]
+        if (tilex >= 0) {
+            const tile = {
+                tiles: this,
+                tilex: tilex,
+            }
+            ls.push(tile)
+            return tile
+        }
+        return null
+    }
+
+    // collect a tilex to the list
+    collect(x, y, ls) {
+        const tx = floor((x - this.x)/this.step)
+        const ty = floor((y - this.y)/this.step)
+        if (tx < 0 || tx >= this.iw || ty < 0 || ty >= this.ih) return OUT
+
+        const tilex = this.map[ty * this.iw + tx]
+        if (ls) ls.push(tilex)
+        return tilex
     }
 
     // transform local tile x to parent's coordinate space
@@ -151,12 +176,8 @@ class Tiles {
         return floor((y - this.y)/this.step)
     }
 
-    // collect a tilex to the list
-    collect(x, y, ls) {
-        const tx = floor((x - this.x)/this.step)
-        const ty = floor((y - this.y)/this.step)
-        const tilex = this.map[ty * this.iw + tx]
-        if (ls) ls.push(tilex)
-        return tilex
+    tilex(tx, ty) {
+        if (tx < 0 || tx >= this.iw || ty < 0 || ty >= this.ih) return OUT
+        return this.map[ty * this.iw + tx]
     }
 }
