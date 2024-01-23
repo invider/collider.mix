@@ -3195,7 +3195,7 @@ const Mod = function(st) {
             if (batch < 0) {
                 // determine the batch
                 const lastBatch = this._execList[this._execList.length - 1]
-                if (lastBatch.indexOf(script) >= 0) {
+                if (!lastBatch || lastBatch.indexOf(script) >= 0) {
                     // create a new batch for this one
                     batch = this._execList.length
                 } else {
