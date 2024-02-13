@@ -36,6 +36,9 @@ const GAMEPADS = 4
 
 const LOAD_RETRIES = 16
 
+const TYPE_TEXT = 1
+const TYPE_BLOB = 2
+
 // *********
 // flags
 let _key = {}
@@ -4039,7 +4042,7 @@ function loadJson(url) {
     return promise 
 }
 
-function scheduleLoad(_, batch, url, base, path, name, ext, classifier, after) {
+function scheduleLoad(_, batch, url, base, path, name, ext, classifier, type, after) {
     _.res._included ++
 
     var ajax = new XMLHttpRequest()
@@ -4047,15 +4050,21 @@ function scheduleLoad(_, batch, url, base, path, name, ext, classifier, after) {
         if (this.readyState == 4) {
             if (this.status == 200) {
                 // content is loaded
+                let content
+                if (type === TYPE_BLOB) {
+                    content = new Uint8Array(this.response)
+                } else {
+                    content = this.responseText
+                }
                 const script = {
                     origin: url,
-                    path: path,
-                    base: base,
-                    name: name,
-                    ext: ext,
+                    path:   path,
+                    base:   base,
+                    name:   name,
+                    ext:    ext,
                     classifier: classifier,
-                    src: this.responseText,
-                    after: after,
+                    src:    content,
+                    after:  after,
                 }
                 if (batch === 0) {
                     // boot scripts are evaluated imediately
@@ -4073,6 +4082,9 @@ function scheduleLoad(_, batch, url, base, path, name, ext, classifier, after) {
         }
     }
     ajax.open("GET", randomizeUrl(url), true)
+    if (type === TYPE_BLOB) {
+        ajax.responseType = "arraybuffer"
+    }
     ajax.send()
 }
 
@@ -4182,12 +4194,16 @@ Mod.prototype.batchLoad = function(batch, url, base, path, after) {
 
         case 'js': case 'json': case 'yaml':
         case 'txt': case 'prop': case 'lines': case 'csv':
-            scheduleLoad(_, batch, url, base, path, name, ext, classifier, after)
+            scheduleLoad(_, batch, url, base, path, name, ext, classifier, TYPE_TEXT, after)
+            break
+
+        case 'raw': case 'bin': case 'dat': case 'dump': case 'blob':
+            scheduleLoad(_, batch + 1, url, base, path, name, ext, classifier, TYPE_BLOB, after)
             break
 
         default:
             //_.log.sys('loader-' + batch, 'ignoring resource by type: [' + url + ']')
-            scheduleLoad(_, batch + 1, url, base, path, name, ext, classifier)
+            scheduleLoad(_, batch + 1, url, base, path, name, ext, classifier, TYPE_TEXT, after)
     }
 }
 
