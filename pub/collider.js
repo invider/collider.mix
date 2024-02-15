@@ -2491,7 +2491,7 @@ function evalLoadedContent(script, _, batch) {
         case 'fun': script.fun(); break;
         default: {
             // check out a custom parser for ext
-            if (isFrame(_.lib) && isFrame(_.lib.ext) && isFun(_.lib.ext[script.ext])) {
+            if (isFrame(_.lib) && isFrame(_.lib.ext) && isFun(_.lib.ext._dir[script.ext])) {
                 _.log.sys('using custom parser for *.' + script.ext)
                 const parsedVal = _.lib.ext[script.ext](script.src,
                                     script.name, script.path, script.base)
