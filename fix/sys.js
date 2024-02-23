@@ -6,9 +6,10 @@ const system = {
 
     // copy source nodes to the target destination
     // @param {string} source - a selector for nodes to copy
-    // @param {string|object/Frame} target - a copy destination
+    // @param {string|object/Frame} target - the copy destination
+    // @param {function} predicate - a filter function accepting the node and returning true if it needs to be copied
     // @returns {number} - a number of copied nodes
-    cp: function(source, target) {
+    cp: function(source, target, predicate) {
         _.log.sys('copying ' + source + ' -> ' + target)
 
         let list = this._.select(source)
@@ -23,10 +24,70 @@ const system = {
         }
 
         if (!this._.sys.isFrame(dest)) return 0
+
+        let nodeCount = 0
         list.forEach( function(e) {
-            dest.attach(e)
+            if (predicate) {
+                if (predicate(e)) {
+                    dest.attach(e)
+                    nodeCount ++
+                }
+            } else {
+                dest.attach(e)
+                nodeCount ++
+            }
         })
-        return list.length
+        return nodeCount
+    },
+
+    // move source nodes to the target destination
+    // @param {string} source - a selector for nodes to move
+    // @param {string|object/Frame} target - the move destination
+    // @param {function} predicate - a filter function accepting the node and returning true if it needs to be moved
+    // @returns {number} - a number of moved nodes
+    mv: function(source, target, predicate) {
+        let list
+        if (this._.sys.isString(source)) {
+            _.log.sys('moving ' + source + ' -> ' + target)
+            list = this._.select(source)
+        } else if (this._.sys.isArray(source)) {
+            list = []
+            for (let i = 0; i < source.length; i++) {
+                list.push(source[i])
+            }
+            _.log.sys('moving array of ' + list.length)
+        } else {
+            list = [ source ]
+            _.log.sys('moving a single object')
+        }
+
+        if (list.length === 0) return 0
+        let dest 
+        if (this._.sys.isString(target)) {
+            dest = this._.select(target)
+            if (dest.length !== 1) return 0 // can't copy if no node or more than one found
+            dest = dest[0]
+        } else {
+            dest = target
+        }
+
+        let nodeCount = 0
+        if (!this._.sys.isFrame(dest)) return 0
+        list.forEach( function(e) {
+            if (predicate) {
+                if (predicate(e)) {
+                    if (e.__) e.__.detach(e)
+                    dest.attach(e)
+                    nodeCount ++
+                }
+            } else {
+                if (e.__) e.__.detach(e)
+                dest.attach(e)
+                nodeCount ++
+            }
+        })
+
+        return nodeCount
     },
 
     /*
