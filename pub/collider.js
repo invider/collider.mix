@@ -3476,8 +3476,7 @@ function doBox(mod, boxName, start) {
     if (box) {
         return enableBox(mod, box, start)
     } else {
-        _scene.log.sys(
-            `unable to find box [${boxName}] in [${mod.name}]`)
+        _scene.log.sys(`unable to find box [${boxName}] in [${mod.name}]`)
     }
 }
 
@@ -3488,8 +3487,7 @@ function doTest(mod, testName) {
         return test()
 
     } else {
-        _scene.log.sys(
-            `unable to find test [${testName}] in [${mod.name}]`)
+        _scene.log.sys(`unable to find test [${testName}] in [${mod.name}]`)
     }
 }
 
@@ -4504,8 +4502,6 @@ function constructScene(target) {
     mod.sys.attach(isFrame)
     mod.sys.attach(isEmpty)
 
-    mod.sys.attach(addPath)
-    mod.sys.attach(removeExtension)
     mod.sys.attach(reconstructScene)
 
     mod.sys.attach(placeCanvas)
@@ -4514,6 +4510,17 @@ function constructScene(target) {
     mod.sys.attach(evalLoadedContent)
     mod.sys.attach(doBox)
     mod.sys.attach(enableBox)
+
+    mod.sys.attach(new Frame({
+        name: 'url',
+    }))
+    //mod.sys.attach(addPath)
+    //mod.sys.attach(removeExtension)
+    mod.sys.url.attach(addPath)
+    mod.sys.url.attach(getExtension)
+    mod.sys.url.attach(removeExtension)
+    mod.sys.url.attach(getParentPath)
+    mod.sys.url.attach(getResourceName)
 
     mod.attach(new Frame({
         name: 'pin',

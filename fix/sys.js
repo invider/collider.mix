@@ -128,7 +128,7 @@ const system = {
         let path
         let cons = source
         if (this._.sys.isString(source)) {
-            path = this.addPath(sbase, source)
+            path = this.url.addPath(sbase, source)
             cons = this._.selectOne(path)
 
             if (!isFun(cons) && !isObj(cons)) {
