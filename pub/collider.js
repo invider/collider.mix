@@ -2961,7 +2961,6 @@ function augmentCtx(ctx) {
 const Mod = function(st) {
     const _ = this
     this._patchLog = []
-    this._testLog = []
     this._scope = {
         key:         _key,
         pad:         _pad,
@@ -3495,38 +3494,125 @@ Mod.prototype._runTests = function() {
     if (!isFrame(this.test)) return
     if (this.test._ls.length === 0) return
 
+    this._testLog = []
+    this._testLog.passed = 0
+    this._testLog.failed = 0
+    this._testLog.total = 0
+
+    function runTestFn(_, fn) {
+        if (!fn || !isFun(fn) || !isString(fn.name)) return
+
+        if (fn.name.startsWith('test')) {
+
+            try {
+                _._testLog.total ++
+                const res = fn()
+
+                _._testLog.passed ++
+                _._testLog.push({
+                    name: name,
+                    status: 'ok',
+                    result: res,
+                })
+                _.log.sys('[' + fn.name + '] Passed')
+
+            } catch(e) {
+                _._testLog.failed ++
+                _._testLog.push({
+                    name: name,
+                    status: 'failed',
+                    result: err,
+                })
+                _.log.err(err)
+                _.log.err('[' + name + '] Failed!')
+            }
+
+        } else if (fn.name.startsWith('trial')) {
+            const mod = constructScene()
+            mod.canvasName = _scene.canvasName
+            mod.canvas     = _scene.canvas
+            mod.ctx        = _scene.ctx
+            mod.populateAlt()
+            repatchScene(mod, _scene)
+            // TODO run in a new context
+            throw 'not implemented yet'
+        }
+    }
+
+    function runTests(_, node) {
+        if (isFun(node)) {
+            runTestFn(_, node)
+            //_.log.sys('ignoring test for [' + name + ']')
+
+        } else if (isFrame(node)) {
+            node._ls.forEach(test => {
+                runTests(_, test)
+            })
+
+        } else if (isObj(node)) {
+            Object.keys(node).forEach(key => {
+                const val = node[key]
+                runTests(_, val)
+            })
+        }
+    }
+
+    function testSuit(_, ls) {
+        let passed = 0
+        let failed = 0
+
+        ls.forEach(test => {
+            const name = test.name
+            _.log.sys('testing [' + name + ']')
+            let res = runTests(_, test)
+        })
+        _.log.sys('====================================')
+        _.log.sys('Test Suit for [' + _.name + ']')
+        _.log.sys('====================================')
+        _.log.sys('Passed: ' + _._testLog.passed)
+        _.log.sys('Failed: ' + _._testLog.failed)
+        _.log.sys('Total:  ' + _._testLog.total)
+    }
+
     if (isString(_scene.env.config.test)) {
         this.status = 'testing'
         const testName = _scene.env.config.test
-        const test = this.test.selectOne(_scene.env.config.test)
+        const tests = this.test.select(_scene.env.config.test)
+        //_scene.log.sys('running test [' + _scene.env.config.test + '] in ' + this.name)
+        testSuit(this, tests)
+        /*
         if (isFun(test)) {
-            _scene.log.sys('running test [' + _scene.env.config.test + '] in ' + this.name)
             return test()
         } else {
             _scene.log.sys(`no test [${testName}] in ${this.name}`)
         }
         return false
+        */
 
     } else {
         _scene.log.sys('running tests in: ' + this.name)
         this.status = 'testing'
+        testSuit(this, this.test._ls)
         
+        /*
         let passed = 0
         let failed = 0
         Object.keys(this.test._dir).forEach(name => {
             const test = this.test[name]
 
+            const mod = constructScene()
+            mod.canvasName = _scene.canvasName
+            mod.canvas     = _scene.canvas
+            mod.ctx        = _scene.ctx
+            mod.populateAlt()
+            repatchScene(mod, _scene)
+
             if (isFun(test)) {
                 //_scene.log.sys('test [' + name + ']')
                 try {
-                    const mod = constructScene()
-                    mod.canvasName = _scene.canvasName
-                    mod.canvas     = _scene.canvas
-                    mod.ctx        = _scene.ctx
-                    mod.populateAlt()
-                    repatchScene(mod, _scene)
+                    const res = testFrame(mod.test[name])
 
-                    const res = mod.test[name]()
+                    //const res = mod.test[name]()
 
                     passed ++
                     this._testLog.push({
@@ -3554,6 +3640,7 @@ Mod.prototype._runTests = function() {
             this.log.sys('Failed: ' + failed)
         })
         return false
+        */
     }
 }
 
