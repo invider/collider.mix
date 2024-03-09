@@ -38,6 +38,12 @@ function expect(tar, title, up, upTitle) {
             }
             return this
         },
+        isAnyObject: function() {
+            if (typeof tar !== 'object' || tar === null) {
+                throw new Error(`${tag} is expected to be any object or array`)
+            }
+            return this
+        },
         isArray: function() {
             if (!Array.isArray(tar)) throw new Error(`${tag} is expected to be an array`)
             return this
@@ -45,6 +51,11 @@ function expect(tar, title, up, upTitle) {
         isTypedArray: function() {
             const TypedArray = Object.getPrototypeOf(Uint8Array)
             if (!(tar instanceof TypedArray)) throw new Error(`${tag} is expected to be a typed array`)
+            return this
+        },
+        isAnyArray: function() {
+            const TypedArray = Object.getPrototypeOf(Uint8Array)
+            if (!Array.isArray(tar) && !(tar instanceof TypedArray)) throw new Error(`${tag} is expected to be any array`)
             return this
         },
 
