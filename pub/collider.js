@@ -3510,21 +3510,21 @@ Mod.prototype._runTests = function() {
 
                 _._testLog.passed ++
                 _._testLog.push({
-                    name: name,
+                    name:   name,
                     status: 'ok',
                     result: res,
                 })
-                _.log.sys('[' + fn.name + '] Passed')
+                _.log.sys('    + [' + fn.name + '] - Passed')
 
             } catch(e) {
                 _._testLog.failed ++
                 _._testLog.push({
-                    name: name,
+                    name:   name,
                     status: 'failed',
-                    result: err,
+                    result: e,
                 })
-                _.log.err(err)
-                _.log.err('[' + name + '] Failed!')
+                _.log.err(e)
+                _.log.err('    - [' + name + '] - Failed!')
             }
 
         } else if (fn.name.startsWith('trial')) {
@@ -3558,20 +3558,31 @@ Mod.prototype._runTests = function() {
     }
 
     function testSuit(_, ls) {
+        _.log.sys('====================================')
+        _.log.sys('Test Suit for [' + _.name + ']')
+        _.log.sys('====================================')
+
         let passed = 0
         let failed = 0
 
         ls.forEach(test => {
             const name = test.name
-            _.log.sys('testing [' + name + ']')
+            _.log.sys('* testing [' + name + ']')
             let res = runTests(_, test)
         })
-        _.log.sys('====================================')
-        _.log.sys('Test Suit for [' + _.name + ']')
-        _.log.sys('====================================')
-        _.log.sys('Passed: ' + _._testLog.passed)
-        _.log.sys('Failed: ' + _._testLog.failed)
-        _.log.sys('Total:  ' + _._testLog.total)
+        _.log.sys('------------------------------------')
+        if (_._testLog.failed === 0) {
+            _.log.sys('=== SUCCESS ===')
+            _.log.sys('Passed: ' + _._testLog.passed)
+            _.log.sys('Failed: ' + _._testLog.failed)
+            _.log.sys('Total:  ' + _._testLog.total)
+        } else {
+            _.log.err('=== FAILED ===')
+            _.log.err('Failed: ' + _._testLog.failed)
+            _.log.err('Passed: ' + _._testLog.passed)
+            _.log.err('Total:  ' + _._testLog.total)
+        }
+        _.log.sys('------------------------------------')
     }
 
     if (isString(_scene.env.config.test)) {

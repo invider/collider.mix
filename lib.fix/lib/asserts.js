@@ -1,5 +1,6 @@
 
 // collection of assert functions
+// TODO deprecate by expect() function?
 
 var asserts = {
 
