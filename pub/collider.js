@@ -3509,6 +3509,7 @@ Mod.prototype._runTests = function() {
 
         if (fn.name.startsWith('test')) {
 
+            const name = fn.name
             try {
                 _._testLog.total ++
                 const res = fn()
@@ -3519,7 +3520,7 @@ Mod.prototype._runTests = function() {
                     status: 'ok',
                     result: res,
                 })
-                _.log.sys('    + [' + fn.name + '] - Passed')
+                _.log.sys('    [+] ' + name + ' - Passed')
 
             } catch(e) {
                 _._testLog.failed ++
@@ -3529,7 +3530,8 @@ Mod.prototype._runTests = function() {
                     result: e,
                 })
                 _.log.err(e)
-                _.log.err('    - [' + name + '] - Failed!')
+                _.log.err('  [-] ' + name + ' - Failed!')
+                throw new Error(`${_._testLog.failed} Tests Failed`)
             }
 
         } else if (fn.name.startsWith('trial')) {

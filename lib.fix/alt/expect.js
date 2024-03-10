@@ -4,7 +4,7 @@ function isTypedArray(val) {
 }
 
 function expect(tar, title, up, upTitle) {
-    const tag = title? `[${title}:${tar}]` : `${tar}`
+    const tag = title? `[${title} == ${tar}]` : `${tar}`
     const stag = title? `[${title}] ` : ``
 
     return {
