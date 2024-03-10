@@ -8,8 +8,14 @@ function expect(tar, title, up, upTitle) {
     const stag = title? `[${title}] ` : ``
 
     return {
+        EPSILON: 0.001,
         toBe: function(val) {
             if (tar !== val) throw new Error(`${tag} is expected to be [${val}]`)
+            return this
+        },
+        toBeNear: function(val, epsilon) {
+            epsilon = epsilon || this.EPSILON
+            if (Math.abs(tar - val) > epsilon)  throw new Error(`${tag} is expected to be near [${val}] (precision: ${epsilon})`)
             return this
         },
         isNull: function() {
