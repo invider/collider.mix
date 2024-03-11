@@ -332,14 +332,14 @@ const math = {
     // @param {number} a - angle in degree
     // @returns {number} - angle in radians
     degToRad: function(d) {
-        return d * (Math.PI / 180)
+        return d * DEG_TO_RAD
     },
 
     // convert radians value to degrees
     // @param {number} r - angle in radians
     // @returns {number} - angle in degree
     radToDeg: function(r) {
-        return r * (180 / Math.PI)
+        return r * RAD_TO_DEG
     },
 
     createRandomGenerator: createRandomGenerator,

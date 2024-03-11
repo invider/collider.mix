@@ -305,12 +305,13 @@ function kill(e, st) {
     })
 }
 
-function limit(val, min, max) {
-    return val<min? min : val>max? max : val
+function clamp(val, min, max) {
+    return val < min? min : val > max? max : val
 }
 
-function clamp(val, min, max) {
-    return val<min? min : val>max? max : val
+// alias to clamp
+function limit(val, min, max) {
+    return val < min? min : val > max? max : val
 }
 
 function hue2rgb(p, q, t) {
