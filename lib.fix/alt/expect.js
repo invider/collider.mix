@@ -26,6 +26,10 @@ function expect(tar, title, up, upTitle) {
             if (typeof tar !== 'undefined') throw new Error(`${tag} is expected to be undefined`)
             return this
         },
+        isBoolean: function() {
+            if (typeof tar !== 'boolean') throw new Error(`${tag} is expected to be a boolean`)
+            return this
+        },
         isNumber: function() {
             if (typeof tar !== 'number' || isNaN(tar)) throw new Error(`${tag} is expected to be a number`)
             return this
