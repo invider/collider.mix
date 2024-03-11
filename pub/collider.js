@@ -2995,6 +2995,7 @@ const Mod = function(st) {
         INV_TAU: 1 / (Math.PI * 2),
         DEG_TO_RAD: Math.PI / 180,
         RAD_TO_DEG: 180 / Math.PI,
+        EPSILON: 0.000001,
 
         abs:   Math.abs,
         pow:   Math.pow,
