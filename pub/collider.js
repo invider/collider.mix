@@ -2990,6 +2990,7 @@ const Mod = function(st) {
         PI2:     Math.PI * 2,
         TAU:     Math.PI * 2,
         HALF_PI: Math.PI / 2,
+        QUARTER_PI: Math.PI / 4,
         INV_PI:  1 / Math.PI,
         INV_PI2: 1 / (Math.PI * 2),
         INV_TAU: 1 / (Math.PI * 2),
