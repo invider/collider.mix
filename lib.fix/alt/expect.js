@@ -1,6 +1,14 @@
-function isTypedArray(val) {
+function testArray(tar) {
+    return Array.isArray(tar)
+}
+
+function testTypedArray(tar) {
     const TypedArray = Object.getPrototypeOf(Uint8Array)
-    return (val instanceof TypedArray)
+    return (tar instanceof TypedArray)
+}
+
+function testAnyArray(tar) {
+    return (testArray(tar) || testTypedArray(tar))
 }
 
 function expect(tar, title, up, upTitle) {
@@ -43,7 +51,7 @@ function expect(tar, title, up, upTitle) {
             return this
         },
         isObject: function() {
-            if (typeof tar !== 'object' || Array.isArray(tar) || tar === null) {
+            if (typeof tar !== 'object' || testArray(tar) || tar === null) {
                 throw new Error(`${tag} is expected to be an object`)
             }
             return this
@@ -55,7 +63,7 @@ function expect(tar, title, up, upTitle) {
             return this
         },
         isArray: function() {
-            if (!Array.isArray(tar)) throw new Error(`${tag} is expected to be an array`)
+            if (!testArray(tar)) throw new Error(`${tag} is expected to be an array`)
             return this
         },
         isTypedArray: function() {
@@ -64,8 +72,7 @@ function expect(tar, title, up, upTitle) {
             return this
         },
         isAnyArray: function() {
-            const TypedArray = Object.getPrototypeOf(Uint8Array)
-            if (!Array.isArray(tar) && !(tar instanceof TypedArray)) throw new Error(`${tag} is expected to be any array`)
+            if (!testAnyArray(tar)) throw new Error(`${tag} is expected to be any array`)
             return this
         },
 
@@ -75,7 +82,7 @@ function expect(tar, title, up, upTitle) {
         },
         eachNotNull: function() {
             if (tar == null) throw new Error(`value is expected, but ${tag} found`)
-            if (!Array.isArray(tar)) throw new Error(`array value is expected`)
+            if (!isAnyArray(tar)) throw new Error(`an array or typed array value is expected`)
 
             for (let i = 0; i < tar.length; i++) {
                 const e = tar[i]
@@ -92,10 +99,10 @@ function expect(tar, title, up, upTitle) {
         },
 
         element: function(index) {
-            if (!tar || (!Array.isArray(tar) && !isTypedArray(tar))) {
+            if (!tar || (!testAnyArray(tar))) {
                 throw new Error(`${tag} is expected to be an array or a typed array to access elements by index`)
             }
-            return expect(tar[index], `${title}[${index}]`, tar, title)
+            return expect(tar[index], `${title}[#${index}]`, tar, title)
         },
 
         up: function() {
@@ -104,13 +111,13 @@ function expect(tar, title, up, upTitle) {
         },
 
         elementsMatch: function(vals) {
-            if (!Array.isArray(tar)) throw new Error(`${tag} is expected to be an array`)
+            if (!testAnyArray(tar)) throw new Error(`${tag} is expected to be an array`)
             if (vals.length !== tar.length) throw new Error(`${tag}.length is expected to be [${vals.length}]`)
 
             for (let i = 0; i < tar.length; i++) {
                 const e = tar[i]
                 const v = vals[i]
-                if (e !== v) throw new Error(`${tag}[${i}] is expected to be [${v}]`)
+                if (e !== v) throw new Error(`${tag}[#${i}] is expected to be [${v}]`)
             }
 
             return this
@@ -118,7 +125,7 @@ function expect(tar, title, up, upTitle) {
 
         forEach: function(fn) {
             if (tar == null) throw new Error(`value is expected, but ${tag} found`)
-            if (!Array.isArray(tar)) throw new Error(`${stag}array value is expected`)
+            if (!testArray(tar)) throw new Error(`${stag}array value is expected`)
             if (typeof fn !== 'function') throw new Error(`${stag}apply function is expected in forEach(fn)`)
 
             for (let i = 0; i < tar.length; i++) {
