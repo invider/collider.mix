@@ -103,6 +103,19 @@ function expect(tar, title, up, upTitle) {
             return expect(up, upTitle)
         },
 
+        elementsMatch: function(vals) {
+            if (!Array.isArray(tar)) throw new Error(`${tag} is expected to be an array`)
+            if (vals.length !== tar.length) throw new Error(`${tag}.length is expected to be [${vals.length}]`)
+
+            for (let i = 0; i < tar.length; i++) {
+                const e = tar[i]
+                const v = vals[i]
+                if (e !== v) throw new Error(`${tag}[${i}] is expected to be [${v}]`)
+            }
+
+            return this
+        },
+
         forEach: function(fn) {
             if (tar == null) throw new Error(`value is expected, but ${tag} found`)
             if (!Array.isArray(tar)) throw new Error(`${stag}array value is expected`)

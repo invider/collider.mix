@@ -1,3 +1,4 @@
+// @deprecated use /alt expect() function instead
 function _expect_(tar, title, up, upTitle) {
     const tag = title? `[${title}:${tar}]` : `${tar}`
     const stag = title? `[${title}] ` : ``
