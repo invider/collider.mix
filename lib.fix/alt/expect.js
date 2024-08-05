@@ -123,6 +123,23 @@ function expect(tar, title, up, upTitle) {
             return this
         },
 
+        elementsNearlyMatch: function(vals, epsilon) {
+            if (!testAnyArray(tar)) throw new Error(`${tag} is expected to be an array`)
+            if (vals.length !== tar.length) throw new Error(`${tag}.length is expected to be [${vals.length}]`)
+
+            epsilon = epsilon || this.EPSILON
+            if (Math.abs(tar - val) > epsilon)  throw new Error(`${tag} is expected to be near [${val}] (precision: ${epsilon})`)
+            return this
+
+            for (let i = 0; i < tar.length; i++) {
+                const e = tar[i]
+                const v = vals[i]
+                if (Math.abs(e - v) > epsilon) throw new Error(`${tag}[#${i + 1}] is expected to be near [${v}] (precision: ${epsilon}), but [${e}] found!`)
+            }
+
+            return this
+        },
+
         forEach: function(fn) {
             if (tar == null) throw new Error(`value is expected, but ${tag} found`)
             if (!testArray(tar)) throw new Error(`${stag}array value is expected`)
