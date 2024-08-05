@@ -18,7 +18,7 @@ function expect(tar, title, up, upTitle) {
     return {
         EPSILON: 0.001,
         toBe: function(val) {
-            if (tar !== val) throw new Error(`${tag} is expected to be [${val}]`)
+            if (tar !== val) throw new Error(`${tag} is expected to be [${val}], but [${tar}] found!`)
             return this
         },
         toBeNear: function(val, epsilon) {
@@ -102,7 +102,7 @@ function expect(tar, title, up, upTitle) {
             if (!tar || (!testAnyArray(tar))) {
                 throw new Error(`${tag} is expected to be an array or a typed array to access elements by index`)
             }
-            return expect(tar[index], `${title}[#${index}]`, tar, title)
+            return expect(tar[index], `${title}[#${index + 1}]`, tar, title)
         },
 
         up: function() {
@@ -117,7 +117,7 @@ function expect(tar, title, up, upTitle) {
             for (let i = 0; i < tar.length; i++) {
                 const e = tar[i]
                 const v = vals[i]
-                if (e !== v) throw new Error(`${tag}[#${i}] is expected to be [${v}]`)
+                if (e !== v) throw new Error(`${tag}[#${i + 1}] is expected to be [${v}], but [${e}] found!`)
             }
 
             return this
