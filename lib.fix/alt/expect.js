@@ -136,9 +136,6 @@ function expect(tar, title, up, upTitle) {
             if (vals.length !== tar.length) throw new Error(`${tag}.length is expected to be [${vals.length}]`)
 
             epsilon = epsilon || this.EPSILON
-            if (Math.abs(tar - val) > epsilon)  throw new Error(`${tag} is expected to be near [${val}] (precision: ${epsilon})`)
-            return this
-
             for (let i = 0; i < tar.length; i++) {
                 const e = tar[i]
                 const v = vals[i]
