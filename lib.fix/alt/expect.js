@@ -110,8 +110,16 @@ function expect(tar, title, up, upTitle) {
             return expect(up, upTitle)
         },
 
-        elementsMatch: function(vals) {
+        elementsMatch: function(v) {
             if (!testAnyArray(tar)) throw new Error(`${tag} is expected to be an array`)
+
+            let vals
+            if (Array.isArray(v)) {
+                vals = v
+            } else {
+                vals = arguments
+            }
+
             if (vals.length !== tar.length) throw new Error(`${tag}.length is expected to be [${vals.length}]`)
 
             for (let i = 0; i < tar.length; i++) {
