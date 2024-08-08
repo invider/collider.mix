@@ -1852,7 +1852,6 @@ function extractMeta(script, requirements) {
             const token = getToken()
             tokenBuffer.token = token
             if (token && (token.t === SPECIAL || token.t === ID || token.t === STRING)) state.tokens ++
-            //if (script.debug) console.log( ">>>>> " + tokenToString(tokenBuffer.token) )
             return token
         }
     }
@@ -1964,6 +1963,11 @@ function extractMeta(script, requirements) {
         if (name === 'exports') name = script.name
 
         if (type === 'module' && state.tokens > 1) comment = null
+
+        if (name.startsWith('__') && name.endsWith('__')) {
+            // shadowed function name
+            name = name.substring(2, name.length - 2)
+        }
 
         if (comment && comment.l + 2 > line) {
             let head = comment.v.trim()
