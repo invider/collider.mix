@@ -348,7 +348,7 @@ SlideCamera.prototype.evo = function(dt) {
 
         } else if (this.scale > this.scaleTarget) {
             this.scale *= 1 - this.zoomSpeed * dt
-            if (this.scale < this.scaleTarget) {P
+            if (this.scale < this.scaleTarget) {
                 this.scale = this.scaleTarget
                 this.scaleTarget = 0
             }
