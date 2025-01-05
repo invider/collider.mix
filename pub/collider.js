@@ -546,6 +546,7 @@ const after = function(obj, fun, patch) {
 }
 
 const chain = function(fn1, fn2) {
+    // if an argument is present it MUST be a function
     if (fn1 && !isFun(fn1)) throw (`Function is expected, but found [${fn1}] of ` + (typeof fn1))
     if (fn2 && !isFun(fn2)) throw (`Function is expected, but found [${fn2}] of ` + (typeof fn2))
 
@@ -3389,7 +3390,7 @@ const Mod = function(st) {
         if (this.ignore && this.ignore[key]) return true
 
         if (!this.__.disabled) {
-            var fn = trap[key]
+            var fn = trap.selectOne(key)
             if (isFun(fn)) {
                 if (fn(data) === false) return false
             }
@@ -3404,13 +3405,29 @@ const Mod = function(st) {
         return true
     }
 
-    trap.on = function(key, fn) {
-        if (!key) throw 'key is expected on trap'
-        if (!isFun(fn)) throw 'function is expected on trap'
-
-        this[key] = chain(this[key], fn)
-    }
     augment(trap, new Frame())
+
+    trap.attach = function(node, name) {
+        if (isFun(node)) {
+            node = chain(this._dir[name], node)
+        }
+        Frame.prototype.attach.call(this, node, name)
+    }
+
+    // make sure all subFrames also have custom touch and attach
+    trap.touch = touchFun((name, __, st) => {
+        const node = new Frame(name, st)
+        node.attach = trap.attach
+        node.touch = trap.touch
+        node.on = trap.on
+        return node
+    })
+
+    trap.on = function(eventName, fn) {
+        if (!eventName) throw 'event name is expected'
+        if (!isFun(fn)) throw 'function is expected'
+        this.attach(fn, eventName)
+    }
 
     this.attach(trap)
 }
@@ -3943,9 +3960,13 @@ Mod.prototype.patch = function(target, path, node) {
             node.onLoad(this)
             node.onLoad = true // replace function with true, so we'd not call it second time
         }
+        /*
+        Don't call init() here to avoid double call in case the node is already attached to a Frame.
+        Use onLoad() instead.
         if (isFun(node.init)) {
             node.init()
         }
+        */
     }
 }
 
