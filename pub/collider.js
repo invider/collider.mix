@@ -3111,6 +3111,10 @@ const Mod = function(st) {
         },
 
         sfx: function(src, vol, pan) {
+            if (!_.___.env._touched) {
+                _.log.sys(`[sfx:${isString(src)? src : src.name}]`, `ignoring - no user interaction`)
+                return
+            }
             if (!pan) pan = 0
             if (!vol) vol = 1
             if (isNumber(_.env.sfxVolume)) {
@@ -5184,6 +5188,7 @@ function handleMouseWheel(e) {
 }
 
 function handleMouseDown(e) {
+    _scene.env._touched = true
     _scene.trap('mouseDown', e, true)
     _mouse.buttons = e.buttons
     e.preventDefault()
@@ -5232,6 +5237,7 @@ function handleMouseOver(e) {
 }
 
 function handleTouchStart(e) {
+    _scene.env._touched = true
     _scene.trap('touchStart', e, true)
     return false
 }
@@ -5262,6 +5268,7 @@ function handleKeyDown(e) {
     let keyName = e.code.substring(0, 1).toLowerCase()
         + e.code.substring(1)
 
+    _scene.env._touched = true
     _key[keyName] = true
     _key[e.key] = true
 
