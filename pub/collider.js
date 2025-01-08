@@ -2513,8 +2513,9 @@ function evalLoadedContent(script, _, batch) {
     if (script.after) script.after()
     _._patchLog.push(script)
     //} catch (e) {
+    //    console.error(e)
     //    _scene.log.err('[loader]', 'error in [' + script.path + ']' + e)
-    //    throw e
+    //    throw (new Error().stack)
     //}
 }
 

@@ -1,7 +1,7 @@
 /*
- * Wormhome bootloader
+ * Wormhole Bootloader
  *
- * To configure boot loader, use env.config.boot structure.
+ * To configure the boot loader, use env.config.boot structure.
  * You can set it through config.json in the root of your project.
  *
  * Possible options are:
@@ -21,9 +21,9 @@
 // boot config values
 let base = hsl(.1, 0, 0)
 let content = hsl(.54, 1, .5)
-//let content = hsl(.1, 1, .5)      // collider orange
 let contentTest = hsl(.17, 1, .55)
-let contentErr = hsl(.01, 1, .55)   // error red
+let contentErr  = hsl(.01, 1, .55)   // error red
+let contentFast = hsl(.1, 1, .5)     // collider orange
 let fadeBase = hsl(.1, 0, 0)
 //const COLOR = hsl(.98, 1, .6)
 //const COLOR = hsl(.1, 1, .5)
@@ -36,6 +36,7 @@ const df = {
     fade:     1,
     wait:     0.5,
     blackout: 2,
+    labelFadeIn: 1,
 }
 
 let power    = df.power
@@ -45,10 +46,12 @@ let wait     = df.wait
 let blackout = df.blackout
 let bootSfx  = 'boot'
 let sfxVolume = .5
+let labelFadeIn = df.labelFadeIn
 
 // boot state
 let bootState = 'loading'
 let bootTimer = 0
+let stateTimer = 0
 let label = ''
 
 
@@ -62,6 +65,9 @@ let lowFont = FBASE*.75 + 'px moon'
 const R3 = ry(.4)
 const POWERED_BY = 'Powered by Collider.JAM'
 const ERROR = 'Error'
+
+const ALERT = 'Alert!'
+const ALERT_MESSAGE = 'Air Raid Alert! Proceed to the nearest shelter!'
 
 const ACTIVE = 0
 const FADEIN = 1
@@ -101,6 +107,7 @@ const targets = []
 function init() {
     if (env.config.boot) {
         const bt = env.config.boot
+        // TODO move into a config structure and extend with env.config.boot
         hold = bt.hold              || hold
         fade = bt.fade              || fade
         wait = bt.wait              || wait
@@ -117,7 +124,7 @@ function init() {
 function reset() {
     init()
     worms.length = 0
-    bootTimer = 0
+    stateTimer = 0
     bootState = 'blackout'
     label    = ''
     power    = df.power
@@ -173,17 +180,20 @@ function showPoweredBy(s) {
 }
 */
 
-function spawnTextSegment(worm, x, y, dir, msg, fadein, keep, fadeout) {
-    const sg = {
-        state: FADEIN,
-        time: 0,
-        fadein: fadein? fadein : 0,
-        keep: keep,
-        fadeout: fadeout? fadeout: 0,
-        x: x,
-        y: y,
-        dir: dir,
-        msg: msg,
+function spawnTextSegment(worm, st) {
+    // x, y, dir, msg, fadein, keep, fadeout) {
+    const sg = extend({
+        state:   FADEIN,
+        time:    0,
+        fadein:  0,
+        keep:    0,
+        fadeout: 0,
+        rx:     .5,
+        ry:     .5,
+        x:       0,
+        y:       0,
+        dir:     0,
+        msg:     '...',
 
         evo: function(dt) {
             if (this.state === DEAD) return
@@ -226,10 +236,10 @@ function spawnTextSegment(worm, x, y, dir, msg, fadein, keep, fadeout) {
             else if (this.dir > 0) alignRight()
             else alignCenter()
 
-            text(this.msg, this.x, this.y)
+            text(this.msg, this.rx? rx(this.rx) : this.x, this.ry? ry(this.ry) : this.y)
             restore()
         },
-    }
+    }, st)
 
     worm.sg.push(sg)
     return sg
@@ -347,8 +357,17 @@ function spawnSegment(worm, type, orbit, angle, target) {
                                             dir = -1
                                             sx += BASE*.01
                                         }
-                                        const sg = spawnTextSegment(t.worm,
-                                            t.x2 + sx, t.y2, dir, label, TEXT_FADEOUT)
+                                        const sg = spawnTextSegment(t.worm, {
+                                            x:       t.x2 + sx,
+                                            y:       t.y2,
+                                            dir:     dir,
+                                            msg:     label,
+                                            fadein:  TEXT_FADEOUT,
+                                            keep:    0,
+                                            fadeout: 0,
+                                        })
+                                        // x, y, dir, msg, fadein, keep, fadeout) {
+                                        //   t.x2 + sx, t.y2, dir, label, TEXT_FADEOUT)
                                     })
                             }
                         )
@@ -492,11 +511,18 @@ function evoContent(dt) {
         spawnWorm()
     }
     
-
     // spawn powered by
-    if (!spawnedPoweredBy && bootTimer > power) {
+    if (!spawnedPoweredBy && stateTimer > power) {
         const w = spawnWorm()
-        spawnTextSegment(w, rx(.5), ry(.9), 0, POWERED_BY, 1)
+        spawnTextSegment(w, {
+            rx:      .5,
+            ry:      .9,
+            dir:     0,
+            msg:     env.config.alert? ALERT_MESSAGE : POWERED_BY,
+            fadein:  1,
+            keep:    0,
+            fadeout: 0,
+        })
         spawnedPoweredBy = true
     }
 
@@ -506,6 +532,7 @@ function evoContent(dt) {
 function drawContent() {
     background(base)
 
+    // anchor to the center of the screen
     x = rx(.5)
     y = ry(.5)
 
@@ -514,11 +541,14 @@ function drawContent() {
         if (w.state < DEAD) w.draw()
     })
 
+    save()
+    alpha( bootTimer > labelFadeIn? 1 : bootTimer / labelFadeIn )
     font(labelFont)
     fill(content)
     alignCenter()
     baseMiddle()
     text(label, x, y)
+    restore()
 }
 
 // ************************
@@ -533,27 +563,38 @@ function updateLoadingStatus() {
         // we are faking percentage to include time left to hold
         if (hold === 0) amount = min(loaded/included, 1)
         else {
-            const holdRate = min(bootTimer/hold, 1)
+            const holdRate = min(stateTimer/hold, 1)
             amount = min((loaded/included + holdRate)/2, 1)
         }
     }
 
-    const percent = Math.floor(amount * 100)
-    label = `${percent}%`
+    if (env.config.debug) {
+        content = contentFast
+    }
 
-    if (res._errors) {
+    if (env.config.alert) {
+        // air raid alert
+        label = ALERT
+        content = contentErr
+    } else if (res._errors) {
+        // a boot-time error
         label = ERROR
         content = contentErr
+    } else {
+        // calculate the loading status in %
+        const percent = Math.floor(amount * 100)
+        label = `${percent}%`
     }
 }
 
 function evoBoot(dt) {
     bootTimer += dt
+    stateTimer += dt
 
     switch (bootState) {
     case 'blackout':
-        if (bootTimer >= blackout) {
-            bootTimer = 0
+        if (stateTimer >= blackout) {
+            stateTimer = 0
             bootState = 'loading'
         }
         break
@@ -565,8 +606,8 @@ function evoBoot(dt) {
         break;
 
     case 'holding':
-        if (bootTimer >= hold) {
-            bootTimer = 0
+        if (!env.config.alert && stateTimer >= hold) {
+            stateTimer = 0
             bootState = 'fading'
 
             const sound = !res.sfx || res.sfx[bootSfx]
@@ -575,14 +616,14 @@ function evoBoot(dt) {
         break;
 
     case 'fading':
-        if (bootTimer >= fade) {
-            bootTimer = 0
+        if (stateTimer >= fade) {
+            stateTimer = 0
             bootState = 'waiting'
         }
         break;
 
     case 'waiting':
-        if (bootTimer >= wait) {
+        if (stateTimer >= wait) {
             bootState= 'self-destruct'
         }
         break;
@@ -609,30 +650,30 @@ function draw() {
         return
     }
     if (bootState === 'blackout') {
-        ctx.globalAlpha = bootTimer/blackout
+        alpha(stateTimer/blackout)
     }
 
     background(base)
     //if (!this.canvasFixed) return
 
-    ctx.save()
+    save()
 
     this.updateLoadingStatus()
 
     drawContent()
 
     if (bootState === 'fading') {
-        ctx.globalAlpha = bootTimer/fade
+        ctx.globalAlpha = stateTimer/fade
         background(fadeBase)
     }
 
-    ctx.restore()
+    restore()
 }
 
 function getStatus() {
     return {
         bootState,
-        bootTimer,
+        stateTimer,
         loaded: this._.___.res._loaded,
         included: this._.___.res._included,
     }
