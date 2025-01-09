@@ -18,9 +18,17 @@
  */
 'use strict'
 
+// bootloader states
+const LOADING       = 'loading'
+const BLACKOUT      = 'blackout'
+const HOLDING       = 'holding'
+const FADING        = 'fading'
+const WAITING       = 'waiting'
+const SELF_DESTRUCT = 'self-destruct'
+
 // boot config values
 let base = hsl(.1, 0, 0)
-let content = hsl(.54, 1, .5)
+let contentColor = hsl(.54, 1, .5)
 let contentTest = hsl(.17, 1, .55)
 let contentErr  = hsl(.01, 1, .55)   // error red
 let contentFast = hsl(.1, 1, .5)     // collider orange
@@ -29,6 +37,9 @@ let fadeBase = hsl(.1, 0, 0)
 //const COLOR = hsl(.1, 1, .5)
 //const COLOR = hsl(.3, 1, .5)
 //const COLOR = hsl(.35, 1, .5)
+
+const st = {
+}
 
 const df = {
     power:    1.5,
@@ -49,7 +60,7 @@ let sfxVolume = .5
 let labelFadeIn = df.labelFadeIn
 
 // boot state
-let bootState = 'loading'
+let bootState = LOADING
 let bootTimer = 0
 let stateTimer = 0
 let label = ''
@@ -112,7 +123,7 @@ function init() {
         fade = bt.fade              || fade
         wait = bt.wait              || wait
         base = bt.base              || base
-        content = bt.content        || content
+        contentColor = bt.contentColor        || contentColor
         fadeBase = bt.fadeBase      || fadeBase
         bootSfx = bt.sfx            || bootSfx
         sfxVolume = bt.volume       || sfxVolume
@@ -125,7 +136,7 @@ function reset() {
     init()
     worms.length = 0
     stateTimer = 0
-    bootState = 'blackout'
+    bootState = BLACKOUT
     label    = ''
     power    = df.power
     hold     = df.hold
@@ -230,7 +241,7 @@ function spawnTextSegment(worm, st) {
 
             if (this.font) font(this.font)
             else font(lowFont)
-            fill(content)
+            fill(contentColor)
             baseMiddle()
             if (this.dir < 0) alignLeft()
             else if (this.dir > 0) alignRight()
@@ -287,7 +298,7 @@ function spawnLineSegment(worm, x1, y1, x2, y2, onTarget) {
             if (this.state === ACTIVE) l = this.time/this.targetTime * this.length
 
             lineWidth(W)
-            stroke(content)
+            stroke(contentColor)
             line(this.x1, this.y1, this.x1 + sin(a)*l, this.y1 + cos(a)*l)
 
             restore()
@@ -426,7 +437,7 @@ function spawnSegment(worm, type, orbit, angle, target) {
             }
 
             lineWidth(W)
-            stroke(content)
+            stroke(contentColor)
 
             switch(this.type) {
             case RING:
@@ -458,7 +469,7 @@ function spawnSegment(worm, type, orbit, angle, target) {
 
                 if (this.font) font(this.font)
                 else font(lowFont)
-                fill(content)
+                fill(contentColor)
                 baseMiddle()
                 if (this.dir < 0) alignLeft()
                 else if (this.dir > 0) alignRight()
@@ -500,7 +511,7 @@ function spawnWorm() {
 
 let spawnedPoweredBy = false
 function evoContent(dt) {
-    if (bootState !== 'blackout' && bootState !== 'loading' && bootState !== 'holding') return
+    if ([BLACKOUT, LOADING, HOLDING].includes(bootState)) return
 
     worms.forEach(w => {
         if (w.state < DEAD) w.evo(dt)
@@ -544,7 +555,7 @@ function drawContent() {
     save()
     alpha( bootTimer > labelFadeIn? 1 : bootTimer / labelFadeIn )
     font(labelFont)
-    fill(content)
+    fill(contentColor)
     alignCenter()
     baseMiddle()
     text(label, x, y)
@@ -559,7 +570,7 @@ function updateLoadingStatus() {
     let included = this._.___.res._included
 
     let amount = 1
-    if (bootState === 'blackout' || bootState === 'loading' || bootState === 'holding') {
+    if ([BLACKOUT, LOADING, HOLDING].includes(bootState)) {
         // we are faking percentage to include time left to hold
         if (hold === 0) amount = min(loaded/included, 1)
         else {
@@ -592,43 +603,43 @@ function evoBoot(dt) {
     stateTimer += dt
 
     switch (bootState) {
-    case 'blackout':
+    case BLACKOUT:
         if (stateTimer >= blackout) {
             stateTimer = 0
-            bootState = 'loading'
+            bootState = LOADING
         }
         break
 
-    case 'loading':
+    case LOADING:
         if (env._started) {
-            bootState = 'holding'
+            bootState = HOLDING 
         }
         break;
 
-    case 'holding':
+    case HOLDING:
         if (!env.config.alert && stateTimer >= hold) {
             stateTimer = 0
-            bootState = 'fading'
+            bootState = FADING 
 
             const sound = !res.sfx || res.sfx[bootSfx]
             if (sound) sfx(sound, sfxVolume)
         }
         break;
 
-    case 'fading':
+    case FADING:
         if (stateTimer >= fade) {
             stateTimer = 0
-            bootState = 'waiting'
+            bootState = WAITING 
         }
         break;
 
-    case 'waiting':
+    case WAITING:
         if (stateTimer >= wait) {
-            bootState= 'self-destruct'
+            bootState = SELF_DESTRUCT 
         }
         break;
 
-    case 'self-destruct':
+    case SELF_DESTRUCT:
         kill(this)
         delete $.boot
         $._boot = this
@@ -644,12 +655,11 @@ function evo(dt) {
 }
 
 function draw() {
-    if (bootState === 'waiting' || bootState === 'self-destruct') {
-
+    if (bootState === WAITING || bootState === SELF_DESTRUCT) {
         background(fadeBase)
         return
     }
-    if (bootState === 'blackout') {
+    if (bootState === BLACKOUT) {
         alpha(stateTimer/blackout)
     }
 
@@ -662,7 +672,7 @@ function draw() {
 
     drawContent()
 
-    if (bootState === 'fading') {
+    if (bootState === FADING) {
         ctx.globalAlpha = stateTimer/fade
         background(fadeBase)
     }
