@@ -1,69 +1,75 @@
 /*
  * Wormhole Bootloader
  *
- * To configure the boot loader, use env.config.boot structure.
- * You can set it through config.json in the root of your project.
+ * To configure the boot loader, use env.config.boot structure
+ * defined by placing [config.json] file in the root mod
+ * and defining the "boot" structure there.
  *
- * Possible options are:
+ * The "boot" structure MUST mirror the df structure of this bootloader
+ * and you can redefine any value there.
  *
- * hold: minimum hold time in seconds
- * fade: fade out time in seconds
- * wait: black screen wait time in seconds
- * base: background color
- * content: content color (effect and text)
- * fadeBase: fading out color, usually totally black '#000000'
- * bootSfx: boot sound effect name placed in res.sfx, 'boot' by default
- * sfxVolume: boot sound effect volume
+ * For example, to redefine the color and hold time value,
+ * place the following structure in ```config.json```:
+ *
+ * ```
+ * {
+ *     "boot": {
+ *         "time": {
+ *             "hold": 10
+ *         },
+ *         "color": {
+ *             "content": "#a0fc4e"
+ *         }
+ *     }
+ * }
+ * ```
  *
  */
 'use strict'
 
 // bootloader states
 const LOADING       = 'loading'
+// TODO rename to FADE_OUT???
 const BLACKOUT      = 'blackout'
 const HOLDING       = 'holding'
 const FADING        = 'fading'
 const WAITING       = 'waiting'
 const SELF_DESTRUCT = 'self-destruct'
 
-// boot config values
-let base = hsl(.1, 0, 0)
-let contentColor = hsl(.54, 1, .5)
-let contentTest = hsl(.17, 1, .55)
-let contentErr  = hsl(.01, 1, .55)   // error red
-let contentFast = hsl(.1, 1, .5)     // collider orange
-let fadeBase = hsl(.1, 0, 0)
-//const COLOR = hsl(.98, 1, .6)
-//const COLOR = hsl(.1, 1, .5)
-//const COLOR = hsl(.3, 1, .5)
-//const COLOR = hsl(.35, 1, .5)
-
-const st = {
-}
-
+// default bootloader configuration
+// replace any value by creating config.json in the root mod
+// and defining the "boot": {} structure there
 const df = {
-    power:    1.5,
-    hold:     3.5,
-    fade:     1,
-    wait:     0.5,
-    blackout: 2,
-    labelFadeIn: 1,
+    time: {
+        power:       1.5,
+        hold:        3.5,
+        fade:        1,
+        wait:       .5,
+        blackout:    2,
+        labelFadeIn: 1,
+    },
+    color: {
+        base:         '#000000',
+        content:      hsl(.54, 1, .5),   // default blue
+        contentTest:  hsl(.17, 1, .55),  // TODO how to enable it for tests?
+        contentErr:   hsl(.01, 1, .55),  // error red
+        contentDebug: hsl(.1, 1, .5),    // debug orange
+        fadeBase:     '#000000',
+    },
+    sfx: {
+        boot:   'boot',
+        error:  'boot',
+        volume:  .75,
+    },
 }
 
-let power    = df.power
-let hold     = df.hold
-let fade     = df.fade
-let wait     = df.wait
-let blackout = df.blackout
-let bootSfx  = 'boot'
-let sfxVolume = .5
-let labelFadeIn = df.labelFadeIn
+let cf = {}
 
 // boot state
 let bootState = LOADING
 let bootTimer = 0
 let stateTimer = 0
-let label = ''
+let bootLabel = ''
 
 
 // boot implementation values
@@ -116,35 +122,27 @@ const worms = []
 const targets = []
 
 function init() {
+    bootTimer  = 0
+    stateTimer = 0
+
+    cf = augment({}, df)
     if (env.config.boot) {
         const bt = env.config.boot
-        // TODO move into a config structure and extend with env.config.boot
-        hold = bt.hold              || hold
-        fade = bt.fade              || fade
-        wait = bt.wait              || wait
-        base = bt.base              || base
-        contentColor = bt.contentColor        || contentColor
-        fadeBase = bt.fadeBase      || fadeBase
-        bootSfx = bt.sfx            || bootSfx
-        sfxVolume = bt.volume       || sfxVolume
+        augment(cf, bt)
     }
-    //if (env.config.fast) hold = 0 // no hold on fast flag
-    if (env.config.debug && !env.config.slow) hold = 0 // no hold on debug
+    if (env.config.debug && !env.config.slowBoot) cf.time.hold = 0 // no hold on debug
 }
 
 function reset() {
+    if ($.boot === this) return // already booting!
     init()
     worms.length = 0
-    stateTimer = 0
-    bootState = BLACKOUT
-    label    = ''
-    power    = df.power
-    hold     = df.hold
-    fade     = df.fade
-    wait     = df.wait
-    blackout = df.blackout
+    stateTimer   = 0
+    bootState    = BLACKOUT
+    bootLabel    = ''
     spawnedPoweredBy = false
-    $.boot   = this
+
+    $.boot = this
 }
 
 function evoWorm(dt) {
@@ -164,35 +162,7 @@ function drawWorm() {
 
 let outerRingWorms = 0
 
-/*
-function showPoweredBy(s) {
-    const len = rnd(BASE*.05, BASE*.2)
-
-    const line = spawnLineSegment(s.worm,
-        x, y + R1,
-        x, y + R3,
-        function(t) {
-            const pwrd = spawnTextSegment(t.worm,
-                t.x2, t.y2 + BASE * .02,
-                0, POWERED_BY)
-            pwrd.font = poweredByFont
-            pwrd.state = STABLE
-        }
-    )
-    line.targetTime *= 2
-
-    const sh = BASE*.02
-
-    const l2 = spawnLineSegment(s.worm, x-sh,  y+R1, x-sh, y + R3)
-    l2.targetTime *= 3
-
-    const l3 = spawnLineSegment(s.worm, x+sh, y+R1, x+sh, y + R3)
-    l3.targetTime *= 3
-}
-*/
-
 function spawnTextSegment(worm, st) {
-    // x, y, dir, msg, fadein, keep, fadeout) {
     const sg = extend({
         state:   FADEIN,
         time:    0,
@@ -241,7 +211,7 @@ function spawnTextSegment(worm, st) {
 
             if (this.font) font(this.font)
             else font(lowFont)
-            fill(contentColor)
+            fill(cf.color.content)
             baseMiddle()
             if (this.dir < 0) alignLeft()
             else if (this.dir > 0) alignRight()
@@ -298,7 +268,7 @@ function spawnLineSegment(worm, x1, y1, x2, y2, onTarget) {
             if (this.state === ACTIVE) l = this.time/this.targetTime * this.length
 
             lineWidth(W)
-            stroke(contentColor)
+            stroke(st.color.content)
             line(this.x1, this.y1, this.x1 + sin(a)*l, this.y1 + cos(a)*l)
 
             restore()
@@ -377,8 +347,6 @@ function spawnSegment(worm, type, orbit, angle, target) {
                                             keep:    0,
                                             fadeout: 0,
                                         })
-                                        // x, y, dir, msg, fadein, keep, fadeout) {
-                                        //   t.x2 + sx, t.y2, dir, label, TEXT_FADEOUT)
                                     })
                             }
                         )
@@ -437,7 +405,7 @@ function spawnSegment(worm, type, orbit, angle, target) {
             }
 
             lineWidth(W)
-            stroke(contentColor)
+            stroke(cf.color.content)
 
             switch(this.type) {
             case RING:
@@ -469,7 +437,7 @@ function spawnSegment(worm, type, orbit, angle, target) {
 
                 if (this.font) font(this.font)
                 else font(lowFont)
-                fill(contentColor)
+                fill(cf.color.content)
                 baseMiddle()
                 if (this.dir < 0) alignLeft()
                 else if (this.dir > 0) alignRight()
@@ -511,7 +479,7 @@ function spawnWorm() {
 
 let spawnedPoweredBy = false
 function evoContent(dt) {
-    if ([BLACKOUT, LOADING, HOLDING].includes(bootState)) return
+    if (![BLACKOUT, LOADING, HOLDING].includes(bootState)) return
 
     worms.forEach(w => {
         if (w.state < DEAD) w.evo(dt)
@@ -523,7 +491,7 @@ function evoContent(dt) {
     }
     
     // spawn powered by
-    if (!spawnedPoweredBy && stateTimer > power) {
+    if (!spawnedPoweredBy && bootTimer > cf.time.power) {
         const w = spawnWorm()
         spawnTextSegment(w, {
             rx:      .5,
@@ -541,7 +509,7 @@ function evoContent(dt) {
 }
 
 function drawContent() {
-    background(base)
+    //background(cf.color.base)
 
     // anchor to the center of the screen
     x = rx(.5)
@@ -553,12 +521,12 @@ function drawContent() {
     })
 
     save()
-    alpha( bootTimer > labelFadeIn? 1 : bootTimer / labelFadeIn )
+    alpha( bootTimer > cf.time.labelFadeIn? 1 : bootTimer / cf.time.labelFadeIn )
     font(labelFont)
-    fill(contentColor)
+    fill(cf.color.content)
     alignCenter()
     baseMiddle()
-    text(label, x, y)
+    text(bootLabel, x, y)
     restore()
 }
 
@@ -572,29 +540,34 @@ function updateLoadingStatus() {
     let amount = 1
     if ([BLACKOUT, LOADING, HOLDING].includes(bootState)) {
         // we are faking percentage to include time left to hold
-        if (hold === 0) amount = min(loaded/included, 1)
-        else {
-            const holdRate = min(stateTimer/hold, 1)
+        if (cf.time.hold === 0) {
+            amount = min(loaded/included, 1)
+        } else {
+            const holdRate = min(stateTimer/cf.time.hold, 1)
             amount = min((loaded/included + holdRate)/2, 1)
         }
     }
 
     if (env.config.debug) {
-        content = contentFast
+        cf.color.content = cf.color.contentDebug
     }
 
     if (env.config.alert) {
         // air raid alert
-        label = ALERT
-        content = contentErr
+        bootLabel = ALERT
+        cf.color.content = cf.color.contentErr
     } else if (res._errors) {
         // a boot-time error
-        label = ERROR
-        content = contentErr
+        if (bootLabel !== ERROR) {
+            const sound = !res.sfx || res.sfx[cf.sfx.error]
+            if (sound) sfx(sound, cf.sfx.volume)
+        }
+        bootLabel = ERROR
+        cf.color.content = cf.color.contentErr
     } else {
         // calculate the loading status in %
         const percent = Math.floor(amount * 100)
-        label = `${percent}%`
+        bootLabel = `${percent}%`
     }
 }
 
@@ -604,7 +577,7 @@ function evoBoot(dt) {
 
     switch (bootState) {
     case BLACKOUT:
-        if (stateTimer >= blackout) {
+        if (stateTimer >= cf.time.blackout) {
             stateTimer = 0
             bootState = LOADING
         }
@@ -617,24 +590,24 @@ function evoBoot(dt) {
         break;
 
     case HOLDING:
-        if (!env.config.alert && stateTimer >= hold) {
+        if (!env.config.alert && bootTimer >= cf.time.hold) {
             stateTimer = 0
             bootState = FADING 
 
-            const sound = !res.sfx || res.sfx[bootSfx]
-            if (sound) sfx(sound, sfxVolume)
+            const sound = !res.sfx || res.sfx[cf.sfx.boot]
+            if (sound) sfx(sound, cf.sfx.volume)
         }
         break;
 
     case FADING:
-        if (stateTimer >= fade) {
+        if (stateTimer >= cf.time.fade) {
             stateTimer = 0
             bootState = WAITING 
         }
         break;
 
     case WAITING:
-        if (stateTimer >= wait) {
+        if (stateTimer >= cf.time.wait) {
             bootState = SELF_DESTRUCT 
         }
         break;
@@ -656,14 +629,14 @@ function evo(dt) {
 
 function draw() {
     if (bootState === WAITING || bootState === SELF_DESTRUCT) {
-        background(fadeBase)
+        background(cf.color.fadeBase)
         return
     }
     if (bootState === BLACKOUT) {
-        alpha(stateTimer/blackout)
+        alpha(cf.time.blackout? stateTimer/cf.time.blackout : 1)
     }
 
-    background(base)
+    background(cf.color.base)
     //if (!this.canvasFixed) return
 
     save()
@@ -673,8 +646,8 @@ function draw() {
     drawContent()
 
     if (bootState === FADING) {
-        ctx.globalAlpha = stateTimer/fade
-        background(fadeBase)
+        ctx.globalAlpha = stateTimer/cf.time.fade
+        background(cf.color.fadeBase)
     }
 
     restore()
