@@ -29,7 +29,6 @@
 
 // bootloader states
 const LOADING       = 'loading'
-// TODO rename to FADE_OUT???
 const BLACKOUT      = 'blackout'
 const HOLDING       = 'holding'
 const FADING        = 'fading'
@@ -41,12 +40,12 @@ const SELF_DESTRUCT = 'self-destruct'
 // and defining the "boot": {} structure there
 const df = {
     time: {
-        power:       1.5,
+        power:       1.5, // timing when the "Powered By" label appears
         hold:        3.5,
         fade:        1,
         wait:       .5,
-        blackout:    2,
-        labelFadeIn: 1,
+        blackout:    2,   // how long fade in lasts after bootloader reset()
+        labelFadeIn: 1,   // timing for the label fade in effect
     },
     color: {
         base:         '#000000',
@@ -87,8 +86,8 @@ const ALERT = 'Alert!'
 const ALERT_MESSAGE = 'Air Raid Alert! Proceed to the nearest shelter!'
 
 const ACTIVE = 0
-const FADEIN = 1
-const FADEOUT = 2
+const FADE_IN = 1
+const FADE_OUT = 2
 const STABLE = 5
 
 const RING = 0
@@ -113,7 +112,7 @@ const STEPV = 2
 const W = BASE * .003
 
 const FADE = 1.2
-const TEXT_FADEOUT = 2
+const TEXT_FADE_OUT = 2
 
 const MIN_ANGLE = 0.2
 const MAX_ANGLE = PI/2
@@ -134,7 +133,7 @@ function init() {
 }
 
 function reset() {
-    if ($.boot === this) return // already booting!
+    if ($.boot === this) return false // already booting!
     init()
     worms.length = 0
     stateTimer   = 0
@@ -143,28 +142,37 @@ function reset() {
     spawnedPoweredBy = false
 
     $.boot = this
+    return true
 }
 
-function evoWorm(dt) {
-    let activeSegments = 0
-    this.sg.forEach(segment => {
-        segment.evo(dt)
-        if (segment.state < DEAD) activeSegments ++
-    })
-    if (activeSegments === 0) {
+const wormTrait = {
+    evo: function (dt) {
+        let activeSegments = 0
+        let killAt = -1
+        this.sg.forEach((segment, i) => {
+            segment.evo(dt)
+            if (segment.state < DEAD) activeSegments ++
+            else killAt = i
+        })
+        if (activeSegments === 0) {
+            this.kill()
+        } else if (killAt >= 0) {
+            this.sg.splice(killAt, 1)
+        }
+    },
+    draw: function() {
+        this.sg.forEach(segment => segment.draw())
+    },
+    kill: function() {
         this.state = DEAD
-    }
-}
-
-function drawWorm() {
-    this.sg.forEach(segment => segment.draw())
+    },
 }
 
 let outerRingWorms = 0
 
 function spawnTextSegment(worm, st) {
     const sg = extend({
-        state:   FADEIN,
+        state:   FADE_IN,
         time:    0,
         fadein:  0,
         keep:    0,
@@ -180,7 +188,7 @@ function spawnTextSegment(worm, st) {
             if (this.state === DEAD) return
 
             this.time += dt
-            if (this.state === FADEOUT && this.time >= this.fadeout) this.state = DEAD
+            if (this.state === FADE_OUT && this.time >= this.fadeout) this.state = DEAD
         },
 
         draw: function(dt) {
@@ -188,7 +196,7 @@ function spawnTextSegment(worm, st) {
 
             save()
             switch(this.state) {
-                case FADEIN:
+                case FADE_IN:
                     alpha(min(this.time/this.fadein, 1))
                     if (this.time >= this.fadein) {
                         this.time = 0
@@ -200,11 +208,11 @@ function spawnTextSegment(worm, st) {
                     alpha(1)
                     if (this.keep && this.time >= this.keep) {
                         this.time = 0
-                        this.state = FADEOUT
+                        this.state = FADE_OUT
                     }
                     break
 
-                case FADEOUT:
+                case FADE_OUT:
                     alpha(max(1 - this.time/this.fading, 0))
                     break
             }
@@ -246,10 +254,10 @@ function spawnLineSegment(worm, x1, y1, x2, y2, onTarget) {
             this.time += dt
             if (this.state === ACTIVE && this.time >= this.targetTime) {
                 this.time = 0
-                this.state = FADEOUT
+                this.state = FADE_OUT
                 if (this.onTarget) this.onTarget(this)
             }
-            if (this.state === FADEOUT && this.time >= FADE) {
+            if (this.state === FADE_OUT && this.time >= FADE) {
                 this.state = DEAD
             }
         },
@@ -258,7 +266,7 @@ function spawnLineSegment(worm, x1, y1, x2, y2, onTarget) {
             if (this.state === DEAD) return
 
             save()
-            if (this.state === FADEOUT) {
+            if (this.state === FADE_OUT) {
                 alpha(1 - this.time/FADE)
             }
 
@@ -294,7 +302,7 @@ function spawnSegment(worm, type, orbit, angle, target) {
         target: target,
 
         onTarget: function() {
-            this.state = FADEOUT
+            this.state = FADE_OUT
 
             // spawn next segment
             switch(this.type) {
@@ -343,7 +351,7 @@ function spawnSegment(worm, type, orbit, angle, target) {
                                             y:       t.y2,
                                             dir:     dir,
                                             msg:     label,
-                                            fadein:  TEXT_FADEOUT,
+                                            fadein:  TEXT_FADE_OUT,
                                             keep:    0,
                                             fadeout: 0,
                                         })
@@ -376,7 +384,7 @@ function spawnSegment(worm, type, orbit, angle, target) {
             if (this.state === DEAD) return
 
             this.time += dt
-            if (this.state === FADEOUT) {
+            if (this.state === FADE_OUT) {
                 this.target -= dt/FADE
                 if (this.target <= 0) this.state = DEAD
                 return
@@ -400,7 +408,7 @@ function spawnSegment(worm, type, orbit, angle, target) {
             if (this.state === DEAD) return
 
             save()
-            if (this.state === FADEOUT) {
+            if (this.state === FADE_OUT) {
                 alpha(this.target)
             }
 
@@ -461,10 +469,7 @@ function spawnWorm() {
     })
 
     if (!worm) {
-        worm = {
-            evo: evoWorm,
-            draw: drawWorm,
-        }
+        worm = extend({}, wormTrait) // no fossil found, so create a new one
         worms.push(worm)
     }
 
@@ -509,8 +514,6 @@ function evoContent(dt) {
 }
 
 function drawContent() {
-    //background(cf.color.base)
-
     // anchor to the center of the screen
     x = rx(.5)
     y = ry(.5)
@@ -632,11 +635,16 @@ function draw() {
         background(cf.color.fadeBase)
         return
     }
-    if (bootState === BLACKOUT) {
-        alpha(cf.time.blackout? stateTimer/cf.time.blackout : 1)
-    }
 
+    // hide what is behind
+    if (bootState === BLACKOUT) {
+        // note, that the background fading is accumulative,
+        // since we are not rendering the scene behind
+        // and drawing a semitransparent background on top over and over again
+        alpha( cf.time.blackout? stateTimer/cf.time.blackout : 0)
+    }
     background(cf.color.base)
+
     //if (!this.canvasFixed) return
 
     save()
@@ -646,7 +654,7 @@ function draw() {
     drawContent()
 
     if (bootState === FADING) {
-        ctx.globalAlpha = stateTimer/cf.time.fade
+        alpha( stateTimer/cf.time.fade )
         background(cf.color.fadeBase)
     }
 
