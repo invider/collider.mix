@@ -130,6 +130,11 @@ function init() {
         augment(cf, bt)
     }
     if (env.config.debug && !env.config.slowBoot) cf.time.hold = 0 // no hold on debug
+
+    if (env.config.war) {
+        checkAlert()
+        setInterval( checkAlert, 5000 )
+    }
 }
 
 function reset() {
@@ -668,4 +673,21 @@ function getStatus() {
         loaded: this._.___.res._loaded,
         included: this._.___.res._included,
     }
+}
+
+function checkAlert() {
+    fetch('/war', {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(regions => {
+        const region = regions[env.config.war.toLowerCase()]
+        if (region && region.alertnow) {
+            env.config.alert = true
+        }
+        if ($._boot) $._boot.reset()
+    })
 }
