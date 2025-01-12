@@ -687,7 +687,7 @@ function checkAlert() {
         const region = regions[env.config.war.toLowerCase()]
         if (region && region.alertnow) {
             env.config.alert = true
+            if ($._boot) $._boot.reset()
         }
-        if ($._boot) $._boot.reset()
     })
 }
