@@ -40,16 +40,17 @@ Hud.prototype.injectTraps = function() {
     const mod = this.getMod()
     const localTrap = mod.trap
 
-    sys.after(localTrap, 'click', function(e) {
+    localTrap.on('click', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
+
 
         const x = hud.lx(e.pageX)
         const y = hud.ly(e.pageY)
         hud.onClick(x, y, e)
     })
 
-    sys.after(localTrap, 'dblClick', function(e) {
+    localTrap.on('dblClick', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
@@ -58,7 +59,7 @@ Hud.prototype.injectTraps = function() {
         hud.onDblClick(x, y, e)
     })
 
-    sys.after(localTrap, 'mouseDown', function(e) {
+    localTrap.on('mouseDown', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
@@ -67,7 +68,7 @@ Hud.prototype.injectTraps = function() {
         hud.onMouseDown(x, y, e.buttons, e)
     })
 
-    sys.after(localTrap, 'mouseUp', function(e) {
+    localTrap.on('mouseUp', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
@@ -76,8 +77,7 @@ Hud.prototype.injectTraps = function() {
         hud.onMouseUp(x, y, e.buttons, e)
     })
 
-
-    sys.after(localTrap, 'mouseMove', function(e) {
+    localTrap.on('mouseMove', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
@@ -86,7 +86,7 @@ Hud.prototype.injectTraps = function() {
         hud.onMouseMove(x, y, e)
     })
 
-    sys.after(localTrap, 'mouseWheel', function(e) {
+    localTrap.on('mouseWheel', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
@@ -95,7 +95,7 @@ Hud.prototype.injectTraps = function() {
         hud.onMouseWheel(e.wheelDelta, x, y, e)
     })
 
-    sys.after(localTrap, 'touchStart', function(e) {
+    localTrap.on('touchStart', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
 
@@ -104,21 +104,21 @@ Hud.prototype.injectTraps = function() {
         hud.onTouchStart(x, y, e)
     })
 
-    sys.after(localTrap, 'touchEnd', function(e) {
+    localTrap.on('touchEnd', function(e) {
         if (hud.hidden || hud.disabled
                 || hud._.hidden || hud._.disabled) return
         hud.onTouchEnd(e)
     })
 
-    sys.after(localTrap, 'keyDown', function(e) {
+    localTrap.on('keyDown', function(e) {
         hud.onKeyDown(e)
     })
 
-    sys.after(localTrap, 'keyUp', function(e) {
+    localTrap.on('keyUp', function(e) {
         hud.onKeyUp(e)
     })
 
-    sys.after(localTrap, 'resize', function(e) {
+    localTrap.on('resize', function(e) {
         hud.expand()
         hud.adjust()
     })
