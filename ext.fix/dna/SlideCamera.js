@@ -223,17 +223,17 @@ SlideCamera.prototype.pick = function(screenX, screenY) {
 // called automatically, when (camera.zoomOnPlusMinus === true)
 SlideCamera.prototype.bindZoom = function() {
     let cam = this
-    sys.after(trap, 'equalDown', function() {
+    trap.on('equalDown', function() {
         cam.startMoving(0)
     })
-    sys.after(trap, 'equalUp', function() {
+    trap.on('equalUp', function() {
         cam.stopMoving(0)
     })
 
-    sys.after(trap, 'minusDown', function() {
+    trap.on('minusDown', function() {
         cam.startMoving(1)
     })
-    sys.after(trap, 'minusUp', function() {
+    trap.on('minusUp', function() {
         cam.stopMoving(1)
     })
 }
