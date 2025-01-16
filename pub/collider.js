@@ -4473,7 +4473,7 @@ Mod.prototype.loadUnits = function(baseMod, target) {
 
             const loadQueue = []
             queueUnits(unitsToLoad, loadQueue)
-            loaderMod.log.sys('units loading order: ' + loadQueue.map(u => u.id).join(', '))
+            loaderMod.log.sys('units loading order:' + loadQueue.map(u => '\n    * ' + u.id).join(''))
 
             let ignoreList = []
             loadQueue.forEach(unit => {
