@@ -4775,7 +4775,7 @@ const preboot = function() {
     loadJson(JAM_CONFIG)
         .then(function(config) {
             if (config) {
-                _scene.log.sys(' = Config =: ' + JSON.stringify(config));
+                _scene.log.sys('=== Config ===' + '\n' + JSON.stringify(config, null, ' '))
                 _scene.setConfig(config)
             }
             bootstrap()
