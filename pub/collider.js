@@ -4473,7 +4473,7 @@ Mod.prototype.loadUnits = function(baseMod, target) {
 
             const loadQueue = []
             queueUnits(unitsToLoad, loadQueue)
-            loaderMod.log.sys('units loading order: ' + loadQueue.map(u => u.id).join(', '))
+            loaderMod.log.sys('units loading order:' + loadQueue.map(u => '\n    * ' + u.id).join(''))
 
             let ignoreList = []
             loadQueue.forEach(unit => {
@@ -4775,7 +4775,7 @@ const preboot = function() {
     loadJson(JAM_CONFIG)
         .then(function(config) {
             if (config) {
-                _scene.log.sys(' = Config =: ' + JSON.stringify(config));
+                _scene.log.sys('=== Config ===' + '\n' + JSON.stringify(config, null, ' '))
                 _scene.setConfig(config)
             }
             bootstrap()
