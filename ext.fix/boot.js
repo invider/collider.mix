@@ -53,6 +53,7 @@ const df = {
         contentTest:  hsl(.17, 1, .55),  // TODO how to enable it for tests?
         contentErr:   hsl(.01, 1, .55),  // error red
         contentDebug: hsl(.1, 1, .5),    // debug orange
+        contentOK:    hsl(.39, .9, .6),  // OK green
         fadeBase:     '#000000',
     },
     sfx: {
@@ -84,6 +85,8 @@ const ERROR = 'Error'
 
 const ALERT = 'Alert!'
 const ALERT_MESSAGE = 'Air Raid Alert! Proceed to the nearest shelter!'
+const ALERT_OVER = 'Over!'
+const ALERT_OVER_MESSAGE = 'The Air Raid Alert is Over!'
 
 const ACTIVE = 0
 const FADE_IN = 1
@@ -504,6 +507,7 @@ function evoContent(dt) {
     if (!spawnedPoweredBy && bootTimer > cf.time.power) {
         const w = spawnWorm()
         spawnTextSegment(w, {
+            name:    'poweredBy',
             rx:      .5,
             ry:      .9,
             dir:     0,
@@ -564,6 +568,9 @@ function updateLoadingStatus() {
         // air raid alert
         bootLabel = ALERT
         cf.color.content = cf.color.contentErr
+    } else if (env.config.alertOver) {
+        bootLabel = ALERT_OVER
+        cf.color.content = cf.color.contentOK
     } else if (res._errors) {
         // a boot-time error
         if (bootLabel !== ERROR) {
@@ -598,7 +605,7 @@ function evoBoot(dt) {
         break;
 
     case HOLDING:
-        if (!env.config.alert && bootTimer >= cf.time.hold) {
+        if (!env.config.alert && !env.config.alertOver && bootTimer >= cf.time.hold) {
             stateTimer = 0
             bootState = FADING 
 
@@ -675,7 +682,42 @@ function getStatus() {
     }
 }
 
+function forEachSegment(fn) {
+    const acc = []
+    worms.forEach(worm => {
+        if (worm.dead) return
+        worm.sg.forEach(sg => {
+            if (sg.state === DEAD) return
+            fn(sg, acc)
+        })
+    })
+    return acc
+}
+
+function raiseAlert() {
+    env.config.alert = true
+    if (!$.boot) $._boot.reset()
+}
+
+function alertIsOver() {
+    env.config.alert = false
+    env.config.alertOver = true
+
+    // find "poweredBy" message segment
+    const segments = forEachSegment((sg, acc) => {
+        if (sg.name === 'poweredBy') {
+            acc.push(sg)
+        }
+    })
+    if (segments.length > 0) {
+        const poweredBySegment = segments[0]
+        poweredBySegment.msg = ALERT_OVER_MESSAGE
+    }
+}
+
 function checkAlert() {
+    if (!env.config.war) return
+
     fetch('/war', {
         method: 'GET',
         headers: {
@@ -685,9 +727,14 @@ function checkAlert() {
     .then(response => response.json())
     .then(regions => {
         const region = regions[env.config.war.toLowerCase()]
-        if (region && region.alertnow) {
-            env.config.alert = true
-            if ($._boot) $._boot.reset()
+        if (region) {
+            if (region.alertnow) {
+                if (!env.config.alert) raiseAlert()
+            } else {
+                if (env.config.alert) {
+                    alertIsOver()
+                }
+            }
         }
     })
 }
