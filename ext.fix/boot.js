@@ -81,11 +81,12 @@ let lowFont = FBASE*.75 + 'px moon'
 
 const R3 = ry(.4)
 const POWERED_BY = 'Powered by Collider.JAM'
+const DEVELOPING_WITH = 'Developing with Collider.JAM'
 const ERROR = 'Error'
 
-const ALERT = 'Alert!'
-const ALERT_MESSAGE = 'Air Raid Alert! Proceed to the nearest shelter!'
-const ALERT_OVER = 'Over!'
+const ALERT              = 'Alert!'
+const ALERT_MESSAGE      = 'Air Raid Alert! Proceed to the nearest shelter!'
+const ALERT_OVER         = 'Over!'
 const ALERT_OVER_MESSAGE = 'The Air Raid Alert is Over!'
 
 const ACTIVE = 0
@@ -132,7 +133,12 @@ function init() {
         const bt = env.config.boot
         augment(cf, bt)
     }
-    if (env.config.debug && !env.config.slowBoot) cf.time.hold = 0 // no hold on debug
+    if (env.config.debug) {
+        if (!env.config.slowBoot) {
+            cf.time.hold  = 0  // no hold on debug
+            cf.time.power = 0  // show the label right away
+        }
+    }
 
     if (env.config.war) {
         checkAlert()
@@ -506,12 +512,19 @@ function evoContent(dt) {
     // spawn powered by
     if (!spawnedPoweredBy && bootTimer > cf.time.power) {
         const w = spawnWorm()
+
+        let msg = POWERED_BY
+        if (env.config.alert) {
+            msg = ALERT_MESSAGE
+        } else if (env.config.debug) {
+            msg = DEVELOPING_WITH
+        }
         spawnTextSegment(w, {
             name:    'poweredBy',
             rx:      .5,
             ry:      .9,
             dir:     0,
-            msg:     env.config.alert? ALERT_MESSAGE : POWERED_BY,
+            msg:     msg, 
             fadein:  1,
             keep:    0,
             fadeout: 0,
