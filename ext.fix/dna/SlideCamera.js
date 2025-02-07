@@ -95,26 +95,6 @@ const SlideCamera = function(st) {
 
 SlideCamera.prototype = new sys.LabFrame()
 
-// deprecated
-SlideCamera.prototype.worldX = function(x) {
-    return (x-ctx.width/2)/this.scale + this.x
-}
-
-// deprecated
-SlideCamera.prototype.worldY = function(y) {
-    return (y-ctx.height/2)/this.scale + this.y
-}
-
-// deprecated
-SlideCamera.prototype.screenX = function(x) {
-    return (x - this.x)*this.scale + ctx.width/2
-}
-
-// deprecated
-SlideCamera.prototype.screenY = function(y) {
-    return (y - this.y)*this.scale + ctx.height/2
-}
-
 // translate local x to global coordinates
 // @param {number} x
 // @returns {number} - global x
@@ -176,18 +156,6 @@ SlideCamera.prototype.viewport = function() {
         w: this.lx(ctx.width) - x,
         h: this.ly(ctx.height) - y,
     }
-}
-
-// deprecated
-// get viewport coordinates
-// @returns {array/2d-coordinates}
-SlideCamera.prototype.getViewport = function() {
-    return [
-        this.lx(0),
-        this.ly(0),
-        this.lx(ctx.width),
-        this.ly(ctx.height)
-    ]
 }
 
 // check if local coordinates are in the viewport
@@ -359,9 +327,13 @@ SlideCamera.prototype.evo = function(dt) {
 // draw entities in the viewport
 SlideCamera.prototype.draw = function(dt) {
     ctx.save()
-	let sw = env.width
-	let sh = env.height
-    let vp = this.getViewport()
+	const sw = env.width,
+          sh = env.height,
+          vp = this.viewport(),
+          vx1 = vp.x,
+          vy1 = vp.y,
+          vx2 = vp.x + vp.w,
+          vy2 = vp.y + vp.h
     
     ctx.translate(sw/2, sh/2) // half-screen shift
 	ctx.scale(this.scale, this.scale);
@@ -370,7 +342,7 @@ SlideCamera.prototype.draw = function(dt) {
     /*
     // draw viewport
     ctx.strokeStyle = '#ff0000'
-    ctx.strokeRect(vp[0], vp[1], vp[2]-vp[0], vp[3]-vp[1])
+    ctx.strokeRect(vx1, vpy2, vp.w, vp.h)
     */
 	    
     this._ls.forEach( e => {
@@ -378,21 +350,21 @@ SlideCamera.prototype.draw = function(dt) {
             // culling
             if (e._rectangular) {
                 if ((e._centered
-                            && e.x+e.w/2 >= vp[0]
-                            && e.x-e.w/2 <= vp[2]
-                            && e.y+e.h/2 >= vp[1]
-                            && e.y-e.h/2 <= vp[3])
-                        || (e.x+e.w >= vp[0]
-                            && e.x  <= vp[2]
-                            && e.y+e.h >= vp[1]
-                            && e.y  <= vp[3])) {
+                            && e.x+e.w/2 >= vx1
+                            && e.x-e.w/2 <= vx2
+                            && e.y+e.h/2 >= vy1
+                            && e.y-e.h/2 <= vy2)
+                        || (e.x+e.w >= vx1
+                            && e.x  <= vx2
+                            && e.y+e.h >= vy1
+                            && e.y  <= vy2)) {
                     e.draw()
                 }
             } else if (e._circular) {
-                if (e.x+e.r >= vp[0]
-                        && e.x-e.r <= vp[2]
-                        && e.y+e.r >= vp[1]
-                        && e.y-e.r <= vp[3]) {
+                if (e.x+e.r >= vx1
+                        && e.x-e.r <= vx2
+                        && e.y+e.r >= vy1
+                        && e.y-e.r <= vy2) {
                     e.draw()
                 }
 
