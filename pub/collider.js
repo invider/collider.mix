@@ -2307,14 +2307,14 @@ function evalJS(script, _, batch) {
     try{
         val = eval(code)
     } catch (e) {
-        console.error(`Error executing file: ${script.origin}`)
+        console.error(`Error evaluating file: ${script.origin}`)
         console.log(code)
         throw (e)
     }
     */
 
     // TODO parse the source for require('')
-    //      and try to resolve those before the execution
+    //      and try to resolve those before the evaluation
     //      if not resolved - postpone the evaluation until later in the batch
     let val
     try {
@@ -2323,8 +2323,8 @@ function evalJS(script, _, batch) {
     } catch (e) {
         if (e && isString(e) && e.includes('no requirement found') && script.evalTries < 64) {
             // TODO I don't like the test for a string and what can we do with cyclic dependencies?
-            //      Maybe there should be a limit on script reexecution?
-            _.log.sys('[eval]', `${e}, rescheduling [${script.path}]`)
+            //      Maybe there should be a limit on script reevaluation?
+            _.log.sys(`[eval:${script.path}]`, `${e}, rescheduling`)
             _.res._schedule(-1, script)
             return 
         }
@@ -2344,13 +2344,13 @@ function evalJS(script, _, batch) {
         parseConstants(script.src, defs)
 
         if (defs.length > 0) {
-            _.log.sys('[eval]', 'no value - reevaluating to extract definitions: ' + script.path)
+            _.log.sys(`[eval:${script.path}]`, 'no value - reevaluating to extract definitions')
 
             // definitions storage code
             script.def = '\n' + defs.map(d => `if (typeof ${d} !== 'undefined') module.def.${d} = ${d}`).join(';')
             const code = generateSource(script, __)
 
-            // execute once again with definition extraction code
+            // evaluate once again with definition extraction code
             const module = {
                 def: {},
             }
@@ -2359,17 +2359,17 @@ function evalJS(script, _, batch) {
 
             if (module.def) {
                 if (isFun(module.def[script.name]) || isObj(module.def[script.name])) {
-                    _.log.sys('found defining node for export ' + script.name + '()')
+                    _.log.sys(`[eval:${script.path}]`, 'found defining node for export ' + script.name + '()')
                     return withMeta(module.def[script.name], meta, script.name)
                 }
                 return withMeta(module.def, meta, script.name)
             } else {
-                _.log.sys('no value, exports or declarations from ' + script.path, '[eval]')
+                _.log.sys(`[eval:${script.path}]`, 'no value, exports or declarations from ' + script.path, '[eval]')
                 return null
             }
 
         } else {
-            _.log.sys('no value, exports or declarations from ' + script.path, '[eval]')
+            _.log.sys(`[eval:${script.path}]`, 'no value, exports or declarations from ' + script.path, '[eval]')
             return null
         }
     }
@@ -2435,6 +2435,12 @@ function parseProp(src) {
 }
 
 function evalLoadedContent(script, _, batch) {
+    if (batch) {
+        _.log.sys('eval-' + batch.index, '=> ' + script.path)
+    } else {
+        _.log.sys('eval', '=> ' + script.path)
+    }
+
     //try {
     switch(script.ext) {
         case 'js':
@@ -2544,7 +2550,7 @@ const checkScriptDependencies = function(script, batch) {
 }
 
 const sortLoadedBatch = function(batch) {
-    //this._execList[batch].sort((a, b) => a.path.localeCompare(b.path))
+    //this._evalList[batch].sort((a, b) => a.path.localeCompare(b.path))
     const res = []
     // carry on the patching nodes
     res._patch = batch._patch
@@ -2599,10 +2605,12 @@ const applySkippedPatches = function(batch, _) {
 const evalLoadedBatch = function(ibatch, batch, _) {
     const patchedBatch = extractPatches(batch)
     const sortedBatch = sortLoadedBatch(patchedBatch)
+    sortedBatch.index = ibatch
 
     sortedBatch.forEach( script => {
-        _.log.sys('eval-' + ibatch, '=> ' + script.path)
+        _._scheduled++
         evalLoadedContent(script, _, sortedBatch)
+        _._evaluated++
     })
     applySkippedPatches(sortedBatch, _)
 }
@@ -3209,62 +3217,97 @@ const Mod = function(st) {
         _included: 0,
         _loaded: 0,
         _errors: 0,
-        _execList: [],
+        _evalList: [],
 
         _schedule: function(batch, script) {
             if (batch < 0) {
                 // determine the batch
-                const lastBatch = this._execList[this._execList.length - 1]
+                const lastBatch = this._evalList[this._evalList.length - 1]
                 if (!lastBatch || lastBatch.indexOf(script) >= 0) {
                     // create a new batch for this one
-                    batch = this._execList.length
+                    batch = this._evalList.length
                 } else {
                     // schedule in the last batch
-                    batch = this._execList.length - 1
+                    batch = this._evalList.length - 1
                 }
             }
 
-            if (!this._execList[batch]) {
-                this._execList[batch] = []
+            if (!this._evalList[batch]) {
+                this._evalList[batch] = []
             }
-            this._execList[batch].push(script)
+            this._evalList[batch].push(script)
             return batch
         },
 
-        _exec: function() {
-            for (let batch = 1; batch < this._execList.length; batch++) {
-                if (!this._execList[batch]) continue
-                this._.log.sys('eval-'+batch, '===== evaluating batch #'
-                    + batch + ' for ' + this._.name + ' =====')
+        _eval: function() {
+            for (let batch = 1; batch < this._evalList.length; batch++) {
+                if (!this._evalList[batch]) continue
+                this._.log.sys('[eval]', `scheduling evaluation of batch #${batch} for ${this._.name}...`)
 
                 // sort batch alphanumerically before the evaluation
-                this._execList[batch].sort((a, b) => a.path.localeCompare(b.path))
+                this._evalList[batch].sort((a, b) => a.path.localeCompare(b.path))
 
-                evalLoadedBatch(batch, this._execList[batch], this._)
+                const evalList = this._evalList[batch]
+                evalLoadedBatch(batch, evalList, this._)
+
+                /*
+                // Doesn't work due to the missing reschedules - they depend on the next batch in row,
+                // but the eval list for those is already scheduled!!!
+
+                // TODO 
+                // create a unified evaluation manager that handles all aspects of loaded/included files,
+                // eval orders, batch scheduling, dependencies, reevaluations
+                // and calls for the start trigger if needed.
+                //
+                const ibatch = batch
+                const evalList = this._evalList[batch]
+                const _ = this._
+                _._scheduled++
+                setTimeout(() => {
+                    evalLoadedBatch(ibatch, evalList, _)
+                    _._evaluated++
+                }, 0)
+                */
 
                 // clean up batch
-                this._execList[batch] = []
+                this._evalList[batch] = []
             }
         },
 
-        _startTrigger: function() {
-            if (this._.env._started) return // it looks like we already started
+        _checkEvalReadiness: function() {
+            if (this._.env._started) return // it looks like we've already started
 
+            // check if all resources are loaded
             if (this._included <= this._loaded) {
                 // OK - everything is loaded, call setup functions
                 // TODO how to deal with mods with no res? how start would be triggered?
                 this._.log.sys('[loader]', 'Total ' + this._loaded + ' resources are loaded in ' + this._.name)
+                const startedEvalTimestamp = Date.now()
+                this._._scheduled = 0
+                this._._evaluated = 0
                 this._errors = 1
-                this._exec()
+                this._eval()       // TODO refactor this heavy call - we are trying to parse and eval everything in a sync call here!!!
                 this._errors = 0
+                const evalTime = Date.now() - startedEvalTimestamp
+                this._.log.sys('[loader] Time: ' + evalTime + 'ms')
 
-                this._.start()
+                //this._.start()
+                const _ = this._
+                function startTrigger() {
+                    _.log.sys('trying to start... ' + _._evaluated + ' <> ' + _._scheduled)
+                    if (_._evaluated >= _._scheduled) {
+                        _.start()
+                    } else {
+                        setTimeout(startTrigger, 100)
+                    }
+                }
+                setTimeout(startTrigger, 0)
             }
         },
 
         _onLoaded: function() {
             this._loaded ++
-            this._startTrigger()
+            this._checkEvalReadiness()
         },
 
         onAttached: function(node, name, parent) {
@@ -3963,7 +4006,7 @@ Mod.prototype.patch = function(target, path, node) {
         // trigger onLoad event
         if (isFun(node.onLoad)) {
             node.onLoad(this)
-            node.onLoad = true // replace function with true, so we'd not call it second time
+            node.onLoad = true // replace function with true, so we'd not call it for the second time
         }
         /*
         Don't call init() here to avoid double call in case the node is already attached to a Frame.
@@ -4204,10 +4247,12 @@ function scheduleLoad(_, batch, url, base, path, name, ext, classifier, type, af
                 }
                 if (batch === 0) {
                     // boot scripts are evaluated imediately
-                    _.log.sys('eval-0/boot', '=> ' + script.path)
-                    evalLoadedContent(script, _)
+                    //_.log.sys('eval-0/boot', '=> ' + script.path)
+                    evalLoadedContent(script, _, {
+                        index: 0,
+                    })
                 } else {
-                    // push the script into the exec list
+                    // push the script into the eval list
                     _.res._schedule(batch, script)
                 }
 
