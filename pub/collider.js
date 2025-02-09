@@ -2277,11 +2277,16 @@ function evalJS(script, _, batch) {
 
     script.def = ''
 
-    let meta
-    const requirements = []
+    const meta = script.meta,
+        requirements = script.requirements || []
+    /*
+    // TODO move out to preEval handlers
+    //      why do we run that after the eval? we can do that before just as easy
+    //const requirements = []
     if (_scene.env.config.debug) {
         meta = extractMeta(script, requirements)
     }
+    */
 
     if (requirements.length > 0) {
         // determine if all requirements are satisfied
@@ -2337,11 +2342,14 @@ function evalJS(script, _, batch) {
         return withMeta(module.exports, meta, script.name)
 
     } else {
-        const defs = []
+        const defs = script.defs || []
+        /*
         // TODO make all in one parser (meta, require, definitions)
+        const defs = []
         parseClasses(script.src, defs)
         parseFunctions(script.src, defs)
         parseConstants(script.src, defs)
+        */
 
         if (defs.length > 0) {
             _.log.sys(`[eval:${script.path}]`, 'no value - reevaluating to extract definitions')
@@ -2464,7 +2472,7 @@ function evalLoadedContent(script, _, batch) {
                     _.patch(script.base, script.path, processedJS)
 
                 } else {
-                    _.log.sys("can't find a custom post-processor for ." + script.classifier)
+                    _.log.sys(`can't find a custom action or post-processor for [*.${script.classifier}]`)
                     _.patch(script.base, script.path, val)
                 }
 
@@ -3305,8 +3313,28 @@ const Mod = function(st) {
             }
         },
 
-        _onLoaded: function() {
+        _preEvalScript: function(script) {
+            switch(script.ext) {
+                case 'js':
+                    const requirements = []
+                    if (_scene.env.config.debug) {
+                        script.meta = extractMeta(script, requirements)
+                    }
+                    script.requirements = requirements
+
+                    // TODO make all in one parser (meta, require, definitions)
+                    const defs = []
+                    parseClasses(script.src, defs)
+                    parseFunctions(script.src, defs)
+                    parseConstants(script.src, defs)
+                    script.defs = defs
+                    break
+            }
+        },
+
+        _onLoaded: function(script) {
             this._loaded ++
+            if (script) this._preEvalScript(script)
             this._checkEvalReadiness()
         },
 
@@ -4248,6 +4276,7 @@ function scheduleLoad(_, batch, url, base, path, name, ext, classifier, type, af
                 if (batch === 0) {
                     // boot scripts are evaluated imediately
                     //_.log.sys('eval-0/boot', '=> ' + script.path)
+                    _.res._preEvalScript(script)
                     evalLoadedContent(script, _, {
                         index: 0,
                     })
@@ -4256,9 +4285,9 @@ function scheduleLoad(_, batch, url, base, path, name, ext, classifier, type, af
                     _.res._schedule(batch, script)
                 }
 
-                _.res._onLoaded()
+                _.res._onLoaded(script)
             } else {
-                _.log.sys('loader-' + batch, 'unable to load ' + url)
+                _.log.sys(`[loader-${batch}]`, `unable to load [${url}]`)
             }
         }
     }
