@@ -110,7 +110,7 @@ DynamicList.prototype.onItemAction = function(i, a) {
 }
 
 DynamicList.prototype.moveCursor = function(shift) {
-    this.selected = lib.math.limit(this.selected + shift, 0, this.max)
+    this.selected = clamp(this.selected + shift, 0, this.max)
     this.adjustPosition()
     if (this.onMove) this.onMove()
 }

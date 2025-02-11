@@ -309,11 +309,6 @@ function clamp(val, min, max) {
     return val < min? min : val > max? max : val
 }
 
-// alias to clamp
-function limit(val, min, max) {
-    return val < min? min : val > max? max : val
-}
-
 function hue2rgb(p, q, t) {
     if (t < 0) t += 1
     if (t > 1) t -= 1
@@ -412,9 +407,9 @@ function RGB2HSL(r, g, b) {
 }
 
 function rgb(r, g, b) {
-    r = limit(Math.round(r * 255), 0, 255).toString(16)
-    g = limit(Math.round(g * 255), 0, 255).toString(16)
-    b = limit(Math.round(b * 255), 0, 255).toString(16)
+    r = clamp(Math.round(r * 255), 0, 255).toString(16)
+    g = clamp(Math.round(g * 255), 0, 255).toString(16)
+    b = clamp(Math.round(b * 255), 0, 255).toString(16)
     if (r.length === 1) r = '0'+r
     if (g.length === 1) g = '0'+g
     if (b.length === 1) b = '0'+b
@@ -423,10 +418,10 @@ function rgb(r, g, b) {
 }
 
 function rgba(r, g, b, a) {
-    r = limit(Math.round(r * 255), 0, 255).toString(16)
-    g = limit(Math.round(g * 255), 0, 255).toString(16)
-    b = limit(Math.round(b * 255), 0, 255).toString(16)
-    a = limit(Math.round(a * 255), 0, 255).toString(16)
+    r = clamp(Math.round(r * 255), 0, 255).toString(16)
+    g = clamp(Math.round(g * 255), 0, 255).toString(16)
+    b = clamp(Math.round(b * 255), 0, 255).toString(16)
+    a = clamp(Math.round(a * 255), 0, 255).toString(16)
     if (r.length === 1) r = '0'+r
     if (g.length === 1) g = '0'+g
     if (b.length === 1) b = '0'+b
@@ -436,9 +431,9 @@ function rgba(r, g, b, a) {
 }
 
 function RGB(r, g, b) {
-    r = limit(Math.round(r), 0, 255).toString(16)
-    g = limit(Math.round(g), 0, 255).toString(16)
-    b = limit(Math.round(b), 0, 255).toString(16)
+    r = clamp(Math.round(r), 0, 255).toString(16)
+    g = clamp(Math.round(g), 0, 255).toString(16)
+    b = clamp(Math.round(b), 0, 255).toString(16)
     if (r.length === 1) r = '0'+r
     if (g.length === 1) g = '0'+g
     if (b.length === 1) b = '0'+b
@@ -447,10 +442,10 @@ function RGB(r, g, b) {
 }
 
 function RGBA(r, g, b, a) {
-    r = limit(Math.round(r), 0, 255).toString(16)
-    g = limit(Math.round(g), 0, 255).toString(16)
-    b = limit(Math.round(b), 0, 255).toString(16)
-    a = limit(Math.round(a), 0, 255).toString(16)
+    r = clamp(Math.round(r), 0, 255).toString(16)
+    g = clamp(Math.round(g), 0, 255).toString(16)
+    b = clamp(Math.round(b), 0, 255).toString(16)
+    a = clamp(Math.round(a), 0, 255).toString(16)
     if (r.length === 1) r = '0'+r
     if (g.length === 1) g = '0'+g
     if (b.length === 1) b = '0'+b
@@ -493,14 +488,14 @@ function hsla(h, s, l, a) {
 function lighten(c, factor) {
     const crgba = color2rgba(c)
     const chsl = rgb2hsl(crgba[0], crgba[1], crgba[2])
-    chsl[2] = limit(chsl[2] * factor, 0, 1)
+    chsl[2] = clamp(chsl[2] * factor, 0, 1)
     return hsl(chsl[0], chsl[1], chsl[2])
 }
 
 function saturate(c, factor) {
     const crgba = color2rgba(c)
     const chsl = rgb2hsl(crgba[0], crgba[1], crgba[2])
-    chsl[1] = limit(chsl[1] * factor, 0, 1)
+    chsl[1] = clamp(chsl[1] * factor, 0, 1)
     return hsl(chsl[0], chsl[1], chsl[2])
 }
 
@@ -3045,8 +3040,6 @@ const Mod = function(st) {
             return 0
         },
 
-        limit: limit,
-
         clamp: clamp,
 
         within: function(val, min, max) {
@@ -3062,16 +3055,16 @@ const Mod = function(st) {
 
         lerp: function(start, stop, v, limitRange) {
             const res = (stop - start) * v
-            if (limit) {
+            if (limitRange) {
                 if (res < start) return start
                 if (res > stop) return stop
             }
             return res
         },
 
-        vmap: function(origStart, origStop, targetStart, targetStop, orig, limit) {
+        vmap: function(origStart, origStop, targetStart, targetStop, orig, limitRange) {
             let v = (orig - origStart) / (origStop - origStart)
-            if (limit) {
+            if (limitRange) {
                 if (v < 0) v = 0
                 if (v > 1) v = 1
             }

@@ -52,7 +52,7 @@ Progress.prototype.draw = function() {
     }
 
     // normalize value within limints
-    this.value = lib.math.limit(this.value, this.minValue, this.maxValue)
+    this.value = clamp(this.value, this.minValue, this.maxValue)
     const text = this.getText()
     ctx.fillStyle = this.color.text
     ctx.font = this.font

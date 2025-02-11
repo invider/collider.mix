@@ -47,7 +47,7 @@ TextPane.prototype.adjust = function() {
 // move text pane to y coordinate
 // the value is bounded by [0 .. page.h-view.h]
 TextPane.prototype.moveTo = function(y) {
-    this.ty = limit(y, 0, max(this.page.h - this.h, 0))
+    this.ty = clamp(y, 0, max(this.page.h - this.h, 0))
 }
 
 // scroll the view up or down by value determined in [dy]

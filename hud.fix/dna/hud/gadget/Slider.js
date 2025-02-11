@@ -143,13 +143,13 @@ Slider.prototype.onScroll = function(pos) {}
 // @param {number} step - number of steps, can be negative if moving up
 Slider.prototype.slide = function(step) {
     const maxPos = max(this.max-this.span, 0)
-    this.pos = limit(this.pos+step, 0, maxPos)
+    this.pos = clamp(this.pos+step, 0, maxPos)
 }
 
 // set the slider position
 Slider.prototype.set = function(pos) {
     const maxPos = max(this.max-this.span, 0)
-    this.pos = limit(pos, 0, maxPos)
+    this.pos = clamp(pos, 0, maxPos)
 }
 
 // get current value
