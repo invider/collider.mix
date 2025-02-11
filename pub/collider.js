@@ -3053,6 +3053,7 @@ const Mod = function(st) {
             return min + (val - min) % range
         },
 
+        // TODO shouldn't the value go first?
         lerp: function(start, stop, v, limitRange) {
             const res = (stop - start) * v
             if (limitRange) {
@@ -3062,13 +3063,8 @@ const Mod = function(st) {
             return res
         },
 
-        vmap: function(origStart, origStop, targetStart, targetStop, orig, limitRange) {
-            let v = (orig - origStart) / (origStop - origStart)
-            if (limitRange) {
-                if (v < 0) v = 0
-                if (v > 1) v = 1
-            }
-            return (targetStop - targetStart) * v
+        remap: function(val, origStart, origStop, targetStart, targetStop) {
+            return targetStart + ((val - origStart) / (origStop - origStart)) * (targetStop - targetStart)
         },
 
         len: function(x, y) {
