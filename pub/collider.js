@@ -1334,52 +1334,40 @@ LabFrame.prototype.draw = function() {
     }
 }
 
-LabFrame.prototype.pause = function() {
-    this.paused = true
-}
-
-LabFrame.prototype.pauseAll = function() {
-    this.paused = true
-    this._ls.forEach(n => {
-        if (n.pauseAll) n.pauseAll()
-        else if (n.pause) n.pause()
-    })
-}
-
 LabFrame.prototype.resume = function() {
     this.paused = false
 }
 
-LabFrame.prototype.resumeAll = function() {
-    this.paused = false
-    this._ls.forEach(n => {
-        if (n.resumeAll) n.resumeAll()
-        else if (n.resume) n.resume()
-    })
-}
-
-LabFrame.prototype.hide = function() {
-    this.hidden = true
-}
-
-LabFrame.prototype.hideAll = function() {
-    this.hidden = true
-    this._ls.forEach(n => {
-        if (n.hideAll) n.hideAll()
-        else if (n.hide) n.hide()
-    })
+LabFrame.prototype.pause = function() {
+    this.paused = true
 }
 
 LabFrame.prototype.show = function() {
     this.hidden = false
 }
 
-LabFrame.prototype.showAll = function() {
-    this.hidden = false
-    this._ls.forEach(n => {
-        if (n.showAll) n.showAll()
-        else if (n.show) n.show()
-    })
+LabFrame.prototype.hide = function() {
+    this.hidden = true
+}
+
+LabFrame.prototype.enable = function() {
+    this.disabled = false
+}
+
+LabFrame.prototype.disable = function() {
+    this.disabled = true
+}
+
+LabFrame.prototype.activate = function() {
+    this.show()
+    this.resume()
+    this.enable()
+}
+
+LabFrame.prototype.deactivate = function() {
+    this.pause()
+    this.hide()
+    this.disable()
 }
 
 LabFrame.prototype.lx = function(x) {
