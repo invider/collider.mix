@@ -739,14 +739,31 @@ function checkAlert() {
     })
     .then(response => response.json())
     .then(regions => {
-        const region = regions[env.config.war.toLowerCase()]
-        if (region) {
-            if (region.alertnow) {
-                if (!env.config.alert) raiseAlert()
-            } else {
-                if (env.config.alert) {
-                    alertIsOver()
+        const monitorRegions = env.config.war.toLowerCase().split(',').map(e => e.trim())
+
+        const targetRegions = []
+        Object.keys(regions).forEach(regionKey => {
+            const region = regions[regionKey]
+
+            monitorRegions.forEach(monitoringName => {
+                if (regionKey === monitoringName
+                        || region.name.toLowerCase() === monitoringName
+                        || (region.alias && region.alias.toLowerCase() === monitoringName)) {
+                    targetRegions.push(region)
                 }
+            })
+        })
+
+        let alertNow = false
+        targetRegions.forEach(region => {
+            if (region.alertnow) alertNow = true
+        })
+
+        if (alertNow) {
+            if (!env.config.alert) raiseAlert()
+        } else {
+            if (env.config.alert) {
+                alertIsOver()
             }
         }
     })
