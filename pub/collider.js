@@ -77,14 +77,14 @@ const isFun = function(f) {
 const isClass = function(f) {
     return (f && typeof f === 'function' && /^\s*class\s+/.test(f.toString()))
 }
-const isString = function(s) {
+const isStr = function(s) {
     return toString.call(s) == "[object String]"
 }
-const isNumber = function(s) {
+const isNum = function(s) {
     return toString.call(s) == "[object Number]"
     //return !isNaN(s) // this one returns true for "3"!
 }
-const isArray = function(a) {
+const isArr = function(a) {
     return Array.isArray(a)
 }
 const isContainer = function(o) {
@@ -101,7 +101,7 @@ const isEmpty = function(o) {
         }
         return true
 
-    } else if (isArray(o)) {
+    } else if (isArr(o)) {
         return o.length === 0
     }
     return false
@@ -114,12 +114,12 @@ function assert(cond, msg) {
 }
 assert.number = function(val, msg) {
     msg = msg || 'not a number'
-    if (isNumber(val)) return true
+    if (isNum(val)) return true
     throw msg
 }
 assert.string = function(val, msg) {
     msg = msg || 'not a string'
-    if (isString(val)) return true
+    if (isStr(val)) return true
     throw msg
 }
 assert.object = function(val, msg) {
@@ -149,7 +149,7 @@ function dist(x1, y1, x2, y2) {
 }
 
 function mixCopy(src) {
-    if (isArray(src)) {
+    if (isArr(src)) {
         const res = []
         for (let i = 0; i < src.length; i++) {
             res[i] = mixCopy(src[i])
@@ -239,7 +239,7 @@ function augment() {
                         if (mixin !== source[prop]) augment(mixin[prop], source[prop])
                     } else {
                         const val = source[prop]
-                        if (isArray(val)) {
+                        if (isArr(val)) {
                             mixin[prop] = val.slice() // shallow array copy
                         } else {
                             mixin[prop] = val
@@ -646,7 +646,7 @@ const Frame = function(st, extra) {
     this._ = this
     this._ls = []
     this._dir = {}
-    if (isString(st)) {
+    if (isStr(st)) {
         this.name = st
         if (isObj(extra)) augment(this, extra)
     } else if (isObj(st)) {
@@ -707,7 +707,7 @@ Frame.prototype.attach = function(node, name) {
     }
     this._ls.push(node)
 
-    if (isNumber(node.Z)) this.orderZ()
+    if (isNum(node.Z)) this.orderZ()
     this.onAttached(node, name, this)
     if (prevNode && isFun(node.onReplace)) node.onReplace(prevNode)
     if (isFun(node.init)) node.init() // initialize node
@@ -841,7 +841,7 @@ Frame.prototype.apply = function(fn, predicate) {
             }
 		}
 
-    } else if (isString(predicate)) {
+    } else if (isStr(predicate)) {
         const sls = this.select(predicate)
         for (let i = 0, l = sls.length; i < l; i++) {
             const e = sls[i]
@@ -897,7 +897,7 @@ Frame.prototype.collide = function(fn, predicate) {
                 })
             }
 		})
-    } else if (isString(predicate)) {
+    } else if (isStr(predicate)) {
         let ls = this.select(predicate)
         ls.forEach( function(e) {
             ls.forEach( function(o) {
@@ -1018,7 +1018,7 @@ Frame.prototype.select = function(predicate) {
         }
     }
 
-	if (isString(predicate)) {
+	if (isStr(predicate)) {
 		// select by path
 		if (predicate === '') {
 			// select the dir
@@ -1040,12 +1040,12 @@ Frame.prototype.select = function(predicate) {
 			for (let k in this) {
 				let o = this[k]
 				if (o && nextName === '*' || k.includes(nextName)
-                        || (o && o.tag && isString(o.tag) && o.tag.includes(nextName))) {
+                        || (o && o.tag && isStr(o.tag) && o.tag.includes(nextName))) {
 
 					if (isFrame(o)) {
 						res = res.concat(o.select(nextPath))
 
-					} else if (isArray(o)) {
+					} else if (isArr(o)) {
 						if (nextPath === '' || nextPath === '*') res = res.concat(o)
 						// TODO maybe handle index identifiers?
 					} else if (isObj(o) || isFun(o)) {
@@ -1084,7 +1084,7 @@ Frame.prototype.select = function(predicate) {
                     const rexp = new RegExp(id.replaceAll('*', '.*'))
 
                     this.applyAll((e) => {
-                        if (isContainer(e) && isString(e.id) && e.id.match(rexp)) {
+                        if (isContainer(e) && isStr(e.id) && e.id.match(rexp)) {
                             res.push(e)
                         }
                     })
@@ -1140,7 +1140,7 @@ Frame.prototype.select = function(predicate) {
                 const res = []
                 for (let i = 0; i < this._ls; i++) {
                     const e = this._ls[i]
-                    if (e.tag && isString(e.tag) && e.tag.includes(tag)) {
+                    if (e.tag && isStr(e.tag) && e.tag.includes(tag)) {
                         res.push(e)
                     }
                 }
@@ -1183,7 +1183,7 @@ Frame.prototype.select = function(predicate) {
                 target.attach(node, path)
             }
         }
-    } else if (isArray(target)) {
+    } else if (isArr(target)) {
         target.push(node)
     } else if (isObj(target)) {
         if (path === '') throw { src: this, msg: "can't attach anonymous node to " + target }
@@ -1212,9 +1212,9 @@ Frame.prototype.selectOne = function(predicate) {
 
 Frame.prototype.orderZ = function() {
     this._ls.sort((a, b) => {
-        if (!isNumber(a.Z) && !isNumber(b.Z)) return 0;
-        if (!isNumber(a.Z) && isNumber(b.Z)) return 1;
-        if (isNumber(a.Z) && !isNumber(b.Z)) return -1;
+        if (!isNum(a.Z) && !isNum(b.Z)) return 0;
+        if (!isNum(a.Z) && isNum(b.Z)) return 1;
+        if (isNum(a.Z) && !isNum(b.Z)) return -1;
         if (a.Z > b.Z) return 1;
         if (a.Z < b.Z) return -1;
         return 0;
@@ -1266,12 +1266,12 @@ LabFrame.prototype.promoteNode = function(node) {
 
         // TODO probably shouldn't be called here
         //if (isFun(node.spawn)) node.spawn() // spawn handler
-        node._positional = (isNumber(node.x) && isNumber(node.y))
-        node._rectangular = (node._positional && isNumber(node.w) && isNumber(node.h))
-        node._circular = (node._positional && isNumber(node.r))
+        node._positional = (isNum(node.x) && isNum(node.y))
+        node._rectangular = (node._positional && isNum(node.w) && isNum(node.h))
+        node._circular = (node._positional && isNum(node.r))
         if (node._centered !== false) node._centered = true
 
-        //if (isNumber(node.Z)) this.orderZ()
+        //if (isNum(node.Z)) this.orderZ()
     }
 
     // TODO make arbitrary augmentation and dependency injection possible
@@ -1505,7 +1505,7 @@ function parseCueTime(df) {
     if (!df || df.length === 0) return 0
 
     let time = parseInt(df)
-    if (!isNumber(time)) return 0
+    if (!isNum(time)) return 0
 
     df = df.replace(/([0-9])+/, '')
     if (df.startsWith('ms')) time /= 1000
@@ -1524,7 +1524,7 @@ function parseTimes(df) {
     }
 
     let times = parseInt(df)
-    if (!isNumber(times)) {
+    if (!isNum(times)) {
         throw new Error('Wrong cue format - number is expected @[' + df + ']!')
     }
     return times
@@ -1533,7 +1533,7 @@ function parseTimes(df) {
 CueFrame.prototype.attach = function(node, name) {
     if (!isFun(node)) throw new Error('Cue must be a function!')
     if (!name) name = node.name
-    if (!isString(name)) throw new Error('Cue must have a name!')
+    if (!isStr(name)) throw new Error('Cue must have a name!')
     Frame.prototype.attach.call(this, node, name)
 
     // augment node
@@ -1977,7 +1977,7 @@ function extractMeta(script, requirements) {
             metaCount ++
         } 
         // define usage for functions
-        if (type === 'function' && isString(params)) {
+        if (type === 'function' && isStr(params)) {
             if (!meta[name]) meta[name] = {}
             meta[name].usage = `(${params})`
             if (meta[name].at) {
@@ -2309,7 +2309,7 @@ function evalJS(script, _, batch) {
         script.evalTries = script.evalTries + 1 || 1
         val = eval(code)
     } catch (e) {
-        if (e && isString(e) && e.includes('no requirement found') && script.evalTries < 64) {
+        if (e && isStr(e) && e.includes('no requirement found') && script.evalTries < 64) {
             // TODO I don't like the test for a string and what can we do with cyclic dependencies?
             //      Maybe there should be a limit on script reevaluation?
             _.log.sys(`[eval:${script.path}]`, `${e}, rescheduling`)
@@ -2744,7 +2744,7 @@ function augmentCtx(ctx) {
         background: function(v1, v2, v3, v4) {
             if (arguments.length === 1) {
 
-                if (isString(v1)) {
+                if (isStr(v1)) {
                     ctx.fillStyle = v1
                     ctx.fillRect(0, 0, ctx.width, ctx.height)
                 } else {
@@ -2874,7 +2874,7 @@ function augmentCtx(ctx) {
             let size
             let name
 
-            if (isString(font)) {
+            if (isStr(font)) {
                 const i = font.indexOf('px ')
                 if (i > 0) {
                     // full size+name font qualifier
@@ -2894,7 +2894,7 @@ function augmentCtx(ctx) {
                     }
                 }
 
-            } else if (isNumber(font)) {
+            } else if (isNum(font)) {
                 fontSize = parseInt(font)
             }
 
@@ -2979,12 +2979,17 @@ const Mod = function(st) {
         after:       after,
         chain:       chain,
         isFun:       isFun,
+        isFunction:  isFun,
         isClass:     isClass,
         isObj:       isObj,
-        isString:    isString,
-        isNumber:    isNumber,
+        isObject:    isObj,
+        isStr:       isStr,
+        isString:    isStr,
+        isNum:       isNum,
+        isNumber:    isNum,
         isFrame:     isFrame,
-        isArray:     isArray,
+        isArr:       isArr,
+        isArray:     isArr,
         isContainer: isContainer,
         isEmpty:     isEmpty,
         assert:      assert,
@@ -3106,16 +3111,16 @@ const Mod = function(st) {
 
         sfx: function(src, vol, pan) {
             if (!_.___.env._touched) {
-                _.log.sys(`[sfx:${isString(src)? src : src.name}]`, `ignoring - no user interaction`)
+                _.log.sys(`[sfx:${isStr(src)? src : src.name}]`, `ignoring - no user interaction`)
                 return
             }
             if (!pan) pan = 0
             if (!vol) vol = 1
-            if (isNumber(_.env.sfxVolume)) {
+            if (isNum(_.env.sfxVolume)) {
                 vol *= _.env.sfxVolume
             }
 
-            if (isString(src)) {
+            if (isStr(src)) {
                 // find by path in resources
                 src = _.res.selectOne(src)
             }
@@ -3148,7 +3153,7 @@ const Mod = function(st) {
         },
 
         sleep: function(s) {
-            if (!s || !isNumber(s)) s = 0
+            if (!s || !isNum(s)) s = 0
             return new Promise(resolve => setTimeout(resolve, (s * 1000) | 0))
         },
 
@@ -3324,7 +3329,7 @@ const Mod = function(st) {
             //      since this is already autoloaded
             //      avoid double autoloading
             /*
-            if (isString(node)) {
+            if (isStr(node)) {
                 console.log('attaching -> ' + name)
                 console.dir(node)
                 if (name) {
@@ -3336,7 +3341,7 @@ const Mod = function(st) {
                     this._.load(node, parent)
                 }
             
-            } else if (isArray(node)) {
+            } else if (isArr(node)) {
                 // load resource group
                 let _ = this._
                 let rgroup = []
@@ -3582,7 +3587,7 @@ Mod.prototype._runTests = function() {
     this._testLog.total = 0
 
     function runTestFn(_, fn) {
-        if (!fn || !isFun(fn) || !isString(fn.name)) return
+        if (!fn || !isFun(fn) || !isStr(fn.name)) return
 
         if (fn.name.startsWith('test')) {
 
@@ -3669,7 +3674,7 @@ Mod.prototype._runTests = function() {
         _.log.sys('------------------------------------')
     }
 
-    if (isString(_scene.env.config.test)) {
+    if (isStr(_scene.env.config.test)) {
         this.status = 'testing'
         const testName = _scene.env.config.test
         const tests = this.test.select(_scene.env.config.test)
@@ -3904,7 +3909,7 @@ Mod.prototype.patch = function(target, path, node) {
 
     if (path === '') {
         // patch point is a directory - find if node is named
-        if (node && isString(node.name)) {
+        if (node && isStr(node.name)) {
             path = node.name
         }
     }
@@ -3955,7 +3960,7 @@ Mod.prototype.patch = function(target, path, node) {
             if (path === '') {
                 target.attach(node)
             } else if (index >= 0) {
-                if (!isArray(target[path])) {
+                if (!isArr(target[path])) {
                     target.attach([], path)
                 }
                 target[path][index] = node
@@ -3986,7 +3991,7 @@ Mod.prototype.patch = function(target, path, node) {
                     target.attach(node, path)
                 }
             }
-        } else if (isArray(target)) {
+        } else if (isArr(target)) {
             if (index >= 0) {
                 target[index] = node
             } else {
@@ -3995,7 +4000,7 @@ Mod.prototype.patch = function(target, path, node) {
         } else if (isObj(target)) {
             if (path === '') throw { src: this, msg: "can't attach anonymous node to " + target.name }
             if (index >= 0) {
-                if (!isArray(target[path])) {
+                if (!isArr(target[path])) {
                     target[path] = []
                 }
                 target[path][index] = node
@@ -4449,7 +4454,7 @@ function isUnitAvailable(unitId, loadingQueue) {
 }
 
 function validateUnitRequirements(unit, loadingQueue) {
-    if (!isArray(unit.require)) return true // no requirements
+    if (!isArr(unit.require)) return true // no requirements
 
     let res = true
     unit.require.forEach(rq => {
@@ -4528,7 +4533,7 @@ Mod.prototype.loadUnits = function(baseMod, target) {
 
             let ignoreList = []
             loadQueue.forEach(unit => {
-                if (isArray(unit.ignore)) ignoreList = ignoreList.concat(unit.ignore)
+                if (isArr(unit.ignore)) ignoreList = ignoreList.concat(unit.ignore)
             })
             ignoreList = ignoreList.map(e => new RegExp(e))
 
@@ -4618,7 +4623,7 @@ function constructLog() {
         'tab')
     log.attach(
         (e) => {
-            if (isArray(e)) {
+            if (isArr(e)) {
                 for (let i = 0; i < e.length; i++) {
                     console.log(`${i}: ${e[i]}`)
                 }
@@ -4684,10 +4689,15 @@ function constructScene(target) {
     mod.sys.attach(CueFrame)
 
     mod.sys.attach(isObj)
+    mod.sys.attach(isObj, 'isObject')
     mod.sys.attach(isFun)
-    mod.sys.attach(isNumber)
-    mod.sys.attach(isString)
-    mod.sys.attach(isArray)
+    mod.sys.attach(isFun, 'isFunction')
+    mod.sys.attach(isNum)
+    mod.sys.attach(isNum, 'isNumber')
+    mod.sys.attach(isStr)
+    mod.sys.attach(isStr, 'isString')
+    mod.sys.attach(isArr)
+    mod.sys.attach(isArr, 'isArray')
     mod.sys.attach(isFrame)
     mod.sys.attach(isEmpty)
 
@@ -5036,7 +5046,7 @@ function openSocket(url, retry) {
 
     socket.onmessage = function(msg) {
         //_scene.log(TAG, msg.data.toString())
-        if (isString(msg.data)) {
+        if (isStr(msg.data)) {
             const parts = msg.data.split(':')
             _scene.patchNode(parts[0], parts[1], parts[2])
         }
