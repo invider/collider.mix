@@ -291,16 +291,7 @@ const math = {
         return a < 0? a + 2*Math.PI : a
     },
 
-    // limit (clamp) a value within the provided [min..max] range
-    // @param {number} val - original value
-    // @param {number} min
-    // @param {number} max
-    // @returns {number} - a value limited to [min..max] range
-    limit: function(val, min, max) {
-        return val < min? min : val > max? max : val
-    },
-
-    // clamp (limit) a value within the provided [min..max] range
+    // clamp a value into the provided [min..max] range
     // @param {number} val - original value
     // @param {number} min
     // @param {number} max
@@ -313,6 +304,7 @@ const math = {
     // @param {number} start
     // @param {number} stop
     // @param {number} t - current value, assumed to be in the range [0..1]
+    // TODO shoudn't it be lerp() (?)
     linear: function(start, stop, t) {
         return (stop - start) * t + start
     },

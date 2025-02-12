@@ -3009,6 +3009,7 @@ const Mod = function(st) {
         EPSILON: 0.000001,
 
         abs:   Math.abs,
+        sign:  Math.sign,
         pow:   Math.pow,
         sqrt:  Math.sqrt,
         min:   Math.min,
