@@ -47,6 +47,7 @@ function createRandomGenerator(factory) {
     const generator = factory()
     const rndf = generator.rndf // rndf() is the RNG core provided by the factory
 
+    // random float in the range [v1..v2] or [0..v1] or [0..1]
     function rnd(v1, v2) {
         if (v2) {
             return v1 + rndf() * (v2 - v1)
@@ -84,7 +85,7 @@ function createRandomGenerator(factory) {
         RND:  RND,
 
         // random angle in radians
-        rndfi: function rndfi() {
+        rnda: function rnda() {
             return rndf()*PI2 - PI
         },
 
@@ -94,7 +95,7 @@ function createRandomGenerator(factory) {
             return rndf() < n? -1 : 1
         },
 
-        // random zero/one value multiplicator [0/1]
+        // random zero/one value multiplicator [0/1] with optional probability (.5 by default)
         rndz: function rndz(n) {
             n = n || .5
             return rndf() < n? 0 : 1
