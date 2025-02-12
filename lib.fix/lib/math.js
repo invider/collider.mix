@@ -2,7 +2,7 @@
 'use strict'
 
 // LCG random generator implementation
-function LCGSourceFactory () {
+function LCGSourceFactory() {
     let _rnd_m = 0xFFFFFFFF
     let _rnd_a = 1664525
     let _rnd_c = 1013904223
@@ -26,6 +26,17 @@ function LCGSourceFactory () {
         // random float
         rndf: function rndf() {
             return rndv()/_rnd_m
+        },
+    }
+}
+
+// Native JS random generator implementation
+function NativeRNGSourceFactory() {
+
+    return {
+        // random float [0..1)
+        rndf: function rndf() {
+            return Math.random()
         },
     }
 }
@@ -76,8 +87,14 @@ function createRandomGenerator(factory) {
     }
 
     return {
-        getSeed: generator.getSeed,
-        setSeed: generator.setSeed,
+        getSeed: function() {
+            if (generator.getSeed) generator.getSeed()
+            else return 0
+        },
+        setSeed: function(seed) {
+            if (generator.setSeed) generator.setSeed(seed)
+            else throw new Error(`Selected random number generator doesn't support custom seeds!`)
+        },
         rndf: rndf,
 
         rnd:  rnd,
@@ -140,6 +157,9 @@ const PI2 = PI*2
 
 const math = {
     name: 'math',
+
+    LCGSourceFactory: LCGSourceFactory,
+    NativeRNGSourceFactory: NativeRNGSourceFactory,
 
     // Pi constant
     PI: PI,
