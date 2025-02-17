@@ -2651,7 +2651,11 @@ function augmentCtx(ctx) {
         smooth: function() {
             ctx.imageSmoothingEnabled = true
         },
+        // @deprecated
         blocky: function() {
+            ctx.imageSmoothingEnabled = false
+        },
+        pixelated: function() {
             ctx.imageSmoothingEnabled = false
         },
         alpha: function(v) {
