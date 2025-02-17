@@ -2695,8 +2695,8 @@ function augmentCtx(ctx) {
 
             } else if (arguments.length === 2) {
                 mode = 1
-                ctx.fillStyle = v1
-                ctx.strokeStyle = v1
+                ctx.fillStyle   = v1
+                ctx.strokeStyle = v2
 
             } else if (arguments.length === 3) {
                 mode = 2
