@@ -121,7 +121,7 @@ Emitter.prototype.createParticle = function() {
     // TODO rename into spread
     if (this.radius) {
         let r = lib.math.rnd(this.radius)
-        let fi = lib.math.rndfi()
+        let fi = lib.math.rnda()
         x = Math.cos(fi) * r
         y = Math.sin(fi) * r
     }
