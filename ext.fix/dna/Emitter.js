@@ -133,7 +133,7 @@ Emitter.prototype.createParticle = function() {
         y: y, 
         r: this.size + lib.math.rnd(this.vsize),
         speed: this.speed + lib.math.rnd(this.vspeed),
-        angle: this.angle + lib.math.rnd(this.spread),
+        angle: this.angle + (this.spread? lib.math.rnd(this.spread) : 0),
         lifespan: this.minLifespan + lib.math.rnd(this.vLifespan)
     })
 
