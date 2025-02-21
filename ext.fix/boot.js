@@ -85,7 +85,7 @@ const DEVELOPING_WITH = 'Developing with Collider.JAM'
 const ERROR = 'Error'
 
 const ALERT              = 'Alert!'
-const ALERT_MESSAGE      = 'Air Raid Alert in [REGION]! Proceed to the nearest shelter!'
+const ALERT_MESSAGE      = 'Air Raid Alert[REGION]! Proceed to the nearest shelter!'
 const ALERT_OVER         = 'Over!'
 const ALERT_OVER_MESSAGE = 'The Air Raid Alert is Over!'
 
@@ -515,7 +515,8 @@ function evoContent(dt) {
 
         let msg = POWERED_BY
         if (env.config.alert) {
-            msg = ALERT_MESSAGE
+            const leadRegion = env.alertRegion
+            msg = ALERT_MESSAGE.replace('[REGION]', ` in ${leadRegion.alias || leadRegion.name || ''}`)
         } else if (env.config.debug) {
             msg = DEVELOPING_WITH
         }
@@ -709,10 +710,11 @@ function forEachSegment(fn) {
 
 function raiseAlert(leadRegion) {
     env.config.alert = true
+    env.alertRegion = leadRegion
     if (!$.boot) {
         $._boot.reset()
     } else {
-        const message = ALERT_MESSAGE.replace('[REGION]', leadRegion.alias || leadRegion.name)
+        const message = ALERT_MESSAGE.replace('[REGION]', ` in ${leadRegion.alias || leadRegion.name || ''}`)
         replacePoweredMessage(message)
     }
 }
