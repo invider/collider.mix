@@ -85,7 +85,7 @@ const DEVELOPING_WITH = 'Developing with Collider.JAM'
 const ERROR = 'Error'
 
 const ALERT              = 'Alert!'
-const ALERT_MESSAGE      = 'Air Raid Alert! Proceed to the nearest shelter!'
+const ALERT_MESSAGE      = 'Air Raid Alert in [REGION]! Proceed to the nearest shelter!'
 const ALERT_OVER         = 'Over!'
 const ALERT_OVER_MESSAGE = 'The Air Raid Alert is Over!'
 
@@ -707,15 +707,23 @@ function forEachSegment(fn) {
     return acc
 }
 
-function raiseAlert() {
+function raiseAlert(leadRegion) {
     env.config.alert = true
-    if (!$.boot) $._boot.reset()
+    if (!$.boot) {
+        $._boot.reset()
+    } else {
+        const message = ALERT_MESSAGE.replace('[REGION]', leadRegion.alias || leadRegion.name)
+        replacePoweredMessage(message)
+    }
 }
 
 function alertIsOver() {
     env.config.alert = false
     env.config.alertOver = true
+    replacePoweredMessage(ALERT_OVER_MESSAGE)
+}
 
+function replacePoweredMessage(newMessage) {
     // find "poweredBy" message segment
     const segments = forEachSegment((sg, acc) => {
         if (sg.name === 'poweredBy') {
@@ -724,7 +732,7 @@ function alertIsOver() {
     })
     if (segments.length > 0) {
         const poweredBySegment = segments[0]
-        poweredBySegment.msg = ALERT_OVER_MESSAGE
+        poweredBySegment.msg = newMessage
     }
 }
 
@@ -754,13 +762,19 @@ function checkAlert() {
             })
         })
 
-        let alertNow = false
+        let alertNow   = false
+        let leadRegion = null
         targetRegions.forEach(region => {
-            if (region.alertnow) alertNow = true
+            if (region.alertnow) {
+                alertNow = true
+                if (!leadRegion) {
+                    leadRegion = region
+                }
+            }
         })
 
         if (alertNow) {
-            if (!env.config.alert) raiseAlert()
+            if (!env.config.alert) raiseAlert(leadRegion)
         } else {
             if (env.config.alert) {
                 alertIsOver()
