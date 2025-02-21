@@ -2868,8 +2868,10 @@ function augmentCtx(ctx) {
             ctx.closePath()
         },
         shape: function() {
+            if (!shape) return
             if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
+            shape = false
         },
 
         font: function(font) {
