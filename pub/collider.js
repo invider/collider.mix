@@ -3072,14 +3072,8 @@ const Mod = function(st) {
             return min + (val - min) % range
         },
 
-        // mix?
-        lerp: function(start, stop, v, limitRange) {
-            const res = (stop - start) * v
-            if (limitRange) {
-                if (res < start) return start
-                if (res > stop) return stop
-            }
-            return res
+        lerp: function(start, stop, v) {
+            return start * (1−v) + stop * v
         },
 
         remap: function(val, origStart, origStop, targetStart, targetStop) {
