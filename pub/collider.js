@@ -3074,6 +3074,15 @@ const Mod = function(st) {
             return (start * (1 - val)  +  stop * val)
         },
 
+        step: function(edge, val) {
+            return (val < edge? 0 : 1)
+        },
+
+        smoothstep: function(start, stop, val) {
+            const t = clamp((val - start)/(stop - start), 0, 1)
+            return (t * t * (3 - 2 * t))
+        },
+
         remap: function(val, origStart, origStop, targetStart, targetStop) {
             return targetStart + ((val - origStart) / (origStop - origStart)) * (targetStop - targetStart)
         },

@@ -1,10 +1,6 @@
 // Utility math functions 
 'use strict'
 
-function lerp(start, stop, val) {
-    return (start * (1 - val)  +  stop * val)
-}
-
 // LCG random generator implementation
 function LCGSourceFactory() {
     let _rnd_m = 0xFFFFFFFF
@@ -308,13 +304,17 @@ const math = {
     // @param {number} start
     // @param {number} stop
     // @param {number} val - current value, assumed to be in the range [0..1]
-    lerp: lerp,
+    lerp: function(start, stop, val) {
+        return (start * (1 - val)  +  stop * val)
+    },
 
     // linear interpolation between start .. stop of val in [0..1]
     // @param {number} start
     // @param {number} stop
     // @param {number} val - current value, assumed to be in the range [0..1]
-    mix: lerp,
+    mix: function(start, stop, val) {
+        return (start * (1 - val)  +  stop * val)
+    },
 
     // dot product of two N2 vectors
     // useful for interception of moving objects
