@@ -1,6 +1,10 @@
 // Utility math functions 
 'use strict'
 
+function lerp(start, stop, val) {
+    return (start * (1 - val)  +  stop * val)
+}
+
 // LCG random generator implementation
 function LCGSourceFactory() {
     let _rnd_m = 0xFFFFFFFF
@@ -72,17 +76,17 @@ function createRandomGenerator(factory) {
     // random int in [0..maxValue)
     function rndi(v1, v2) {
         if (v2) {
-            return ~~(v1 + rndf() * (v2 - v1))
+            return ~~(v1 + (v2 - v1)*rndf())
         } else {
-            return ~~(rndf() * v1)
+            return ~~(v1 * rndf())
         }
     }
 
     function RND(v1, v2) {
         if (v2) {
-            return ~~(v1 + rndf() * ((v2 + 1) - v1))
+            return ~~(v1 + ((v2 + 1) - v1)*rndf())
         } else {
-            return ~~(rndf() * v1)
+            return ~~(v1 * rndf())
         }
     }
 
@@ -106,13 +110,13 @@ function createRandomGenerator(factory) {
             return rndf()*PI2 - PI
         },
 
-        // random sign multiplicator [-1/1]
+        // random sign multiplicator [-1/1] with optional -1 probability
         rnds: function rnds(n) {
             n = n || .5
             return rndf() < n? -1 : 1
         },
 
-        // random zero/one value multiplicator [0/1] with optional probability (.5 by default)
+        // random zero/one value multiplicator [0/1] with optional zero probability (.5 by default)
         rndz: function rndz(n) {
             n = n || .5
             return rndf() < n? 0 : 1
@@ -172,7 +176,7 @@ const math = {
     // @param {number} y
     // @returns {number} - length of a vector
     length: function(x, y) {
-        return Math.sqrt(x*x + y*y)
+        return Math.hypot(x, y)
     },
 
     // get a normalized vector as an array of [x, y]
@@ -300,14 +304,17 @@ const math = {
         return val < min? min : val > max? max : val
     },
 
-    // linear interpolation of the value between v1 .. v2 and t in [0..1]
+    // linear interpolation between start .. stop of val in [0..1]
     // @param {number} start
     // @param {number} stop
-    // @param {number} t - current value, assumed to be in the range [0..1]
-    // TODO shoudn't it be lerp() (?)
-    linear: function(start, stop, t) {
-        return (stop - start) * t + start
-    },
+    // @param {number} val - current value, assumed to be in the range [0..1]
+    lerp: lerp,
+
+    // linear interpolation between start .. stop of val in [0..1]
+    // @param {number} start
+    // @param {number} stop
+    // @param {number} val - current value, assumed to be in the range [0..1]
+    mix: lerp,
 
     // dot product of two N2 vectors
     // useful for interception of moving objects
@@ -342,7 +349,21 @@ const math = {
     },
 
     // convert degree value to radians
-    // @param {number} a - angle in degree
+    // @param {number} d - angle in degrees
+    // @returns {number} - angle in radians
+    radians: function(d) {
+        return d * DEG_TO_RAD
+    },
+
+    // convert radians value to degrees
+    // @param {number} r - angle in radians
+    // @returns {number} - angle in degrees
+    degrees: function(r) {
+        return r * RAD_TO_DEG
+    },
+
+    // convert degree value to radians
+    // @param {number} d - angle in degrees
     // @returns {number} - angle in radians
     degToRad: function(d) {
         return d * DEG_TO_RAD
@@ -350,7 +371,7 @@ const math = {
 
     // convert radians value to degrees
     // @param {number} r - angle in radians
-    // @returns {number} - angle in degree
+    // @returns {number} - angle in degrees
     radToDeg: function(r) {
         return r * RAD_TO_DEG
     },

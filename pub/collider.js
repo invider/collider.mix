@@ -145,10 +145,8 @@ assert.notEmpty = function(val, msg) {
     if (!isEmpty(val)) return true
     throw msg
 }
-function dist(x1, y1, x2, y2) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    return Math.sqrt(dx*dx + dy*dy)
+function distance(x1, y1, x2, y2) {
+    return Math.hypot(x2 - x1, y2 - y1)
 }
 
 function deepCopy(src) {
@@ -1461,7 +1459,7 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
             }
         } else if ((node.within && node.within(lx, ly))
                 || (node._centered && node._circular
-                    && dist(lx, ly, node.x, node.y) <= node.r)
+                    && distance(lx, ly, node.x, node.y) <= node.r)
                 || (node._centered
                     && lx >= node.x - node.w/2
                     && lx <= node.x + node.w/2
@@ -3082,7 +3080,9 @@ const Mod = function(st) {
 
         hypot: Math.hypot,
 
-        dist: dist,
+        length: Math.hypot,
+
+        distance: distance,
 
         angleTo: function(x, y) {
             return Math.atan2(y, x)

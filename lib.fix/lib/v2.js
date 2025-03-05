@@ -80,24 +80,26 @@ function mul(v1, v2) {
     }
 }
 
-function length(v) {
-    return Math.sqrt(v.x*v.x + v.y*v.y)
-}
 
 function length2(v) {
     return (v.x*v.x + v.y*v.y)
 }
 
 function init() {
-    this.scale = function scale(v1, val) {
-        return {
-            x: v1.x * val,
-            y: v1.y * val,
-        }
-    }
-    this.angle = function angle(v) {
-        return Math.atan2(v.y, v.x)
-    }
+    extend(this, {
+        scale: function scale(v1, val) {
+            return {
+                x: v1.x * val,
+                y: v1.y * val,
+            }
+        },
+        angle: function angle(v) {
+            return Math.atan2(v.y, v.x)
+        },
+        length: function(v) {
+            return Math.hypot(v.x, v.y)
+        },
+    })
 }
 
 function dump(v) {

@@ -91,10 +91,6 @@ function mulxy(v1, x, y) {
     return v1
 }
 
-function length(v) {
-    return Math.sqrt(v[0]*v[0] + v[1]*v[1])
-}
-
 function length2(v) {
     return (v[0]*v[0] + v[1]*v[1])
 }
@@ -131,7 +127,9 @@ module.exports = {
     dot,
     mul,
     mulxy,
-    length,
+    length: function length(v) {
+        return Math.hypot(v[0], v[1])
+    },
     length2,
     angle,
     dump,
