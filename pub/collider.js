@@ -71,23 +71,41 @@ const _mouse = {
 const isBool = function(v) {
     return v === true || v === false || toString.call(v) === '[object Boolean]'
 }
+const isBoolean = function(v) {
+    return v === true || v === false || toString.call(v) === '[object Boolean]'
+}
 const isNum = function(s) {
     return toString.call(s) == "[object Number]"
     //return !isNaN(s) // this one returns true for "3"!
 }
+const isNumber = function(s) {
+    return (toString.call(s) == "[object Number]" && !Number.isNaN(s))
+}
 const isStr = function(s) {
     return toString.call(s) == "[object String]"
 }
+const isString = function(s) {
+    return toString.call(s) == "[object String]"
+}
 const isFun = function(f) {
+    return !!(f && f.constructor && f.call && f.apply)
+}
+const isFunction = function(f) {
     return !!(f && f.constructor && f.call && f.apply)
 }
 const isClass = function(f) {
     return (f && typeof f === 'function' && /^\s*class\s+/.test(f.toString()))
 }
 const isObj = function(o) {
-    return !!(o && typeof o === 'object')
+    return (o && typeof o === 'object')
+}
+const isObject = function(o) {
+    return (o && typeof o === 'object' && !Array.isArray(o))
 }
 const isArr = function(a) {
+    return Array.isArray(a)
+}
+const isArray = function(a) {
     return Array.isArray(a)
 }
 const isContainer = function(o) {
@@ -2987,20 +3005,20 @@ const Mod = function(st) {
         after:       after,
         chain:       chain,
         isBool:      isBool,
-        isBoolean:   isBool,
+        isBoolean:   isBoolean,
         isNum:       isNum,
-        isNumber:    isNum,
+        isNumber:    isNumber,
         isStr:       isStr,
-        isString:    isStr,
+        isString:    isString,
         isFun:       isFun,
-        isFunction:  isFun,
+        isFunction:  isFunction,
         isClass:     isClass,
         isObj:       isObj,
-        isObject:    isObj,
+        isObject:    isObject,
         isArr:       isArr,
-        isArray:     isArr,
-        isFrame:     isFrame,
+        isArray:     isArray,
         isContainer: isContainer,
+        isFrame:     isFrame,
         isEmpty:     isEmpty,
         assert:      assert,
 
@@ -4703,19 +4721,20 @@ function constructScene(target) {
     mod.sys.attach(CueFrame)
 
     mod.sys.attach(isBool)
-    mod.sys.attach(isBool, 'isBoolean')
+    mod.sys.attach(isBoolean)
     mod.sys.attach(isNum)
-    mod.sys.attach(isNum, 'isNumber')
+    mod.sys.attach(isNumber)
     mod.sys.attach(isStr)
-    mod.sys.attach(isStr, 'isString')
-    mod.sys.attach(isObj)
-    mod.sys.attach(isObj, 'isObject')
+    mod.sys.attach(isString)
     mod.sys.attach(isFun)
-    mod.sys.attach(isFun, 'isFunction')
+    mod.sys.attach(isFunction)
+    mod.sys.attach(isClass)
+    mod.sys.attach(isObj)
+    mod.sys.attach(isObject)
     mod.sys.attach(isArr)
-    mod.sys.attach(isArr, 'isArray')
-    mod.sys.attach(isFrame)
+    mod.sys.attach(isArray)
     mod.sys.attach(isContainer)
+    mod.sys.attach(isFrame)
     mod.sys.attach(isEmpty)
 
     mod.sys.attach(reconstructScene)

@@ -176,6 +176,7 @@ const math = {
     },
 
     // get a normalized vector as an array of [x, y]
+    //
     // @param {number} x
     // @param {number} y
     // @returns {array[x, y]} - unit vector
@@ -187,6 +188,7 @@ const math = {
 
     /**
      * returns distance between 2 points
+     *
      * @param {number} x1
      * @param {number} y1
      * @param {number} x2
@@ -201,6 +203,7 @@ const math = {
 
     /**
      * returns square of distance between 2 points
+     *
      * @param {number} x1
      * @param {number} y1
      * @param {number} x2
@@ -235,6 +238,7 @@ const math = {
 
     /**
      * distance from a point to a segment
+     *
      * @param {number} px - point x 
      * @param {number} py - point y
      * @param {number} x1 - first segment point x
@@ -247,14 +251,13 @@ const math = {
         return Math.sqrt(this.distanceToSegmentSq(px, py, x1, y1, x2, y2))
     },
 
-    /**
-     * normal vector to a line
-     * @param {number} x1 - first point x
-     * @param {number} y1 - first point y
-     * @param {number} x2 - second point x
-     * @param {number} y2 - second point y
-     * @returns {array/2d-vector} - normal vector
-     */
+    // normal vector to a line
+    // 
+    // @param {number} x1 - first point x
+    // @param {number} y1 - first point y
+    // @param {number} x2 - second point x
+    // @param {number} y2 - second point y
+    // @returns {array/2d-vector} - normal vector
     normalVector: function(x1, y1, x2, y2) {
         const dx = x2 - x1
         const dy = y2 - y1
@@ -266,6 +269,7 @@ const math = {
     },
 
     // angle of direction vector from *[x1, y1]* to *[x2, y2]* in relation to OX axis
+    //
     // @param {number} x1 - first vector x coordinate
     // @param {number} y1 - first vector y coordinate
     // @param {number} x2 - second vector x coordinate
@@ -276,6 +280,7 @@ const math = {
     },
 
     // normalize an angle to [0..2**PI] range
+    //
     // @param {number/radians} a - original angle in radians
     // @returns {number/radians} - normalized angle in radians
     normalizeAngle: function(a) {
@@ -284,11 +289,20 @@ const math = {
     },
 
     // get an opposite angle normalazed in [0..2**PI] range
+    //
     // @param {number/radians} a - original angle in radians
     // @returns {number/radians} - reveresed angle in radians, normalazied in [0..2*PI]
     reverseAngle: function(a) {
         a = (a + Math.PI) % (2*Math.PI)
         return a < 0? a + 2*Math.PI : a
+    },
+
+    // compute the fractional part of the argument
+    //
+    // @param {number} val - the original value
+    // @returns {number} - the fractional part of the value
+    fract: function(val) {
+        return val - floor(val)
     },
 
     // clamp a value into the provided [min..max] range
@@ -355,18 +369,18 @@ const math = {
         return d * DEG_TO_RAD
     },
 
-    // convert radians value to degrees
-    // @param {number} r - angle in radians
-    // @returns {number} - angle in degrees
-    degrees: function(r) {
-        return r * RAD_TO_DEG
-    },
-
     // convert degree value to radians
     // @param {number} d - angle in degrees
     // @returns {number} - angle in radians
     degToRad: function(d) {
         return d * DEG_TO_RAD
+    },
+
+    // convert radians value to degrees
+    // @param {number} r - angle in radians
+    // @returns {number} - angle in degrees
+    degrees: function(r) {
+        return r * RAD_TO_DEG
     },
 
     // convert radians value to degrees
