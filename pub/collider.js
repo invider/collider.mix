@@ -3017,6 +3017,7 @@ const Mod = function(st) {
         abs:   Math.abs,
         sign:  Math.sign,
         pow:   Math.pow,
+        exp:   Math.exp,
         sqrt:  Math.sqrt,
         min:   Math.min,
         max:   Math.max,
