@@ -1013,7 +1013,7 @@ Frame.prototype.reduceRight = function(fn, initVal) {
     return accumulator
 }
 
-Frame.prototype.selectInstanceOf = function(of) {
+Frame.prototype.selectInstancesOf = function(of) {
     return this.select(o => o instanceof of)
 }
 
@@ -3047,6 +3047,7 @@ const Mod = function(st) {
         floor: Math.floor,
         round: Math.round,
         trunc: Math.trunc,
+        fract: (val) => val - Math.floor(val),
         sin:   Math.sin,
         cos:   Math.cos,
         tan:   Math.tan,
