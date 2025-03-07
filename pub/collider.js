@@ -68,23 +68,44 @@ const _mouse = {
 
 // *********
 // utilities
-const isObj = function(o) {
-    return !!(o && typeof o === 'object')
+const isBool = function(v) {
+    return v === true || v === false || toString.call(v) === '[object Boolean]'
 }
-const isFun = function(f) {
-    return !!(f && f.constructor && f.call && f.apply)
-}
-const isClass = function(f) {
-    return (f && typeof f === 'function' && /^\s*class\s+/.test(f.toString()))
-}
-const isStr = function(s) {
-    return toString.call(s) == "[object String]"
+const isBoolean = function(v) {
+    return v === true || v === false || toString.call(v) === '[object Boolean]'
 }
 const isNum = function(s) {
     return toString.call(s) == "[object Number]"
     //return !isNaN(s) // this one returns true for "3"!
 }
+const isNumber = function(s) {
+    return (toString.call(s) == "[object Number]" && !Number.isNaN(s))
+}
+const isStr = function(s) {
+    return toString.call(s) == "[object String]"
+}
+const isString = function(s) {
+    return toString.call(s) == "[object String]"
+}
+const isFun = function(f) {
+    return !!(f && f.constructor && f.call && f.apply)
+}
+const isFunction = function(f) {
+    return !!(f && f.constructor && f.call && f.apply)
+}
+const isClass = function(f) {
+    return (f && typeof f === 'function' && /^\s*class\s+/.test(f.toString()))
+}
+const isObj = function(o) {
+    return (o && typeof o === 'object')
+}
+const isObject = function(o) {
+    return (o && typeof o === 'object' && !Array.isArray(o))
+}
 const isArr = function(a) {
+    return Array.isArray(a)
+}
+const isArray = function(a) {
     return Array.isArray(a)
 }
 const isContainer = function(o) {
@@ -142,24 +163,22 @@ assert.notEmpty = function(val, msg) {
     if (!isEmpty(val)) return true
     throw msg
 }
-function dist(x1, y1, x2, y2) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    return Math.sqrt(dx*dx + dy*dy)
+function distance(x1, y1, x2, y2) {
+    return Math.hypot(x2 - x1, y2 - y1)
 }
 
-function mixCopy(src) {
+function deepCopy(src) {
     if (isArr(src)) {
         const res = []
         for (let i = 0; i < src.length; i++) {
-            res[i] = mixCopy(src[i])
+            res[i] = deepCopy(src[i])
         }
         return res
     } else if (isObj(src)) {
         const res = {}
         for (let prop in src) {
             if (src.hasOwnProperty(prop)) {
-                res[prop] = mixCopy(src[prop])
+                res[prop] = deepCopy(src[prop])
             }
         }
         return res
@@ -168,6 +187,7 @@ function mixCopy(src) {
     }
 }
 
+/*
 function mix() {
     let mixin = {}
     for (let arg = 0; arg < arguments.length; arg++) {
@@ -185,6 +205,7 @@ function mix() {
     }
     return mixin
 }
+*/
 
 function mixin() {
     let mixin = arguments[0]
@@ -1456,7 +1477,7 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
             }
         } else if ((node.within && node.within(lx, ly))
                 || (node._centered && node._circular
-                    && dist(lx, ly, node.x, node.y) <= node.r)
+                    && distance(lx, ly, node.x, node.y) <= node.r)
                 || (node._centered
                     && lx >= node.x - node.w/2
                     && lx <= node.x + node.w/2
@@ -2977,26 +2998,27 @@ const Mod = function(st) {
         key:         _key,
         pad:         _pad,
         mouse:       _mouse,
-        mix:         mix,
         extend:      extend,
         augment:     augment,
         supplement:  supplement,
         before:      before,
         after:       after,
         chain:       chain,
+        isBool:      isBool,
+        isBoolean:   isBoolean,
+        isNum:       isNum,
+        isNumber:    isNumber,
+        isStr:       isStr,
+        isString:    isString,
         isFun:       isFun,
-        isFunction:  isFun,
+        isFunction:  isFunction,
         isClass:     isClass,
         isObj:       isObj,
-        isObject:    isObj,
-        isStr:       isStr,
-        isString:    isStr,
-        isNum:       isNum,
-        isNumber:    isNum,
-        isFrame:     isFrame,
+        isObject:    isObject,
         isArr:       isArr,
-        isArray:     isArr,
+        isArray:     isArray,
         isContainer: isContainer,
+        isFrame:     isFrame,
         isEmpty:     isEmpty,
         assert:      assert,
 
@@ -3024,6 +3046,7 @@ const Mod = function(st) {
         ceil:  Math.ceil,
         floor: Math.floor,
         round: Math.round,
+        trunc: Math.trunc,
         sin:   Math.sin,
         cos:   Math.cos,
         tan:   Math.tan,
@@ -3066,25 +3089,28 @@ const Mod = function(st) {
             return min + (val - min) % range
         },
 
-        // TODO shouldn't the value go first?
-        lerp: function(start, stop, v, limitRange) {
-            const res = (stop - start) * v
-            if (limitRange) {
-                if (res < start) return start
-                if (res > stop) return stop
-            }
-            return res
+        lerp: function(start, stop, val) {
+            return (start * (1 - val)  +  stop * val)
+        },
+
+        step: function(edge, val) {
+            return (val < edge? 0 : 1)
+        },
+
+        smoothstep: function(start, stop, val) {
+            const t = clamp((val - start)/(stop - start), 0, 1)
+            return (t * t * (3 - 2 * t))
         },
 
         remap: function(val, origStart, origStop, targetStart, targetStop) {
             return targetStart + ((val - origStart) / (origStop - origStart)) * (targetStop - targetStart)
         },
 
-        len: function(x, y) {
-            return Math.sqrt(x*x + y*y)
-        },
+        hypot: Math.hypot,
 
-        dist: dist,
+        length: Math.hypot,
+
+        distance: distance,
 
         angleTo: function(x, y) {
             return Math.atan2(y, x)
@@ -4682,7 +4708,6 @@ function constructScene(target) {
         name: "sys",
     }))
     mod.sys.attach(assert)
-    mod.sys.attach(mix)
     mod.sys.attach(mixin)
     mod.sys.attach(extend)
     mod.sys.attach(augment)
@@ -4696,16 +4721,20 @@ function constructScene(target) {
     mod.sys.attach(LabFrame)
     mod.sys.attach(CueFrame)
 
-    mod.sys.attach(isObj)
-    mod.sys.attach(isObj, 'isObject')
-    mod.sys.attach(isFun)
-    mod.sys.attach(isFun, 'isFunction')
+    mod.sys.attach(isBool)
+    mod.sys.attach(isBoolean)
     mod.sys.attach(isNum)
-    mod.sys.attach(isNum, 'isNumber')
+    mod.sys.attach(isNumber)
     mod.sys.attach(isStr)
-    mod.sys.attach(isStr, 'isString')
+    mod.sys.attach(isString)
+    mod.sys.attach(isFun)
+    mod.sys.attach(isFunction)
+    mod.sys.attach(isClass)
+    mod.sys.attach(isObj)
+    mod.sys.attach(isObject)
     mod.sys.attach(isArr)
-    mod.sys.attach(isArr, 'isArray')
+    mod.sys.attach(isArray)
+    mod.sys.attach(isContainer)
     mod.sys.attach(isFrame)
     mod.sys.attach(isEmpty)
 

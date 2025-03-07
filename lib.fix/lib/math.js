@@ -72,17 +72,17 @@ function createRandomGenerator(factory) {
     // random int in [0..maxValue)
     function rndi(v1, v2) {
         if (v2) {
-            return ~~(v1 + rndf() * (v2 - v1))
+            return ~~(v1 + (v2 - v1)*rndf())
         } else {
-            return ~~(rndf() * v1)
+            return ~~(v1 * rndf())
         }
     }
 
     function RND(v1, v2) {
         if (v2) {
-            return ~~(v1 + rndf() * ((v2 + 1) - v1))
+            return ~~(v1 + ((v2 + 1) - v1)*rndf())
         } else {
-            return ~~(rndf() * v1)
+            return ~~(v1 * rndf())
         }
     }
 
@@ -106,13 +106,13 @@ function createRandomGenerator(factory) {
             return rndf()*PI2 - PI
         },
 
-        // random sign multiplicator [-1/1]
+        // random sign multiplicator [-1/1] with optional -1 probability
         rnds: function rnds(n) {
             n = n || .5
             return rndf() < n? -1 : 1
         },
 
-        // random zero/one value multiplicator [0/1] with optional probability (.5 by default)
+        // random zero/one value multiplicator [0/1] with optional zero probability (.5 by default)
         rndz: function rndz(n) {
             n = n || .5
             return rndf() < n? 0 : 1
@@ -172,10 +172,11 @@ const math = {
     // @param {number} y
     // @returns {number} - length of a vector
     length: function(x, y) {
-        return Math.sqrt(x*x + y*y)
+        return Math.hypot(x, y)
     },
 
     // get a normalized vector as an array of [x, y]
+    //
     // @param {number} x
     // @param {number} y
     // @returns {array[x, y]} - unit vector
@@ -187,6 +188,7 @@ const math = {
 
     /**
      * returns distance between 2 points
+     *
      * @param {number} x1
      * @param {number} y1
      * @param {number} x2
@@ -201,6 +203,7 @@ const math = {
 
     /**
      * returns square of distance between 2 points
+     *
      * @param {number} x1
      * @param {number} y1
      * @param {number} x2
@@ -235,6 +238,7 @@ const math = {
 
     /**
      * distance from a point to a segment
+     *
      * @param {number} px - point x 
      * @param {number} py - point y
      * @param {number} x1 - first segment point x
@@ -247,14 +251,13 @@ const math = {
         return Math.sqrt(this.distanceToSegmentSq(px, py, x1, y1, x2, y2))
     },
 
-    /**
-     * normal vector to a line
-     * @param {number} x1 - first point x
-     * @param {number} y1 - first point y
-     * @param {number} x2 - second point x
-     * @param {number} y2 - second point y
-     * @returns {array/2d-vector} - normal vector
-     */
+    // normal vector to a line
+    // 
+    // @param {number} x1 - first point x
+    // @param {number} y1 - first point y
+    // @param {number} x2 - second point x
+    // @param {number} y2 - second point y
+    // @returns {array/2d-vector} - normal vector
     normalVector: function(x1, y1, x2, y2) {
         const dx = x2 - x1
         const dy = y2 - y1
@@ -266,6 +269,7 @@ const math = {
     },
 
     // angle of direction vector from *[x1, y1]* to *[x2, y2]* in relation to OX axis
+    //
     // @param {number} x1 - first vector x coordinate
     // @param {number} y1 - first vector y coordinate
     // @param {number} x2 - second vector x coordinate
@@ -276,6 +280,7 @@ const math = {
     },
 
     // normalize an angle to [0..2**PI] range
+    //
     // @param {number/radians} a - original angle in radians
     // @returns {number/radians} - normalized angle in radians
     normalizeAngle: function(a) {
@@ -284,11 +289,20 @@ const math = {
     },
 
     // get an opposite angle normalazed in [0..2**PI] range
+    //
     // @param {number/radians} a - original angle in radians
     // @returns {number/radians} - reveresed angle in radians, normalazied in [0..2*PI]
     reverseAngle: function(a) {
         a = (a + Math.PI) % (2*Math.PI)
         return a < 0? a + 2*Math.PI : a
+    },
+
+    // compute the fractional part of the argument
+    //
+    // @param {number} val - the original value
+    // @returns {number} - the fractional part of the value
+    fract: function(val) {
+        return val - floor(val)
     },
 
     // clamp a value into the provided [min..max] range
@@ -300,13 +314,20 @@ const math = {
         return val < min? min : val > max? max : val
     },
 
-    // linear interpolation of the value between v1 .. v2 and t in [0..1]
+    // linear interpolation between start .. stop of val in [0..1]
     // @param {number} start
     // @param {number} stop
-    // @param {number} t - current value, assumed to be in the range [0..1]
-    // TODO shoudn't it be lerp() (?)
-    linear: function(start, stop, t) {
-        return (stop - start) * t + start
+    // @param {number} val - current value, assumed to be in the range [0..1]
+    lerp: function(start, stop, val) {
+        return (start * (1 - val)  +  stop * val)
+    },
+
+    // linear interpolation between start .. stop of val in [0..1]
+    // @param {number} start
+    // @param {number} stop
+    // @param {number} val - current value, assumed to be in the range [0..1]
+    mix: function(start, stop, val) {
+        return (start * (1 - val)  +  stop * val)
     },
 
     // dot product of two N2 vectors
@@ -342,7 +363,14 @@ const math = {
     },
 
     // convert degree value to radians
-    // @param {number} a - angle in degree
+    // @param {number} d - angle in degrees
+    // @returns {number} - angle in radians
+    radians: function(d) {
+        return d * DEG_TO_RAD
+    },
+
+    // convert degree value to radians
+    // @param {number} d - angle in degrees
     // @returns {number} - angle in radians
     degToRad: function(d) {
         return d * DEG_TO_RAD
@@ -350,7 +378,14 @@ const math = {
 
     // convert radians value to degrees
     // @param {number} r - angle in radians
-    // @returns {number} - angle in degree
+    // @returns {number} - angle in degrees
+    degrees: function(r) {
+        return r * RAD_TO_DEG
+    },
+
+    // convert radians value to degrees
+    // @param {number} r - angle in radians
+    // @returns {number} - angle in degrees
     radToDeg: function(r) {
         return r * RAD_TO_DEG
     },
