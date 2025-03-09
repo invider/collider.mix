@@ -57,9 +57,15 @@ const df = {
         fadeBase:     '#000000',
     },
     sfx: {
-        boot:   'boot',
-        error:  'boot',
-        volume:  .75,
+        boot: {
+           res: 'boot',
+           vol: .75,
+        },
+        error: {
+            res: 'bootError',
+            vol: 1,
+        },
+        vol:  .75,
     },
 }
 
@@ -588,8 +594,8 @@ function updateLoadingStatus() {
     } else if (res._errors) {
         // a boot-time error
         if (bootLabel !== ERROR) {
-            const sound = !res.sfx || res.sfx[cf.sfx.error]
-            if (sound) sfx(sound, cf.sfx.volume)
+            const sound = !res.sfx || res.sfx[cf.sfx.error.res]
+            if (sound) sfx(sound, cf.sfx.error.vol || cf.sfx.vol)
         }
         bootLabel = ERROR
         cf.color.content = cf.color.contentErr
@@ -623,8 +629,8 @@ function evoBoot(dt) {
             stateTimer = 0
             bootState = FADING 
 
-            const sound = !res.sfx || res.sfx[cf.sfx.boot]
-            if (sound) sfx(sound, cf.sfx.volume)
+            const sound = !res.sfx || res.sfx[cf.sfx.boot.res]
+            if (sound) sfx(sound, cf.sfx.boot.vol || cf.sfx.vol)
         }
         break;
 
