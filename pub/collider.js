@@ -128,41 +128,68 @@ const isEmpty = function(o) {
     return false
 }
 
+// TODO explore if we need both assert() and expect() in scope
 function assert(cond, msg) {
-    msg = msg || 'assert failed'
     if (cond) return true
-    throw msg
+    msg = msg || 'assert failed'
+    throw new Error(msg)
+}
+assert.boolean = function(val, msg) {
+    if (isBool(val)) return true
+    msg = msg || 'not a boolean'
+    throw new Error(msg)
 }
 assert.number = function(val, msg) {
-    msg = msg || 'not a number'
     if (isNum(val)) return true
-    throw msg
+    msg = msg || 'not a number'
+    throw new Error(msg)
 }
 assert.string = function(val, msg) {
-    msg = msg || 'not a string'
     if (isStr(val)) return true
-    throw msg
-}
-assert.object = function(val, msg) {
-    msg = msg || 'not an object'
-    if (isObj(val)) return true
-    throw msg
+    msg = msg || 'not a string'
+    throw new Error(msg)
 }
 assert.fun = function(val, msg) {
-    msg = msg || 'not a function'
     if (isFun(val)) return true
-    throw msg
+    msg = msg || 'not a function'
+    throw new Error(msg)
+}
+assert.class = function(val, msg) {
+    if (isClass(val)) return true
+    msg = msg || 'not a class'
+    throw new Error(msg)
+}
+assert.object = function(val, msg) {
+    if (isObj(val)) return true
+    msg = msg || 'not an object'
+    throw new Error(msg)
+}
+assert.array = function(val, msg) {
+    if (isArray(val)) return true
+    msg = msg || 'not an array'
+    throw new Error(msg)
+}
+assert.container = function(val, msg) {
+    if (isContainer(val)) return true
+    msg = msg || 'not a container'
+    throw new Error(msg)
+}
+assert.frame = function(val, msg) {
+    if (isFrame(val)) return true
+    msg = msg || 'not a frame'
+    throw new Error(msg)
 }
 assert.empty = function(val, msg) {
-    msg = msg || 'not empty'
     if (isEmpty(val)) return true
-    throw msg
+    msg = msg || 'not empty'
+    throw new Error(msg)
 }
 assert.notEmpty = function(val, msg) {
-    msg = msg || 'empty'
     if (!isEmpty(val)) return true
-    throw msg
+    msg = msg || 'empty'
+    throw new Error(msg)
 }
+
 function distance(x1, y1, x2, y2) {
     return Math.hypot(x2 - x1, y2 - y1)
 }
@@ -226,73 +253,85 @@ function mixin() {
     return mixin
 }
 
-function extend() {
-    let mixin = arguments[0]
-    if (!isObj(mixin) && !isFun(mixin)) throw 'object or function is expected!'
+function extend(mixin) {
+    if (!isContainer(mixin)) throw new Error('container is expected!')
 
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
         if (source && source !== mixin) {
-            for (let prop in source) {
-                if (source.hasOwnProperty(prop)) {
-                    mixin[prop] = source[prop]
+            if (isFun(mixin.extend) && mixin.extend !== extend) {
+                mixin.extend(source)
+            } else {
+                for (let prop in source) {
+                    if (source.hasOwnProperty(prop)) {
+                        mixin[prop] = source[prop]
+                    }
                 }
             }
-            if (isFun(source.onMixin)) {
-                source.onMixin.call(mixin)
+            if (isFun(source.onExtend)) {
+                source.onExtend.call(mixin)
             }
         }
     }
     return mixin
 }
 
-function augment() {
-    let mixin = arguments[0]
-    if (!isObj(mixin) && !isFun(mixin)) mixin = {}
+function augment(mixin) {
+    if (!mixin) mixin = {}
+    if (!isContainer(mixin)) throw new Error('container is expected!')
 
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
         if (source && source !== mixin) {
-            for (let prop in source) {
-                if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
-                    if (isObj(mixin[prop]) && isObj(source[prop])) {
-                        // property is already assigned - augment it
-                        if (mixin !== source[prop]) augment(mixin[prop], source[prop])
-                    } else {
-                        const val = source[prop]
-                        if (isArr(val)) {
-                            mixin[prop] = val.slice() // shallow array copy
+            if (isFun(mixin.augment) && mixin.augment !== augment) {
+                mixin.augment(source)
+                debugger
+            } else {
+                for (let prop in source) {
+                    if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
+                        if (isObj(mixin[prop]) && isObj(source[prop])) {
+                            // property is already assigned - augment it
+                            if (mixin !== source[prop]) augment(mixin[prop], source[prop])
                         } else {
-                            mixin[prop] = val
+                            const val = source[prop]
+                            if (isArr(val)) {
+                                mixin[prop] = val.slice() // shallow array copy
+                            } else {
+                                mixin[prop] = val
+                            }
                         }
                     }
                 }
             }
-            if (isFun(source.onMixin)) {
-                source.onMixin.call(mixin)
+            if (isFun(source.onAugment)) {
+                source.onAugment.call(mixin)
             }
         }
     }
     return mixin
 }
-function supplement() {
-    let mixin = arguments[0]
-    if (!isObj(mixin) && !isFun(mixin)) mixin = {}
+function supplement(mixin) {
+    if (!mixin) mixin = {}
+    if (!isContainer(mixin)) throw new Error('container is expected!')
 
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
-        if (isObj(source)) {
-            for (let prop in source) {
-                if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
-                    if (isObj(mixin[prop]) && isObj(source[prop])) {
-                        if (mixin !== source[prop]) supplement(mixin[prop], source[prop])
-                    } else if (mixin[prop] === undefined) {
-                        mixin[prop] = source[prop];
+        if (isObj(source) && source !== mixin) {
+            if (isFun(mixin.supplement) && mixin.supplement !== supplement) {
+                mixin.supplement(source)
+            } else {
+                for (let prop in source) {
+                    if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
+                        if (isObj(mixin[prop]) && isObj(source[prop])) {
+                            if (mixin !== source[prop]) supplement(mixin[prop], source[prop])
+                        } else if (mixin[prop] === undefined) {
+                            mixin[prop] = source[prop];
+                        }
                     }
                 }
             }
-            if (isFun(source.onMixin)) {
-                source.onMixin.call(mixin)
+            if (isFun(source.onSupplement)) {
+                source.onSupplement.call(mixin)
             }
         }
     }
@@ -3648,7 +3687,7 @@ Mod.prototype._runTests = function() {
                 })
                 _.log.err(e)
                 _.log.err('  [-] ' + name + ' - Failed!')
-                throw new Error(`${_._testLog.failed} Tests Failed`)
+                throw new Error(`${_._testLog.failed} Tests Failed`, { cause: e })
             }
 
         } else if (fn.name.startsWith('trial')) {
