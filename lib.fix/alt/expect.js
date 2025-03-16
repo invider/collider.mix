@@ -75,6 +75,29 @@ function expect(tar, title, up, upTitle) {
             if (!testAnyArray(tar)) throw new Error(`${tag} is expected to be any array`)
             return this
         },
+        isSupersetOf(subset) {
+            this.isObject()
+            if (!isObject(subset)) throw new Error(`A proper subset object MUST be provided to isSupersetOf()`)
+
+            for (let prop in subset) {
+                if (subset.hasOwnProperty(prop)) {
+                    const val = subset[prop]
+                    if (isObj(val)) {
+                        const subExpect = expect(tar[prop], `${title}:${prop}`, tar, title)
+                        subExpect.isSupersetOf(val)
+                    } else if (isNum(val) || isString(val)) {
+                        const tval = tar[prop]
+                        if (tval !== val) {
+                            throw new Error(`Subset mismatch - ${title}:${prop} is expected to be [${val}], but [${tval}] found!`)
+                        }
+                    } else {
+                        throw new Error(`An unexpected value in the subset: ${prop}:[${val}]`)
+                    }
+                }
+            }
+
+            return this
+        },
 
         notNull: function() {
             if (tar == null) throw new Error(`value is expected, but ${tag} found`)
@@ -92,17 +115,17 @@ function expect(tar, title, up, upTitle) {
         },
 
         prop: function(name) {
-            if (!tar || typeof tar !== 'object') {
-                throw new Error(`${tag} is expected to be an object for prop access`)
+            if (!tar || !isContainer(tar)) {
+                throw new Error(`${tag} is expected to be an object, array or function for prop access`)
             }
-            return expect(tar[name], `${title}[${name}]`, tar, title)
+            return expect(tar[name], `${title}:${name}`, tar, title)
         },
 
         element: function(index) {
             if (!tar || (!testAnyArray(tar))) {
                 throw new Error(`${tag} is expected to be an array or a typed array to access elements by index`)
             }
-            return expect(tar[index], `${title}[#${index + 1}]`, tar, title)
+            return expect(tar[index], `${title}[#${index}]`, tar, title)
         },
 
         up: function() {
@@ -125,7 +148,7 @@ function expect(tar, title, up, upTitle) {
             for (let i = 0; i < tar.length; i++) {
                 const e = tar[i]
                 const v = vals[i]
-                if (e !== v) throw new Error(`${tag}[#${i + 1}] is expected to be [${v}], but [${e}] found!`)
+                if (e !== v) throw new Error(`${tag}[#${i}] is expected to be [${v}], but [${e}] found!`)
             }
 
             return this
@@ -139,7 +162,7 @@ function expect(tar, title, up, upTitle) {
             for (let i = 0; i < tar.length; i++) {
                 const e = tar[i]
                 const v = vals[i]
-                if (Math.abs(e - v) > epsilon) throw new Error(`${tag}[#${i + 1}] is expected to be near [${v}] (precision: ${epsilon}), but [${e}] found!`)
+                if (Math.abs(e - v) > epsilon) throw new Error(`${tag}[#${i}] is expected to be near [${v}] (precision: ${epsilon}), but [${e}] found!`)
             }
 
             return this
