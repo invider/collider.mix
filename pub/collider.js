@@ -4107,14 +4107,14 @@ function removeExtension(url) {
     return url.replace(/\.[^/.]+$/, '') // remove extension
 }
 
-function attachFont(name, url) {
+function attachFont(name, url, format) {
     const fontStyle = document.createElement('style')
-    fontStyle.appendChild(document.createTextNode("\n\
-    @font-face {\n\
-        font-family: '" + name + "';\n\
-        src: url('" + url + "'); \n\
-    }\
-    "))
+    fontStyle.appendChild(document.createTextNode(`
+    @font-face {
+        font-family: "${name}";
+        src: url("${url}") format("${format}");
+    }
+    `))
     return document.head.appendChild(fontStyle)
 }
 
@@ -4330,11 +4330,16 @@ Mod.prototype.batchLoad = function(batch, url, base, path, after) {
             break
 
         case 'ttf':
-            attachFont(name, url)
+            attachFont(name, url, 'truetype')
             break
-
         case 'otf':
-            attachFont(name, url)
+            attachFont(name, url, 'opentype')
+            break
+        case 'woff':
+            attachFont(name, url, 'woff')
+            break
+        case 'woff2':
+            attachFont(name, url, 'woff2')
             break
 
         case 'wav':
