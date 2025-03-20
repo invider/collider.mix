@@ -4107,7 +4107,29 @@ function removeExtension(url) {
     return url.replace(/\.[^/.]+$/, '') // remove extension
 }
 
-function attachFont(name, url, format) {
+function attachFont(_, name, url, base, path, ext, classifier, format, mimeType, onLoad, after) {
+    _.res._included ++
+    const fontFile = new FontFace(name, `url(${url})`)
+    document.fonts.add(fontFile);
+    const script = {
+        origin: url,
+        path:   path,
+        base:   base,
+        name:   name,
+        ext:    ext,
+        classifier: classifier,
+        after:  after,
+    }
+    fontFile.load().then(
+        () => {
+            _.log.sys(`[font-loader]`, `loaded ${name}:[${url}]`)
+            onLoad(script)
+        },
+        (err) => {
+            _.log.sys(`[font-loader]`, `unable to load ${name}:[${url}]`)
+        }
+    )
+
     const fontStyle = document.createElement('style')
     fontStyle.appendChild(document.createTextNode(`
     @font-face {
@@ -4297,22 +4319,22 @@ Mod.prototype.batchLoad = function(batch, url, base, path, after) {
     const _ = this
     //_.log.sys('batch-#' + batch, 'url: ' + url + ' base: ' + base.name + ' path: ' + path)
 
-    function onLoad() {
+    function onLoad(script) {
         if (_scene.env.config.latency) {
             let max_wait = 5
             let delay = Math.floor(Math.random() * max_wait) * 1000
             setTimeout(function() {
-                _.res._onLoaded()
+                _.res._onLoaded(script)
             }, delay)
         } else {
-            _.res._onLoaded()
+            _.res._onLoaded(script)
         }
     }
 
     const ext = getExtension(url)
     const resourceName = getResourceName(url)
     let name = resourceName
-    let classifier = false // classifies additional actions, like .map12x12 etc...
+    let classifier = false // classifies resource subtype or additional actions to be applied, like .map12x12 etc...
 
     const i = resourceName.indexOf('.')
     if (i > 0) {
@@ -4322,6 +4344,7 @@ Mod.prototype.batchLoad = function(batch, url, base, path, after) {
 
     name = path? path.replace(/^.*[\\\/]/, '') : name // take the name form path
 
+    // rename script -> resource and form resource object here - with path, url, ext, classifier and other properties we can define here
     _.log.sys('loader-' + batch, '.' + ext + ': ' + url + ' -> ' + addPath(base.name, path))
 
     switch (ext) {
@@ -4330,16 +4353,16 @@ Mod.prototype.batchLoad = function(batch, url, base, path, after) {
             break
 
         case 'ttf':
-            attachFont(name, url, 'truetype')
+            attachFont(_, name, url, base, path, ext, classifier, 'truetype', 'font/ttf', onLoad, after)
             break
         case 'otf':
-            attachFont(name, url, 'opentype')
+            attachFont(_, name, url, base, path, ext, classifier, 'opentype', 'font/otf', onLoad, after)
             break
         case 'woff':
-            attachFont(name, url, 'woff')
+            attachFont(_, name, url, base, path, ext, classifier, 'woff', 'font/woff', onLoad, after)
             break
         case 'woff2':
-            attachFont(name, url, 'woff2')
+            attachFont(_, name, url, base, path, ext, classifier, 'woff2', 'font/woff2', onLoad, after)
             break
 
         case 'wav':
