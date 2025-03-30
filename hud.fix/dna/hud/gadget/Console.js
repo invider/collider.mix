@@ -5,6 +5,7 @@ const Container = dna.hud.Container
 // @depends(/dna/hud/gadget/Slider)
 const Slider = dna.hud.gadget.Slider
 
+const HISTORY_STORE_KEY = 'collider.jam/hud/console/history'
 
 let instances = 0
 
@@ -27,6 +28,10 @@ const Console = function(st) {
     this.lines = []
     this.blinkState = 0
 
+    this.history = []
+    this.ihistory = -1
+    this.keepHistory = true
+
     this.font = env.hud.font
     this.baseHeight = env.hud.baseHeight
 
@@ -45,6 +50,7 @@ const Console = function(st) {
     }))
 
     this.adjustSliders()
+    this.restoreHistory()
 }
 Console.prototype = Object.create(Container.prototype)
 
@@ -105,9 +111,59 @@ Console.prototype.echo = function(msg) {
     this.print(this.prompt + msg)
 }
 
+Console.prototype.storeHistory = function() {
+    if (!this.keepHistory) return
+    localStorage.setItem(HISTORY_STORE_KEY, JSON.stringify(this.history))
+}
+
+Console.prototype.restoreHistory = function() {
+    if (!this.keepHistory) return
+    const rawHistory = localStorage.getItem(HISTORY_STORE_KEY)
+    if (rawHistory) this.history = JSON.parse(rawHistory) || []
+}
+
+Console.prototype.removeHistory = function() {
+    localStorage.removeItem(HISTORY_STORE_KEY)
+}
+
+Console.prototype.book = function(command) {
+    if (this.history.length > 0 && this.history[this.history.length - 1] === command) return
+    if (!command || command.trim().length === 0) return
+    this.history.push(command)
+    this.ihistory = -1
+    this.storeHistory()
+}
+
+Console.prototype.upHistory = function() {
+    if (this.history.length === 0) return
+
+    if (this.ihistory < 0) {
+        this.ihistory = this.history.length - 1
+        this.command = this.history[this.ihistory]
+    } else {
+        this.ihistory --
+        if (this.ihistory < 0) this.ihistory = 0
+        this.command = this.history[this.ihistory]
+    }
+}
+
+
+Console.prototype.downHistory = function() {
+    if (this.history.length === 0 || this.ihistory < 0) return
+
+    this.ihistory ++
+    if (this.ihistory >= this.history.length) {
+        this.ihistory = -1
+        this.command = ''
+    } else {
+        this.command = this.history[this.ihistory]
+    }
+}
+
 Console.prototype.execute = function() {
     this.echo(this.command)
     this.onCommand(this.command)
+    this.book(this.command)
     this.command = ''
 }
 
@@ -118,6 +174,10 @@ Console.prototype.onCommand = function(cmd) {
 Console.prototype.onKeyDown = function(e) {
     if (e.key === 'Escape') {
         this.command = ''
+    } else if (e.key === 'ArrowUp') {
+        this.upHistory()
+    } else if (e.key === 'ArrowDown') {
+        this.downHistory()
     } else if (e.key === 'Backspace') {
         if (this.command.length > 0) {
             this.command = this.command.substring(0, this.command.length-1)
