@@ -254,9 +254,16 @@ function mixin() {
 }
 
 function extend(mixin) {
-    if (!isContainer(mixin)) throw new Error('container is expected!')
+    if (!isContainer(mixin)) throw new Error('a container is expected!')
 
-    for (let arg = 1; arg < arguments.length; arg++) {
+    let predicate = null
+    let edge = arguments.length
+    if (isFun(arguments[edge - 1])) {
+        predicate = arguments[edge - 1]
+        edge--
+    }
+
+    for (let arg = 1; arg < edge; arg++) {
         const source = arguments[arg]
         if (source && source !== mixin) {
             if (isFun(mixin.extend) && mixin.extend !== extend) {
@@ -264,7 +271,9 @@ function extend(mixin) {
             } else {
                 for (let prop in source) {
                     if (source.hasOwnProperty(prop)) {
-                        mixin[prop] = source[prop]
+                        if (!predicate || predicate(prop)) {
+                            mixin[prop] = source[prop]
+                        }
                     }
                 }
             }
@@ -278,14 +287,13 @@ function extend(mixin) {
 
 function augment(mixin) {
     if (!mixin) mixin = {}
-    if (!isContainer(mixin)) throw new Error('container is expected!')
+    if (!isContainer(mixin)) throw new Error('a container is expected!')
 
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
         if (source && source !== mixin) {
             if (isFun(mixin.augment) && mixin.augment !== augment) {
                 mixin.augment(source)
-                debugger
             } else {
                 for (let prop in source) {
                     if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
@@ -312,7 +320,7 @@ function augment(mixin) {
 }
 function supplement(mixin) {
     if (!mixin) mixin = {}
-    if (!isContainer(mixin)) throw new Error('container is expected!')
+    if (!isContainer(mixin)) throw new Error('a container is expected!')
 
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
@@ -3377,6 +3385,7 @@ const Mod = function(st) {
     mod.touch = touchFun((name, __, st) => {
         let mod
         if (name.endsWith('-buf')) {
+            // TODO create a WebGL canvas as well (?) or maybe need '-gl' for that (?)
             _scene.log.sys(`creating a buffer canvas for ${name}`)
             const canvas = document.createElement('canvas')
             const ctx = augmentCtx(canvas.getContext('2d'))
