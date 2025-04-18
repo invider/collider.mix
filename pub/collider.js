@@ -254,7 +254,7 @@ function mixin() {
 }
 
 function extend(mixin) {
-    if (!isContainer(mixin)) throw new Error('a container is expected!')
+    if (!isContainer(mixin)) throw new Error('a target container is expected!')
 
     let predicate = null
     let edge = arguments.length
@@ -287,7 +287,7 @@ function extend(mixin) {
 
 function augment(mixin) {
     if (!mixin) mixin = {}
-    if (!isContainer(mixin)) throw new Error('a container is expected!')
+    if (!isContainer(mixin)) throw new Error('a target container is expected!')
 
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
@@ -320,7 +320,7 @@ function augment(mixin) {
 }
 function supplement(mixin) {
     if (!mixin) mixin = {}
-    if (!isContainer(mixin)) throw new Error('a container is expected!')
+    if (!isContainer(mixin)) throw new Error('a target container is expected!')
 
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
