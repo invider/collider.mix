@@ -4922,8 +4922,8 @@ const bootstrap = function() {
         glCanvas.buffer = false
         _scene.glCanvas = glCanvas
         _scene.gl = glCanvas.getContext('webgl2', {
+            depth:     true,
             antialias: false,
-            depth: false,
         })
         if (_scene.gl) {
             glCanvas.gl = true
