@@ -5248,6 +5248,20 @@ function handleMouseWheel(e) {
     return false
 }
 
+function handlePointerLockChange(e) {
+    if (document.pointerLockElement) {
+        _scene.trap('pointerLock', e)
+    } else {
+        _scene.trap('pointerRelease', e)
+    }
+    return false
+}
+
+function handlePointerLockError(e) {
+    _scene.trap('pointerLockError', e)
+    return false
+}
+
 function handleMouseDown(e) {
     _scene.env._touched = true
     _scene.trap('mouseDown', e, true)
@@ -5440,7 +5454,7 @@ function focus() {
 
 // bind events to target
 // TODO move to external system setup
-function bindHandlers(target) {
+function bindHandlers(target, secondary) {
     if (!target) return
     target.onresize = expandView
     target.onload = preboot
@@ -5464,8 +5478,11 @@ function bindHandlers(target) {
 
     target.addEventListener('blur', handleGameBlur)
     target.addEventListener('focus', handleGameFocus)
+
+    secondary.addEventListener('pointerlockchange', handlePointerLockChange)
+    secondary.addEventListener('pointerlockerror', handlePointerLockError)
 }
-bindHandlers(window)
+bindHandlers(window, document)
 
 
 // extend window with universal requestAnimFrame
