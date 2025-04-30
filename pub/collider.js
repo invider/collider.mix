@@ -102,11 +102,15 @@ const isObj = function(o) {
 const isObject = function(o) {
     return (o && typeof o === 'object' && !Array.isArray(o))
 }
+const isTypedArr = function(a) {
+    const TypedArray = Object.getPrototypeOf(Uint8Array)
+    return (a instanceof TypedArray)
+}
 const isArr = function(a) {
-    return Array.isArray(a)
+    return (Array.isArray(a) || isTypedArr(a))
 }
 const isArray = function(a) {
-    return Array.isArray(a)
+    return (Array.isArray(a) || isTypedArr(a))
 }
 const isContainer = function(o) {
     return isObj(o) || isFun(o)
