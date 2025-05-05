@@ -111,7 +111,7 @@ Container.prototype.onClick = function(x, y, e) {
         if (pending && ((g.within && g.within(x, y))
                 || (!g.within && (
                     (g._circular
-                        && dist(g.x, g.y, x, y) <= g.r)
+                        && distance(g.x, g.y, x, y) <= g.r)
                     || (g._centered
                         && x >= g.x - g.w/2
                         && x <= g.x + g.w/2
@@ -167,7 +167,7 @@ Container.prototype.onDblClick = function(x, y, e) {
         if (pending && ((g.within && g.within(x, y))
                 || (!g.within && (
                     (g._circular
-                        && dist(g.x, g.y, x, y) <= g.r)
+                        && distance(g.x, g.y, x, y) <= g.r)
                     || (g._centered
                         && x >= g.x - g.w/2
                         && x <= g.x + g.w/2
@@ -222,7 +222,7 @@ Container.prototype.onMouseDown = function(x, y, b, e) {
         if (pending && ((g.within && g.within(x, y))
                 || (!g.within && (
                     (g._circular
-                        && dist(g.x, g.y, x, y) <= g.r)
+                        && distance(g.x, g.y, x, y) <= g.r)
                     || (g._centered
                         && x >= g.x - g.w/2
                         && x <= g.x + g.w/2
@@ -286,7 +286,7 @@ Container.prototype.onMouseUp = function(x, y, b, e) {
             if ((g.within && g.within(x, y))
                     || (!g.within && (
                         (g._circular
-                            && dist(g.x, g.y, x, y) <= g.r)
+                            && distance(g.x, g.y, x, y) <= g.r)
                         || (g._centered
                             && x >= g.x - g.w/2
                             && x <= g.x + g.w/2
@@ -334,7 +334,7 @@ Container.prototype.onMouseMove = function(x, y, e) {
             if ((g.within && g.within(x, y))
                     || (!g.within && (
                         (g._circular
-                            && dist(g.x, g.y, x, y) <= g.r)
+                            && distance(g.x, g.y, x, y) <= g.r)
                         || (g._centered
                             && x >= g.x - g.w/2
                             && x <= g.x + g.w/2
@@ -391,7 +391,7 @@ Container.prototype.onMouseWheel = function(d, x, y, e) {
             if ((g.within && g.within(x, y))
                     || (!g.within && (
                         (g._circular
-                            && dist(g.x, g.y, x, y) <= g.r)
+                            && distance(g.x, g.y, x, y) <= g.r)
                         || (g._centered
                             && x >= g.x - g.w/2
                             && x <= g.x + g.w/2
@@ -440,7 +440,7 @@ Container.prototype.onTouchStart = function(x, y, e) {
         if (focusPending && ((g.within && g.within(x, y))
                 || (!g.within && (
                     (g._circular
-                        && dist(g.x, g.y, x, y) <= g.r)
+                        && distance(g.x, g.y, x, y) <= g.r)
                     || (g._centered
                         && x >= g.x - g.w/2
                         && x <= g.x + g.w/2
