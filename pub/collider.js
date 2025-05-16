@@ -1185,6 +1185,19 @@ Frame.prototype.orderZ = function() {
     })
 }
 
+Frame.prototype.supplement = function(src) {
+    if (isFrame(src)) {
+        // copy the content list
+        for (let e of src._ls) {
+            if (!e.name || !this._dir[e.name]) {
+                this.attach(e)
+            }
+        }
+    } else {
+        supplement(this, src)
+    }
+}
+
 /*
 Frame.prototype.selectOneNumber = function(predicate) {
     let list = this.select(predicate)
