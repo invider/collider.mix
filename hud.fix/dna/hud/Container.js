@@ -2,9 +2,9 @@
 
 // an element to group and organize other elements
 
-let instances = 0
+let id = 0
 
-const defaults = {
+const df = {
     clip: true,
     transparent: false, // don't draw background if true
     color: {
@@ -17,12 +17,10 @@ const defaults = {
     showActiveFrame: false,
 }
 
-let Container = function(dat) {
-    // name can be assigned from child constructors!
-    if (!this.name) this.name = 'container' + ++instances
-    sys.supplement(this, defaults)
-
-    sys.LabFrame.call(this, dat)
+let Container = function(st) {
+    sys.LabFrame.call(this, augment({
+        name: 'container' + (++id)
+    }, df, st))
 }
 Container.prototype = Object.create(sys.LabFrame.prototype)
 

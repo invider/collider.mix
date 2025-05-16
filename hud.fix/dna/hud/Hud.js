@@ -4,10 +4,11 @@
 // top-level UI container that handles all the events
 //
 // @depends(/dna/hud/Container)
-let instances = 0
+let id = 0
 let Hud = function(st) {
-    this.name = 'hud' + ++instances
-    dna.hud.Container.call(this, st)
+    dna.hud.Container.call(this, augment({
+        name: 'hud' + (++id)
+    }, st))
 
     this.span = true
     this.transparent = true
