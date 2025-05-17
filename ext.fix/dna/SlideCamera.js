@@ -175,7 +175,7 @@ SlideCamera.prototype.pick = function(screenX, screenY) {
 
     let res = []
     this._ls.forEach( e => {
-        if (e.draw && !e.dead && !e.hidden && e._sizable
+        if (e.draw && !e.dead && !e.hidden && e._positional && e._rectangular
                 && e.x <= wx
                 && e.x + e.w >= wx
                 && e.y <= wy

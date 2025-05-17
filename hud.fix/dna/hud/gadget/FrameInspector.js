@@ -7,7 +7,7 @@ const Container = dna.hud.Container
 //@depends(/dna/hud/gadget/DynamicList)
 const DynamicList = dna.hud.gadget.DynamicList
 
-const defaults = {
+const df = {
     status: '/',
     dir: $,
     x: 0,
@@ -73,13 +73,13 @@ function nodeTitle(node, dir, i, key) {
 }
 
 // shows and navigates a frame
-const FrameInspector = function(dat) {
-    this.lastPos = []
-    this.lastSelect = []
-    this.lastName = []
-    this.trail = []
-    augment(this, defaults)
-    DynamicList.call(this, dat)
+const FrameInspector = function(st) {
+    DynamicList.call(this, augment({
+        lastPos:    [],
+        lastSelect: [], 
+        lastName:   [],
+        trail:      [],
+    }, df, st))
 
     this.adjust()
 }

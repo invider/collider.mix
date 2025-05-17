@@ -61,7 +61,7 @@ MonoContainer.prototype.onClick = function(x, y, e) {
     //log.debug('click on [' + this.name + '] @' + x + 'x' + y)
 
     const g = this.active
-    if (g && !g.hidden && !g.disabled && g._sizable) {
+    if (g && !g.hidden && !g.disabled && g._positional && g._rectangular) {
         const lx = x - g.x
         const ly = y - g.y
         if (lx >= 0 && lx <= g.w && ly >= 0 && ly <= g.h) {
@@ -80,7 +80,7 @@ MonoContainer.prototype.onClick = function(x, y, e) {
 MonoContainer.prototype.onDblClick = function(x, y, e) {
     const g = this.active
     if (g) {
-        if (g.hidden || g.disabled || !g._sizable) return
+        if (g.hidden || g.disabled || !g._positional || !g._rectangular) return
 
         const lx = x - g.x
         const ly = y - g.y
