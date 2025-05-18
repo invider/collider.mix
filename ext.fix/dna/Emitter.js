@@ -28,10 +28,10 @@ The emitter is left-destroyed when it's lifespan is over and all particles are d
 === Examples
 
 Following are some real-life examples of particles use:
-<li> [Explosions in Enceladus Dockyards](https://github.com/invider/enceladus-dockyards.mix/blob/master/boy-buf.mod/lib/vfx.js)
-<li> [Monster hits and magic in Master of Ritual](https://github.com/invider/master-of-ritual/blob/master/mod/dna/mob/Master.js)
-<li> [Teleports in station keeping](https://github.com/invider/station-keeping.mod/blob/master/lib/vfx.js)
-<li> [Cyber Sneeze](https://github.com/invider/cyber-sneeze.mod/blob/master/dna/Bot.js)
+<li> [Explosions in Enceladus Dockyards](https://github.com/invadium/enceladus-dockyards.mix/blob/master/boy-buf.mod/lib/vfx.js)
+<li> [Monster hits and magic in Master of Ritual](https://github.com/invadium/master-of-ritual/blob/master/mod/dna/mob/Master.js)
+<li> [Teleports in station keeping](https://github.com/invadium/station-keeping.mod/blob/master/lib/vfx.js)
+<li> [Cyber Sneeze](https://github.com/invadium/cyber-sneeze.mod/blob/master/dna/Bot.js)
 */
 
 
