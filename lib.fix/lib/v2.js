@@ -1,3 +1,7 @@
+//
+// TODO refactor to match vec2 interface
+//
+
 function copy(v) {
     return {
         x: v.x,

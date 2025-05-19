@@ -566,8 +566,8 @@ function drawContent() {
 // generic bootloader logic
 
 function updateLoadingStatus() {
-    let loaded = this._.___.res._loaded
-    let included = this._.___.res._included
+    let loaded = this.__.getMod().___.res._loaded
+    let included = this.__.getMod().___.res._included
 
     let amount = 1
     if ([BLACKOUT, LOADING, HOLDING].includes(bootState)) {
@@ -697,8 +697,8 @@ function getStatus() {
     return {
         bootState,
         stateTimer,
-        loaded: this._.___.res._loaded,
-        included: this._.___.res._included,
+        loaded: this.__.getMod().___.res._loaded,
+        included: this.__.getMod().___.res._included,
     }
 }
 

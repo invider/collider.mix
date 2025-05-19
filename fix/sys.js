@@ -10,20 +10,21 @@ const system = {
     // @param {function} predicate - a filter function accepting the node and returning true if it needs to be copied
     // @returns {number} - a number of copied nodes
     cp: function(source, target, predicate) {
+        const _ = this.getMod()
         _.log.sys('copying ' + source + ' -> ' + target)
 
-        let list = this._.select(source)
+        let list = _.select(source)
         if (list.length === 0) return 0
         let dest 
-        if (this._.sys.isString(target)) {
-            dest = this._.select(target)
+        if (_.sys.isString(target)) {
+            dest = _.select(target)
             if (dest.length !== 1) return 0 // can't copy if no node or more than one found
             dest = dest[0]
         } else {
             dest = target
         }
 
-        if (!this._.sys.isFrame(dest)) return 0
+        if (!_.sys.isFrame(dest)) return 0
 
         let nodeCount = 0
         list.forEach( function(e) {
@@ -46,11 +47,13 @@ const system = {
     // @param {function} predicate - a filter function accepting the node and returning true if it needs to be moved
     // @returns {number} - a number of moved nodes
     mv: function(source, target, predicate) {
+        const _ = this.getMod()
+
         let list
-        if (this._.sys.isString(source)) {
+        if (_.sys.isString(source)) {
             _.log.sys('moving ' + source + ' -> ' + target)
-            list = this._.select(source)
-        } else if (this._.sys.isArray(source)) {
+            list = _.select(source)
+        } else if (_.sys.isArray(source)) {
             list = []
             for (let i = 0; i < source.length; i++) {
                 list.push(source[i])
@@ -63,8 +66,8 @@ const system = {
 
         if (list.length === 0) return 0
         let dest 
-        if (this._.sys.isString(target)) {
-            dest = this._.select(target)
+        if (_.sys.isString(target)) {
+            dest = _.select(target)
             if (dest.length !== 1) return 0 // can't copy if no node or more than one found
             dest = dest[0]
         } else {
@@ -72,7 +75,7 @@ const system = {
         }
 
         let nodeCount = 0
-        if (!this._.sys.isFrame(dest)) return 0
+        if (!_.sys.isFrame(dest)) return 0
         list.forEach( function(e) {
             if (predicate) {
                 if (predicate(e)) {
@@ -90,15 +93,9 @@ const system = {
         return nodeCount
     },
 
-    /*
-    // and what can we do with name shaddowing? select is already in Frame
-    // select from arbitrary object
-    select: function(target, path) {
-        // TODO select from any object recursively
-    },
-    */
-
     // attach an element to the specified target
+    // TODO do we need that? What are the benefits compared to the standard Frame.attach()?
+    //
     // @param {object} target - a node for attachment
     // @param {object} element - a child element
     // @returns {object} - the attached node
@@ -121,22 +118,23 @@ const system = {
     // @param {object} spawnData - optional init data
     // @param {string} sbase - optinal dna lookup base
     construct: function(source, spawnData, sbase) {
+        const _ = this.getMod()
         if (sbase === undefined) sbase = 'dna/'
 
         let res
 
         let path
         let cons = source
-        if (this._.sys.isString(source)) {
+        if (_.sys.isString(source)) {
             path = this.url.addPath(sbase, source)
-            cons = this._.selectOne(path)
+            cons = _.selectOne(path)
 
             if (!isFun(cons) && !isObj(cons)) {
                 // look up in the root mod
-                cons = this._._$.selectOne(sbase + source)
+                cons = _._$.selectOne(sbase + source)
             }
             if (!isFun(cons) && !isObj(cons)) throw "can't find the spawn dna: "
-                + this._.name + '/' + sbase + source
+                + _.name + '/' + sbase + source
         }
         if (!cons) throw `can't find the spawn dna: ${source}`
 
@@ -207,15 +205,16 @@ const system = {
     // And it runs /sys/spawn() function under the hood.
     //
     spawn: function(source, spawnData, target, sbase, tbase) {
+        const _ = this.getMod()
         if (tbase === undefined) tbase = 'lab/'
 
         let dest = target
         if (!target || target === '') {
-            dest = this._.lab
-        } else if (this._.sys.isString(target)) {
-            dest = this._.select(tbase + target)
+            dest = _.lab
+        } else if (_.sys.isString(target)) {
+            dest = _.select(tbase + target)
             if (dest.length === 0) throw "can't find the spawn target: "
-                + this._.name + tbase + target
+                + _.name + tbase + target
             if (dest.length > 1) throw "ambiguous target for the spawn: "
                 + tbase + target
             dest = dest[0]
@@ -232,8 +231,8 @@ const system = {
 
         //if (!sys.isFrame(dest)) return false
         /*
-        this._.log.debug('~~~ spawning @'
-            + this._.name + ':' + sbase + source + ' -> '
+        _.log.debug('~~~ spawning @'
+            + _.name + ':' + sbase + source + ' -> '
             + tbase + target)
         */
     },
@@ -321,7 +320,7 @@ const system = {
 
     // a service function used by print()/input() to create a text surface
     createTextSurface: function() {
-        const _ = this.__.getMod()
+        const _ = this.getMod()
 
         const hud = _.lab.spawn(dna.hud.Hud, {
             name: 'textHud',

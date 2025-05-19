@@ -20,6 +20,7 @@ function toJsonURL(obj) {
 }
 
 // transfer a string to a text data url
+// TODO maybe move to string utilities?
 function toPlainTextURL(txt) {
     return "data:text/plain;charset=utf-8," + encodeURIComponent(txt)
 }

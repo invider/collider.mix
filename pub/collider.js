@@ -607,7 +607,7 @@ const touchFun = function(nodeFactory) {
  * @constructor
  */
 const Frame = function(st, extra) {
-    this._ = this
+    //this._ = this
     this._ls = []
     this._dir = {}
     if (isStr(st)) {
@@ -647,7 +647,7 @@ Frame.prototype.attach = function(node, name) {
         // attaching an object - inject mod, parent and name
 
         // TODO phase out mod reference for nodes - __ is enough
-        node._ = this._
+        //node._ = this._
         node.__ = this
         Object.defineProperty(node, '_', { enumerable: false })
         Object.defineProperty(node, '__', { enumerable: false })
@@ -1231,7 +1231,57 @@ LabFrame.prototype.touch = touchFun((name, __, st) => {
 })
 
 LabFrame.prototype.spawn = function(dna, st) {
-    return this._.sys.spawn(dna, st, this)
+    if (this.__) {
+        // full-featured spawn
+        return this.getMod().sys.spawn(dna, st, this)
+
+    } else {
+        // === pawn in an orphan node ===
+        if (isStr(dna)) throw `can't do path lookups in orphan nodes - provide a DNA object or attach the parent node first!`
+
+        let res
+        let cons = dna
+
+        if (isFun(dna)) {
+            // source is function - constructor or factory
+            if (/[A-Z]/.test(dna.name[0])) {
+                // uppercase means constructor
+                res = new dna(st)
+            } else {
+                // lowercase means factory
+                res = dna(st)
+            }
+        } else if (isObj(dna)) {
+            if (isFun(dna.spawn)) {
+                // spawn() factory function
+                res = dna.spawn(st)
+            } else {
+                res = _scene.sys.clone(dna, st)
+            }
+        } else {
+            throw `a DNA object (class/constructor or a factory or a prototype) is expected!`
+        }
+
+        if (res) {
+            res._dna = dna
+            res._DNA = dna.name
+
+            if (_scene.env.config && _scene.env.config.flow) {
+                const descriptor = {
+                    source: dna.__.path() + '/' + dna.name,
+                    cons:   dna,
+                    entity: res,
+                }
+                _scene.sys.spawnCache.push(descriptor)
+            }
+
+            const node = this.attach(res)
+            if (isFun(node.onSpawn)) {
+                node.onSpawn(st)
+            }
+        }
+        return res
+    }
 }
 
 LabFrame.prototype.promoteNode = function(node) {
@@ -2228,10 +2278,11 @@ function evalJS(script, _, batch) {
 
     if (!script.patch) {
         parent = __.touch(parentPath, st)
-        if (parent && parent._) {
+        if (parent && parent.getMod) {
             // found context from the parent node
             // TODO should search up the path until we got suitable context
-            __ = parent._
+            //__ = parent._
+            __ = parent.getMod()
         }
     }
 
@@ -2941,7 +2992,7 @@ function augmentCtx(ctx) {
 
 // Mod context container
 const Mod = function(st) {
-    const _ = this
+    const _ = this._ = this
     this._patchLog = []
     this._scope = {
         key:         _key,
@@ -3187,10 +3238,10 @@ const Mod = function(st) {
 
     // resources container
     this.attach(new Frame({
-        name: 'res',
+        name:     'res',
         _included: 0,
-        _loaded: 0,
-        _errors: 0,
+        _loaded:   0,
+        _errors:   0,
         _evalList: [],
 
         _schedule: function(batch, script) {
@@ -3216,13 +3267,13 @@ const Mod = function(st) {
         _eval: function() {
             for (let batch = 1; batch < this._evalList.length; batch++) {
                 if (!this._evalList[batch]) continue
-                this._.log.sys('[eval]', `scheduling evaluation of batch #${batch} for ${this._.name}...`)
+                _.log.sys('[eval]', `scheduling evaluation of batch #${batch} for ${this.__.name}...`)
 
                 // sort batch alphanumerically before the evaluation
                 this._evalList[batch].sort((a, b) => a.path.localeCompare(b.path))
 
                 const evalList = this._evalList[batch]
-                evalLoadedBatch(batch, evalList, this._)
+                evalLoadedBatch(batch, evalList, this.__)
 
                 /*
                 // Doesn't work due to the missing reschedules - they depend on the next batch in row,
@@ -3249,24 +3300,23 @@ const Mod = function(st) {
         },
 
         _checkEvalReadiness: function() {
-            if (this._.env._started) return // it looks like we've already started
+            if (this.__.env._started) return // it looks like we've already started
 
             // check if all resources are loaded
             if (this._included <= this._loaded) {
                 // OK - everything is loaded, call setup functions
                 // TODO how to deal with mods with no res? how start would be triggered?
-                this._.log.sys('[loader]', 'Total ' + this._loaded + ' resources are loaded in ' + this._.name)
+                _.log.sys('[loader]', 'Total ' + this._loaded + ' resources are loaded in ' + this.__.name)
                 const startedEvalTimestamp = Date.now()
-                this._._scheduled = 0
-                this._._evaluated = 0
+                this.__._scheduled = 0
+                this.__._evaluated = 0
                 this._errors = 1
                 this._eval()       // TODO refactor this heavy call - we are trying to parse and eval everything in a sync call here!!!
                 this._errors = 0
                 const evalTime = Date.now() - startedEvalTimestamp
-                this._.log.sys('[loader] Time: ' + evalTime + 'ms')
+                _.log.sys('[loader] Time: ' + evalTime + 'ms')
 
                 //this._.start()
-                const _ = this._
                 function startTrigger() {
                     _.log.sys('trying to start... ' + _._evaluated + ' <> ' + _._scheduled)
                     if (_._evaluated >= _._scheduled) {
@@ -3418,6 +3468,7 @@ const Mod = function(st) {
         } else {
             mod = new Mod(name)
         }
+        mod._  = _
         mod._$ = _scene
         return mod
     })
@@ -3428,21 +3479,21 @@ const Mod = function(st) {
         return trap.echo(key, data, chain)
     }
 
-    trap.echo = function(key, data, chain) {
+    trap.echo = function(key, st, chain) {
         if (this.mask && !this.mask[key]) return true
         if (this.ignore && this.ignore[key]) return true
 
         if (!this.__.disabled) {
             var fn = trap.selectOne(key)
             if (isFun(fn)) {
-                if (fn(data) === false) return false
+                if (fn(st) === false) return false
             }
         }
 
         if (chain) {
             // propagate event
             this.__.mod._ls.forEach( m => {
-                m.trap(key, data, chain)
+                m.trap(key, st, chain)
             })
         }
         return true

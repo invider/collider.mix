@@ -1,4 +1,5 @@
 // mutable array-based 2d vector operations
+// TODO deprecate and remove, sicne we're going to introduce standard vec2 model
 
 // construct a 2d vector from x and y values
 // @param {number} x

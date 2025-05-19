@@ -42,8 +42,7 @@ Hud.prototype.injectTraps = function() {
     const localTrap = mod.trap
 
     localTrap.on('click', function(e) {
-        if (hud.hidden || hud.disabled
-                || hud._.hidden || hud._.disabled) return
+        if (hud.hidden || hud.disabled || mod.hidden) return
 
 
         const x = hud.lx(e.pageX)
@@ -52,8 +51,7 @@ Hud.prototype.injectTraps = function() {
     })
 
     localTrap.on('dblClick', function(e) {
-        if (hud.hidden || hud.disabled
-                || hud._.hidden || hud._.disabled) return
+        if (hud.hidden || hud.disabled || mod.hidden) return
 
         const x = hud.lx(e.pageX)
         const y = hud.ly(e.pageY)
@@ -61,8 +59,7 @@ Hud.prototype.injectTraps = function() {
     })
 
     localTrap.on('mouseDown', function(e) {
-        if (hud.hidden || hud.disabled
-                || hud._.hidden || hud._.disabled) return
+        if (hud.hidden || hud.disabled || mod.hidden) return
 
         const x = hud.lx(e.pageX)
         const y = hud.ly(e.pageY)
@@ -70,8 +67,7 @@ Hud.prototype.injectTraps = function() {
     })
 
     localTrap.on('mouseUp', function(e) {
-        if (hud.hidden || hud.disabled
-                || hud._.hidden || hud._.disabled) return
+        if (hud.hidden || hud.disabled || mod.hidden) return
 
         const x = hud.lx(e.pageX)
         const y = hud.ly(e.pageY)
@@ -79,8 +75,7 @@ Hud.prototype.injectTraps = function() {
     })
 
     localTrap.on('mouseMove', function(e) {
-        if (hud.hidden || hud.disabled
-                || hud._.hidden || hud._.disabled) return
+        if (hud.hidden || hud.disabled || mod.hidden) return
 
         const x = hud.lx(e.pageX)
         const y = hud.ly(e.pageY)
@@ -88,8 +83,7 @@ Hud.prototype.injectTraps = function() {
     })
 
     localTrap.on('mouseWheel', function(e) {
-        if (hud.hidden || hud.disabled
-                || hud._.hidden || hud._.disabled) return
+        if (hud.hidden || hud.disabled || mod.hidden) return
 
         const x = hud.lx(e.pageX)
         const y = hud.ly(e.pageY)
@@ -97,8 +91,7 @@ Hud.prototype.injectTraps = function() {
     })
 
     localTrap.on('touchStart', function(e) {
-        if (hud.hidden || hud.disabled
-                || hud._.hidden || hud._.disabled) return
+        if (hud.hidden || hud.disabled || mod.hidden) return
 
         let x = e.touches[0].clientX * (ctx.width/window.innerWidth) - hud.x
         let y = e.touches[0].clientY * (ctx.height/window.innerHeight) - hud.y
@@ -106,8 +99,8 @@ Hud.prototype.injectTraps = function() {
     })
 
     localTrap.on('touchEnd', function(e) {
-        if (hud.hidden || hud.disabled
-                || hud._.hidden || hud._.disabled) return
+        if (hud.hidden || hud.disabled || mod.hidden) return
+
         hud.onTouchEnd(e)
     })
 
