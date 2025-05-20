@@ -3149,7 +3149,7 @@ const Mod = function(st) {
             return _.sys.on.apply(_.sys, arguments)
         },
 
-        gtrap: function(name, st, chain) {
+        gtrap: function(name, st) {
             return $.signal(name, st)
         },
 
@@ -3442,29 +3442,52 @@ const Mod = function(st) {
     this.attach(mod)
 
     // container for traps
-    // TODO should we remove chain argument and chain based on a mask or a function property?
-    var trap = function trap(key, st, chain) {
-        return trap.echo(key, st, chain)
+    const trap = function trap(name, st) {
+        return trap.echo(name, st, 1)
     }
+    trap.mask     = null
+    trap.ignore   = []
+    trap.subTraps = []
 
-    trap.echo = function(key, st, chain) {
-        if (this.mask && !this.mask[key]) return true
-        if (this.ignore && this.ignore[key]) return true
+    // signal processing implementation
+    // @returns {boolean} - true if halted along the propagation chain, false otherwise
+    trap.echo = function echo(name, st, level) {
+        // filter out ignored signals
+        if (this.ignore[name]) return false
+        // when mask is defined, pass only the masked signals
+        if (this.mask && !this.mask[name]) return false
 
-        if (!this.__.disabled) {
-            var fn = trap.selectOne(key)
-            if (isFun(fn)) {
-                if (fn(st) === false) return false
+        const fn = trap.selectOne(name)
+        if (isFun(fn)) {
+            fn(st)
+            if (fn.halt || (st && st.halt)) return true
+        }
+
+        let processed = false
+
+        // propagate the signal to subtraps
+        trap.subTraps.forEach( subTrap => {
+            const sfn = subTrap.selectOne(name)
+            if (isFun(sfn)) {
+                sfn(st)
+                processed = true
             }
+        })
+        
+        // propagate the signal to subMods
+        switch(level) {
+            case 0:
+                this.__.mod._ls.forEach( m => {
+                    if (m.signal(name, st)) processed = true
+                })
+                break
+            case 1:
+                this.__.mod._ls.forEach( m => {
+                    if (m.trap.signal(name, st)) processed = true
+                })
+                break
         }
-
-        if (chain) {
-            // propagate event
-            this.__.mod._ls.forEach( m => {
-                m.trap(key, st, chain)
-            })
-        }
-        return true
+        return processed
     }
 
     augment(trap, new Frame())
@@ -3485,19 +3508,22 @@ const Mod = function(st) {
         return node
     })
 
-    trap.on = function(eventName, fn) {
+    trap.on = function on(eventName, fn) {
         if (!eventName) throw 'event name is expected'
         if (!isFun(fn)) throw 'function is expected'
         this.attach(fn, eventName)
     }
 
-    trap.signal = function(key, st) {
+    trap.signal = function signal(name, st) {
+        if (trap.disabled) return true
+        return trap.echo(name, st, 1)
     }
 
     this.attach(trap)
 
-    const signal = function(name, st, chain) {
-        return _.trap.echo(name, st, chain)
+    const signal = function(name, st) {
+        if (_.disabled) return true
+        return _.trap.echo(name, st, 0)
     }
     this.attach(signal)
 }
@@ -4196,7 +4222,7 @@ function attachWAV(url) {
 function patchImg(_, batch, url, base, path, classifier, onLoad) {
     _.res._included ++
 
-    var img = new Image()
+    const img = new Image()
     img.src = randomizeUrl(url)
     img.onload = onLoad
 
@@ -4259,7 +4285,7 @@ function loadJson(url) {
 function scheduleLoad(_, batch, url, base, path, name, ext, classifier, type, after) {
     _.res._included ++
 
-    var ajax = new XMLHttpRequest()
+    const ajax = new XMLHttpRequest()
     ajax.onreadystatechange = function() {
         if (this.readyState == 4) {
             if (this.status == 200) {
@@ -4845,11 +4871,11 @@ _scene.packDeclarations = function(target) {
     // normalize target
     if (!isObj(target)) target = window
 
-    var pak = {}
+    const pak = {}
     target['_def$'] = pak
 
     // search for declarations
-    for (var key in target) {
+    for (let key in target) {
         if (key.startsWith('_boot$') || key.startsWith('_patch$') || key.indexOf('@') >= 0) {
             pak[key] = target[key]
             target[key] = false
@@ -5101,7 +5127,7 @@ function startFlow(url) {
 }
 
 function placeCanvas(name, baseX, baseY, baseWidth, baseHeight) {
-    var canvas = document.getElementById(name)
+    const canvas = document.getElementById(name)
     if (!canvas) return
 
     canvas.style.left = baseX + 'px'
@@ -5272,34 +5298,34 @@ function handleMouseMove(e) {
     _mouse.dx = _mouse.x - _mouse.lx
     _mouse.dy = _mouse.y - _mouse.ly
 
-    _scene.signal('mouseMove', e, true)
+    _scene.signal('mouseMove', e)
     e.preventDefault()
     e.stopPropagation()
     return false
 }
 
 function handleMouseWheel(e) {
-    _scene.signal('mouseWheel', e, true)
+    _scene.signal('mouseWheel', e)
     return false
 }
 
 function handlePointerLockChange(e) {
     if (document.pointerLockElement) {
-        _scene.signal('pointerLock', e, true)
+        _scene.signal('pointerLock', e)
     } else {
-        _scene.signal('pointerRelease', e, true)
+        _scene.signal('pointerRelease', e)
     }
     return false
 }
 
 function handlePointerLockError(e) {
-    _scene.signal('pointerLockError', e, true)
+    _scene.signal('pointerLockError', e)
     return false
 }
 
 function handleMouseDown(e) {
     _scene.env._touched = true
-    _scene.signal('mouseDown', e, true)
+    _scene.signal('mouseDown', e)
     _mouse.buttons = e.buttons
     e.preventDefault()
     e.stopPropagation()
@@ -5307,7 +5333,7 @@ function handleMouseDown(e) {
 }
 
 function handleMouseUp(e) {
-    _scene.signal('mouseUp', e, true)
+    _scene.signal('mouseUp', e)
     _mouse.buttons = e.buttons
     e.preventDefault()
     e.stopPropagation()
@@ -5315,14 +5341,14 @@ function handleMouseUp(e) {
 }
 
 function handleMouseClick(e) {
-    _scene.signal('click', e, true)
+    _scene.signal('click', e)
     e.preventDefault()
     e.stopPropagation()
     return false
 }
 
 function handleMouseDoubleClick(e) {
-    _scene.signal('dblClick', e, true)
+    _scene.signal('dblClick', e)
     e.preventDefault()
     e.stopPropagation()
     return false
@@ -5338,37 +5364,37 @@ function handleMouseOut(e) {
     Object.keys(_key).forEach(k => {
         delete _key[k]
     })
-    _scene.signal('mouseOut', e, true)
+    _scene.signal('mouseOut', e)
 }
 
 function handleMouseOver(e) {
     _mouse.out = false
-    _scene.signal('mouseOver', e, true)
+    _scene.signal('mouseOver', e)
 }
 
 function handleTouchStart(e) {
     _scene.env._touched = true
-    _scene.signal('touchStart', e, true)
+    _scene.signal('touchStart', e)
     return false
 }
 
 function handleTouchEnd(e) {
-    _scene.signal('touchEnd', e, true)
+    _scene.signal('touchEnd', e)
     return false
 }
 
 function handleTouchMove(e) {
-    _scene.signal('touchMove', e, true)
+    _scene.signal('touchMove', e)
     return false
 }
 
 function handleTouchCancel(e) {
-    _scene.signal('touchCancel', e, true)
+    _scene.signal('touchCancel', e)
     return false
 }
 
 function handleContextMenu(e) {
-    _scene.signal('mouseContext', e, true)
+    _scene.signal('mouseContext', e)
     e.preventDefault()
     e.stopPropagation()
     return false
@@ -5379,20 +5405,16 @@ function handleKeyDown(e) {
         + e.code.substring(1)
 
     _scene.env._touched = true
-    _key[keyName] = true
-    _key[e.key] = true
+    _key[keyName]       = true
+    _key[e.key]         = true
 
-    let chain = _scene.signal(keyName + 'Down', e, true)
-    if (chain) {
-        chain = _scene.signal('keyDown', e, true)
-    }
+    const processed = _scene.signal(keyName + 'Down', e)
+    if (!e.halt) _scene.signal('keyDown', e)
 
-    if (!chain)  {
+    if (processed)  {
         e.preventDefault()
         e.stopPropagation()
-        return false;
     }
-    return true
 }
 
 function handleKeyUp(e) {
@@ -5402,27 +5424,21 @@ function handleKeyUp(e) {
     delete _key[keyName]
     delete _key[e.key]
 
-    let chain = _scene.signal(keyName + 'Up', e, true)
-    if (chain) {
-        chain = _scene.signal('keyUp', e, true)
-    }
+    const processed = _scene.signal(keyName + 'Up', e)
+    if (!e.halt) _scene.signal('keyUp', e)
 
-    if (!chain)  {
+    if (processed)  {
         e.preventDefault()
         e.stopPropagation()
-        return false
     }
-    return true
 }
 
 function handleGameBlur(e) {
-    _scene.signal('blur', e, true)
-    return false
+    _scene.signal('blur', e)
 }
 
 function handleGameFocus(e) {
-    _scene.signal('focus', e, true)
-    return false
+    _scene.signal('focus', e)
 }
 
 function handleHashChange() {
@@ -5431,7 +5447,7 @@ function handleHashChange() {
     } else if (location.hash.startsWith('#box')) {
         doBox(_scene, location.hash.substring(1), true)
     } else {
-        _scene.signal('hash', location.hash, true)
+        _scene.signal('hash', location.hash)
     }
 }
 
