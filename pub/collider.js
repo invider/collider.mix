@@ -350,6 +350,7 @@ function supplement(mixin) {
     return mixin
 }
 
+// TODO doubt we ever need it... why don't use $.select() instead? Can we chain it?
 function $$(q) {
     return _scene.select(q)
 }
@@ -640,16 +641,13 @@ Frame.prototype.touch = touchFun((name, __, st) => {
     }
 })
 
+// TODO different attach modes maybe - regarding the naming, replacing, chaining? Maybe some props on the frame can control it?
 Frame.prototype.attach = function(node, name) {
     if (node === undefined || node === null) return
 
     if (isObj(node) || isFun(node)) {
         // attaching an object - inject mod, parent and name
-
-        // TODO phase out mod reference for nodes - __ is enough
-        //node._ = this._
         node.__ = this
-        Object.defineProperty(node, '_', { enumerable: false })
         Object.defineProperty(node, '__', { enumerable: false })
 
         // set name for the node if possible
@@ -661,6 +659,7 @@ Frame.prototype.attach = function(node, name) {
     let prevNode
     if (name) {
         // make sure we are not shaddowing prototype definitions
+        // TODO make an option to ignore anyways or maybe that is an object prop as well?
         prevNode = this[name]
         if (prevNode) this.detach(prevNode)
 
@@ -672,7 +671,7 @@ Frame.prototype.attach = function(node, name) {
     this._ls.push(node)
 
     if (isNum(node.Z)) this.orderZ()
-    this.onAttached(node, name, this)
+    this.onAttach(node, name, this)
     if (prevNode && isFun(node.onReplace)) node.onReplace(prevNode)
     if (isFun(node.init)) node.init() // initialize node
 
@@ -724,8 +723,8 @@ Frame.prototype.xlink = function(node, name) {
     return node
 }
 
-Frame.prototype.onAttached = function(node, name, parent) {
-    if (this.__) this.__.onAttached(node, name, parent)
+Frame.prototype.onAttach = function(node, name, parent) {
+    if (this.__) this.__.onAttach(node, name, parent)
 }
 
 // TODO split to 2 different methods by intent
@@ -1319,15 +1318,17 @@ LabFrame.prototype.link = function(node, name) {
     return node
 }
 
+/*
 // TODO processing of attached node and event on attachment probably should be different functions
-LabFrame.prototype.onAttached = function(node, name, parent) {
+LabFrame.prototype.onAttach = function(node, name, parent) {
     // TODO attached to me and being attached to somebody should be different events!
     if (!node) {
         // current lab frame is attached
-        if (isFun(this.__.onAttached)) this.__.onAttached(this, this.name, this.__)
+        if (isFun(this.__.onAttach)) this.__.onAttach(this, this.name, this.__)
         return
     }
 },
+*/
 
 LabFrame.prototype.evo = function(dt) {
     let dirtyZ = false
@@ -2217,11 +2218,12 @@ function generateSource(script, __) {
     */
 
     // provide lexical scope for mod context and scope object for this. definitions
-    return '(function(_, ctx, gl, $, _$, module, sys, lib, math, color, res, dna, env, lab, mod, pin, pub, log, cue, job, trap) {'
+    // TODO why do we need both $ and _$ here? Research which one is actually used?
+    return '(function(_, ctx, gl, $, _$, module, sys, lib, math, color, res, dna, env, lab, mod, pin, pub, log, cue, job, trap, signal) {'
         + def 
         + script.src
         + script.def
-    + '}).call(scope, __, __.ctx, __.gl, __._$, __._$, module, __.sys, __.lib, __.lib.math, __.lib.color, __.res, __.dna, __.env, __.lab, __.mod, __.pin, __.pub, __.log, __.cue, __.job, __.trap)'
+    + '}).call(scope, __, __.ctx, __.gl, __._$, __._$, module, __.sys, __.lib, __.lib.math, __.lib.color, __.res, __.dna, __.env, __.lab, __.mod, __.pin, __.pub, __.log, __.cue, __.job, __.trap, __.signal)'
     + '\n//# sourceURL=' + script.origin
 }
 
@@ -3138,21 +3140,17 @@ const Mod = function(st) {
 
         defer: defer,
 
+        sleep: function(s) {
+            if (!s || !isNum(s)) s = 0
+            return new Promise(resolve => setTimeout(resolve, (s * 1000) | 0))
+        },
+
         on: function(name, st) {
             return _.sys.on.apply(_.sys, arguments)
         },
 
-        gtrap: function(name, st) {
-            return $.trap(name, st)
-        },
-
-        sfx: function(src, vol, pan) {
-            _scene.lib.sfx(src, vol, pan)
-        },
-
-        sleep: function(s) {
-            if (!s || !isNum(s)) s = 0
-            return new Promise(resolve => setTimeout(resolve, (s * 1000) | 0))
+        gtrap: function(name, st, chain) {
+            return $.signal(name, st)
         },
 
         print: function() {
@@ -3173,6 +3171,10 @@ const Mod = function(st) {
 
         cls: function() {
             return _.sys.cls.apply(_.sys, arguments)
+        },
+
+        sfx: function(src, vol, pan) {
+            _scene.lib.sfx(src, vol, pan)
         },
 
         require: function(path) {
@@ -3317,15 +3319,13 @@ const Mod = function(st) {
             this._checkEvalReadiness()
         },
 
-        onAttached: function(node, name, parent) {
-            if (!node) {
-            }
+        /*
+        onAttach: function(node, name, parent) {
             // on attaching a resource
             // TODO move autoloading by name to another autoloading node
             //      definitelly don't need to autoload here in /res
             //      since this is already autoloaded
             //      avoid double autoloading
-            /*
             if (isStr(node)) {
                 console.log('attaching -> ' + name)
                 console.dir(node)
@@ -3354,8 +3354,8 @@ const Mod = function(st) {
             } else {
                 // just ignore - that probably already loaded resource node
             }
-            */
         }
+        */
     }))
     // system functions
     //this.attach(new Frame("sys"))
@@ -3442,8 +3442,9 @@ const Mod = function(st) {
     this.attach(mod)
 
     // container for traps
-    var trap = function trap(key, data, chain) {
-        return trap.echo(key, data, chain)
+    // TODO should we remove chain argument and chain based on a mask or a function property?
+    var trap = function trap(key, st, chain) {
+        return trap.echo(key, st, chain)
     }
 
     trap.echo = function(key, st, chain) {
@@ -3490,7 +3491,15 @@ const Mod = function(st) {
         this.attach(fn, eventName)
     }
 
+    trap.signal = function(key, st) {
+    }
+
     this.attach(trap)
+
+    const signal = function(name, st, chain) {
+        return _.trap.echo(name, st, chain)
+    }
+    this.attach(signal)
 }
 
 Mod.prototype = Object.create(Frame.prototype)
@@ -3745,7 +3754,7 @@ Mod.prototype._runTests = function() {
 Mod.prototype.start = function() {
     if (this.env._started) return
 
-    this.trap('preSetup')
+    this.signal('preSetup')
     this.env._started = true
     this.inherit()
 
@@ -3795,7 +3804,7 @@ Mod.prototype.start = function() {
 
         this.status = 'started'
     }
-    this.trap('postSetup')
+    this.signal('postSetup')
 
     _scene.log.sys('starting evolution of [' + this.path() + ']')
 }
@@ -3823,10 +3832,6 @@ Mod.prototype.inherit = function() {
     //augment(log, new Frame())
     //this.attach(log, 'log')
     //supplement(this.log, this.___.log)
-}
-
-Mod.prototype.onAttached = function(node, name, parent) {
-    if (this.__) this.__.onAttached(node, name, parent)
 }
 
 Mod.prototype.evo = function(dt) {
@@ -4685,10 +4690,10 @@ function constructScene(target) {
     const mod = target || new Mod()
     mod.name = '/'
 
-    mod._ = mod // set the context
-    mod._$ = mod // root context
-    mod.__ = false // don't have any parents
-    mod.___ = mod // parent context
+    mod._   = mod  // set the context
+    mod._$  = mod  // root context
+    mod.__  = null // don't have any parents
+    mod.___ = mod  // parent context
     Object.defineProperty(mod, '_', { enumerable: false })
     Object.defineProperty(mod, '_$', { enumerable: false })
     Object.defineProperty(mod, '__', { enumerable: false })
@@ -5206,7 +5211,7 @@ function expandView() {
             _scene.sys.placeCanvas(canvas.id, 0, 0, window.innerWidth, window.innerHeight)
         }
     }
-    if (_scene.trap) _scene.trap('resize')
+    _scene.signal('resize')
 }
 
 // *****************************************************************
@@ -5267,34 +5272,34 @@ function handleMouseMove(e) {
     _mouse.dx = _mouse.x - _mouse.lx
     _mouse.dy = _mouse.y - _mouse.ly
 
-    _scene.trap('mouseMove', e, true)
+    _scene.signal('mouseMove', e, true)
     e.preventDefault()
     e.stopPropagation()
     return false
 }
 
 function handleMouseWheel(e) {
-    _scene.trap('mouseWheel', e, true)
+    _scene.signal('mouseWheel', e, true)
     return false
 }
 
 function handlePointerLockChange(e) {
     if (document.pointerLockElement) {
-        _scene.trap('pointerLock', e)
+        _scene.signal('pointerLock', e, true)
     } else {
-        _scene.trap('pointerRelease', e)
+        _scene.signal('pointerRelease', e, true)
     }
     return false
 }
 
 function handlePointerLockError(e) {
-    _scene.trap('pointerLockError', e)
+    _scene.signal('pointerLockError', e, true)
     return false
 }
 
 function handleMouseDown(e) {
     _scene.env._touched = true
-    _scene.trap('mouseDown', e, true)
+    _scene.signal('mouseDown', e, true)
     _mouse.buttons = e.buttons
     e.preventDefault()
     e.stopPropagation()
@@ -5302,7 +5307,7 @@ function handleMouseDown(e) {
 }
 
 function handleMouseUp(e) {
-    _scene.trap('mouseUp', e, true)
+    _scene.signal('mouseUp', e, true)
     _mouse.buttons = e.buttons
     e.preventDefault()
     e.stopPropagation()
@@ -5310,14 +5315,14 @@ function handleMouseUp(e) {
 }
 
 function handleMouseClick(e) {
-    _scene.trap('click', e, true)
+    _scene.signal('click', e, true)
     e.preventDefault()
     e.stopPropagation()
     return false
 }
 
 function handleMouseDoubleClick(e) {
-    _scene.trap('dblClick', e, true)
+    _scene.signal('dblClick', e, true)
     e.preventDefault()
     e.stopPropagation()
     return false
@@ -5333,37 +5338,37 @@ function handleMouseOut(e) {
     Object.keys(_key).forEach(k => {
         delete _key[k]
     })
-    _scene.trap('mouseOut', e, true)
+    _scene.signal('mouseOut', e, true)
 }
 
 function handleMouseOver(e) {
     _mouse.out = false
-    _scene.trap('mouseOver', e, true)
+    _scene.signal('mouseOver', e, true)
 }
 
 function handleTouchStart(e) {
     _scene.env._touched = true
-    _scene.trap('touchStart', e, true)
+    _scene.signal('touchStart', e, true)
     return false
 }
 
 function handleTouchEnd(e) {
-    _scene.trap('touchEnd', e, true)
+    _scene.signal('touchEnd', e, true)
     return false
 }
 
 function handleTouchMove(e) {
-    _scene.trap('touchMove', e, true)
+    _scene.signal('touchMove', e, true)
     return false
 }
 
 function handleTouchCancel(e) {
-    _scene.trap('touchCancel', e, true)
+    _scene.signal('touchCancel', e, true)
     return false
 }
 
 function handleContextMenu(e) {
-    _scene.trap('mouseContext', e, true)
+    _scene.signal('mouseContext', e, true)
     e.preventDefault()
     e.stopPropagation()
     return false
@@ -5377,9 +5382,9 @@ function handleKeyDown(e) {
     _key[keyName] = true
     _key[e.key] = true
 
-    let chain = _scene.trap(keyName + 'Down', e, true)
+    let chain = _scene.signal(keyName + 'Down', e, true)
     if (chain) {
-        chain = _scene.trap('keyDown', e, true)
+        chain = _scene.signal('keyDown', e, true)
     }
 
     if (!chain)  {
@@ -5397,9 +5402,9 @@ function handleKeyUp(e) {
     delete _key[keyName]
     delete _key[e.key]
 
-    let chain = _scene.trap(keyName + 'Up', e, true)
+    let chain = _scene.signal(keyName + 'Up', e, true)
     if (chain) {
-        chain = _scene.trap('keyUp', e, true)
+        chain = _scene.signal('keyUp', e, true)
     }
 
     if (!chain)  {
@@ -5411,12 +5416,12 @@ function handleKeyUp(e) {
 }
 
 function handleGameBlur(e) {
-    _scene.trap('blur', e, true)
+    _scene.signal('blur', e, true)
     return false
 }
 
 function handleGameFocus(e) {
-    _scene.trap('focus', e, true)
+    _scene.signal('focus', e, true)
     return false
 }
 
@@ -5426,7 +5431,7 @@ function handleHashChange() {
     } else if (location.hash.startsWith('#box')) {
         doBox(_scene, location.hash.substring(1), true)
     } else {
-        _scene.trap('hash', location.hash, true)
+        _scene.signal('hash', location.hash, true)
     }
 }
 
