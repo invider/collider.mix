@@ -41,6 +41,11 @@ Container.prototype.adjust = function() {
     }
 }
 
+Container.prototype.show = function() {
+    this.hidden = false
+    this.adjust()
+}
+
 // map x from parent to local coordinate space
 // @param {number} x
 // @returns {number} x in local coordinate space

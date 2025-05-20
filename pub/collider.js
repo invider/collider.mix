@@ -3452,27 +3452,29 @@ const Mod = function(st) {
     // signal processing implementation
     // @returns {boolean} - true if halted along the propagation chain, false otherwise
     trap.echo = function echo(name, st, level) {
-        // filter out ignored signals
-        if (this.ignore[name]) return false
-        // when mask is defined, pass only the masked signals
-        if (this.mask && !this.mask[name]) return false
-
-        const fn = trap.selectOne(name)
-        if (isFun(fn)) {
-            fn(st)
-            if (fn.halt || (st && st.halt)) return true
-        }
-
         let processed = false
+        // filter out ignored signals
+        if (this.ignore[name]) return processed
+        // when mask is defined, pass only the masked signals
+        if (this.mask && !this.mask[name]) return processed
 
-        // propagate the signal to subtraps
-        trap.subTraps.forEach( subTrap => {
-            const sfn = subTrap.selectOne(name)
-            if (isFun(sfn)) {
-                sfn(st)
+        if ((!level && !_.disabled) || (level === 1 && !trap.disabled)) {
+            const fn = trap.selectOne(name)
+            if (isFun(fn)) {
+                fn(st)
                 processed = true
+                if (fn.halt || (st && st.halt)) return processed
             }
-        })
+
+            // propagate the signal to subtraps
+            trap.subTraps.forEach( subTrap => {
+                const sfn = subTrap.selectOne(name)
+                if (isFun(sfn)) {
+                    sfn(st)
+                    processed = true
+                }
+            })
+        }
         
         // propagate the signal to subMods
         switch(level) {
@@ -3515,14 +3517,12 @@ const Mod = function(st) {
     }
 
     trap.signal = function signal(name, st) {
-        if (trap.disabled) return true
         return trap.echo(name, st, 1)
     }
 
     this.attach(trap)
 
     const signal = function(name, st) {
-        if (_.disabled) return true
         return _.trap.echo(name, st, 0)
     }
     this.attach(signal)
