@@ -3126,13 +3126,15 @@ const Mod = function(st) {
 
         kill: kill,
 
+        /*
         select: function(q) {
-            return _.lab.select(q)
+            return _.select(q)
         },
 
         selectOne: function(q) {
-            return _.lab.selectOne(q)
+            return _.selectOne(q)
         },
+        */
 
         defer: defer,
 
@@ -3145,46 +3147,7 @@ const Mod = function(st) {
         },
 
         sfx: function(src, vol, pan) {
-            if (!_.___.env._touched) {
-                _.log.sys(`[sfx:${isStr(src)? src : src.name}]`, `ignoring - no user interaction`)
-                return
-            }
-            if (!pan) pan = 0
-            if (!vol) vol = 1
-            if (isNum(_.env.sfxVolume)) {
-                vol *= _.env.sfxVolume
-            }
-
-            if (isStr(src)) {
-                // find by path in resources
-                src = _.res.selectOne(src)
-            }
-
-            if (src && (src instanceof Audio
-                        || src instanceof HTMLAudioElement)
-                    && src.readyState >= 2) {
-            
-                if (src.channels) {
-                    const next = src.channels.sfx[src.channels.cur++]
-                    if (src.channels.cur >= src.channels.sfx.length) {
-                        src.channels.cur = 0
-                    }
-                    src = next
-
-                } else if (!src.ended || (src.currentTime > 0 && src.currentTime < src.duration)) {
-                    src.channels = {
-                        cur: 0,
-                        sfx: [],
-                    }
-                    for (let i = 0; i < 16; i++) {
-                        src.channels.sfx.push(new Audio(src.src))
-                    }
-                    src.currentTime = 0
-
-                }
-                src.volume = vol
-                src.play()
-            }
+            _scene.lib.sfx(src, vol, pan)
         },
 
         sleep: function(s) {
@@ -3468,8 +3431,12 @@ const Mod = function(st) {
         } else {
             mod = new Mod(name)
         }
-        mod._  = _
-        mod._$ = _scene
+        mod._   = mod            // this mod points to itself
+        mod._$  = _scene         // reference to the root mod
+        mod.___ = this.getMod()  // reference to the parent mod
+        Object.defineProperty(this, '_',   { enumerable: false })
+        Object.defineProperty(this, '_$',  { enumerable: false })
+        Object.defineProperty(this, '___', { enumerable: false })
         return mod
     })
     this.attach(mod)
@@ -3559,10 +3526,6 @@ Mod.prototype.populateAlt = function() {
 }
 
 Mod.prototype.init = function() {
-    this.___ = this._ // save node context as parent mod
-    this._ = this // must be redefined in init, since it is assigned during the regular node.attach()
-    Object.defineProperty(this, '___', { enumerable: false })
-    Object.defineProperty(this, '_', { enumerable: false })
 
     // clone the rendering context from the parent mod if not set explicitly
     if (!this.ctx) {
@@ -3576,7 +3539,6 @@ Mod.prototype.init = function() {
         this.gl           = this.___.gl
     }
     this.populateAlt()
-
     this.inherit()
 }
 
