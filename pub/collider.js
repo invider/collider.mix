@@ -2636,7 +2636,581 @@ const evalLoadedBatch = function(ibatch, batch, _) {
     applySkippedPatches(sortedBatch, _)
 }
 
-function augmentCtx(ctx) {
+
+// Mod context container
+const Mod = function(st) {
+    const _ = this._ = this
+
+    /*
+    // rendering context
+    this.canvasName   = canvasName
+    this.canvas       = null
+    this.ctx          = null
+    this.glCanvasName = glCanvasName
+    this.glCanvas     = null
+    this.gl           = null
+    */
+
+    extend(this, {
+        _patchLog:     [],
+        paused:        false,
+        hidden:        false,
+        canvasName:    canvasName,
+        canvas:        null,
+        ctx:           null,
+        glCanvasName:  glCanvasName,
+        glCanvas:      null,
+        gl:            null,
+    })
+    Frame.call(this, st)
+
+    const alt = this.attach(new Frame(), 'alt')
+
+    this._scope = {
+        key:         _key,
+        pad:         _pad,
+        mouse:       _mouse,
+        extend:      extend,
+        augment:     augment,
+        supplement:  supplement,
+        before:      before,
+        after:       after,
+        chain:       chain,
+        isBool:      isBool,
+        isBoolean:   isBoolean,
+        isNum:       isNum,
+        isNumber:    isNumber,
+        isStr:       isStr,
+        isString:    isString,
+        isFun:       isFun,
+        isFunction:  isFunction,
+        isClass:     isClass,
+        isObj:       isObj,
+        isObject:    isObject,
+        isArr:       isArr,
+        isArray:     isArray,
+        isContainer: isContainer,
+        isFrame:     isFrame,
+        isEmpty:     isEmpty,
+        assert:      assert,
+
+        // math
+        E:       Math.E,
+        PI:      Math.PI,
+        PI2:     Math.PI * 2,
+        TAU:     Math.PI * 2,
+        HALF_PI: Math.PI / 2,
+        QUARTER_PI: Math.PI / 4,
+        INV_PI:  1 / Math.PI,
+        INV_PI2: 1 / (Math.PI * 2),
+        INV_TAU: 1 / (Math.PI * 2),
+        DEG_TO_RAD: Math.PI / 180,
+        RAD_TO_DEG: 180 / Math.PI,
+        EPSILON: 0.000001,
+
+        abs:   Math.abs,
+        sign:  Math.sign,
+        pow:   Math.pow,
+        exp:   Math.exp,
+        sqrt:  Math.sqrt,
+        min:   Math.min,
+        max:   Math.max,
+        ceil:  Math.ceil,
+        floor: Math.floor,
+        round: Math.round,
+        trunc: Math.trunc,
+        fract: (val) => val - Math.floor(val),
+        sin:   Math.sin,
+        cos:   Math.cos,
+        tan:   Math.tan,
+        acos:  Math.acos,
+        asin:  Math.asin,
+        atan:  Math.atan,
+        atan2: Math.atan2,
+
+        // TODO should we change to determenistic one and introduce seed?
+        // TODO maybe have rndi as a separate one
+        rnd: function(v1, v2) {
+            if (v2) {
+                return v1 + Math.random() * (v2 - v1)
+            } else if (v1) {
+                return Math.random() * v1
+            } else {
+                return Math.random()
+            }
+        },
+
+        RND: function(v1, v2) {
+            if (v2) {
+                return Math.floor(v1 + Math.random() * (v2 - v1 + 1))
+            } else if (v1) {
+                return Math.floor(Math.random() * (v1 + 1))
+            }
+            return 0
+        },
+
+        clamp: clamp,
+
+        within: function(val, min, max) {
+            return (val >= min && val <= max)
+        },
+
+        warp: function(val, min, max) {
+            const range = max - min
+            if (range <= 0) return 0;
+            if (val < min) return max - Math.abs(min-val) % range
+            return min + (val - min) % range
+        },
+
+        lerp: function(start, stop, val) {
+            return (start * (1 - val)  +  stop * val)
+        },
+
+        step: function(edge, val) {
+            return (val < edge? 0 : 1)
+        },
+
+        smoothstep: function(start, stop, val) {
+            const t = clamp((val - start)/(stop - start), 0, 1)
+            return (t * t * (3 - 2 * t))
+        },
+
+        remap: function(val, origStart, origStop, targetStart, targetStop) {
+            return targetStart + ((val - origStart) / (origStop - origStart)) * (targetStop - targetStart)
+        },
+
+        hypot: Math.hypot,
+
+        length: Math.hypot,
+
+        distance: distance,
+
+        angleTo: function(x, y) {
+            return Math.atan2(y, x)
+        },
+
+        // angle from source to target vectors
+        bearing: function(sx, sy, tx, ty) {
+            return Math.atan2(ty - sy, tx - sx)
+        },
+
+        $$: $$,
+
+        kill: kill,
+
+        /*
+        select: function(q) {
+            return _.select(q)
+        },
+
+        selectOne: function(q) {
+            return _.selectOne(q)
+        },
+        */
+
+        defer: defer,
+
+        sleep: function(s) {
+            if (!s || !isNum(s)) s = 0
+            return new Promise(resolve => setTimeout(resolve, (s * 1000) | 0))
+        },
+
+        on: function(name, st) {
+            return _.sys.on.apply(_.sys, arguments)
+        },
+
+        gtrap: function(name, st) {
+            return $.signal(name, st)
+        },
+
+        print: function() {
+            return _.sys.print.apply(_.sys, arguments)
+        },
+
+        input: function() {
+            return _.sys.input.apply(_.sys, arguments)
+        },
+
+        ask: function() {
+            return _.sys.ask.apply(_.sys, arguments)
+        },
+
+        say: function() {
+            return _.sys.alert.apply(_.sys, arguments)
+        },
+
+        cls: function() {
+            return _.sys.cls.apply(_.sys, arguments)
+        },
+
+        sfx: function(src, vol, pan) {
+            _scene.lib.sfx(src, vol, pan)
+        },
+
+        require: function(path) {
+            _.log.sys('[require]', path)
+            const rq = _.select(path)
+            if (rq && rq.length > 0) {
+                if (rq.length === 1) return rq[0]
+                else return rq
+            } else {
+                throw 'no requirement found: [' + path + ']'
+            }
+        },
+    }
+    if (!this._drawScope) {
+    }
+
+    // resources container
+    this.attach(new Frame({
+        name:     'res',
+        _included: 0,
+        _loaded:   0,
+        _errors:   0,
+        _evalList: [],
+
+        _schedule: function(batch, script) {
+            if (batch < 0) {
+                // determine the batch
+                const lastBatch = this._evalList[this._evalList.length - 1]
+                if (!lastBatch || lastBatch.indexOf(script) >= 0) {
+                    // create a new batch for this one
+                    batch = this._evalList.length
+                } else {
+                    // schedule in the last batch
+                    batch = this._evalList.length - 1
+                }
+            }
+
+            if (!this._evalList[batch]) {
+                this._evalList[batch] = []
+            }
+            this._evalList[batch].push(script)
+            return batch
+        },
+
+        _eval: function() {
+            for (let batch = 1; batch < this._evalList.length; batch++) {
+                if (!this._evalList[batch]) continue
+                _.log.sys('[eval]', `scheduling evaluation of batch #${batch} for ${this.__.name}...`)
+
+                // sort batch alphanumerically before the evaluation
+                this._evalList[batch].sort((a, b) => a.path.localeCompare(b.path))
+
+                const evalList = this._evalList[batch]
+                evalLoadedBatch(batch, evalList, this.__)
+
+                /*
+                // Doesn't work due to the missing reschedules - they depend on the next batch in row,
+                // but the eval list for those is already scheduled!!!
+
+                // TODO 
+                // create a unified evaluation manager that handles all aspects of loaded/included files,
+                // eval orders, batch scheduling, dependencies, reevaluations
+                // and calls for the start trigger if needed.
+                //
+                const ibatch = batch
+                const evalList = this._evalList[batch]
+                const _ = this._
+                _._scheduled++
+                setTimeout(() => {
+                    evalLoadedBatch(ibatch, evalList, _)
+                    _._evaluated++
+                }, 0)
+                */
+
+                // clean up batch
+                this._evalList[batch] = []
+            }
+        },
+
+        _checkEvalReadiness: function() {
+            if (this.__.env._started) return // it looks like we've already started
+
+            // check if all resources are loaded
+            if (this._included <= this._loaded) {
+                // OK - everything is loaded, call setup functions
+                // TODO how to deal with mods with no res? how start would be triggered?
+                _.log.sys('[loader]', 'Total ' + this._loaded + ' resources are loaded in ' + this.__.name)
+                const startedEvalTimestamp = Date.now()
+                this.__._scheduled = 0
+                this.__._evaluated = 0
+                this._errors = 1
+                this._eval()       // TODO refactor this heavy call - we are trying to parse and eval everything in a sync call here!!!
+                this._errors = 0
+                const evalTime = Date.now() - startedEvalTimestamp
+                _.log.sys('[loader] Time: ' + evalTime + 'ms')
+
+                //this._.start()
+                function startTrigger() {
+                    _.log.sys('trying to start... ' + _._evaluated + ' <> ' + _._scheduled)
+                    if (_._evaluated >= _._scheduled) {
+                        _.start()
+                    } else {
+                        setTimeout(startTrigger, 100)
+                    }
+                }
+                setTimeout(startTrigger, 0)
+            }
+        },
+
+        _preEvalScript: function(script) {
+            switch(script.ext) {
+                case 'js':
+                    const requirements = []
+                    if (_scene.env.config.debug) {
+                        script.meta = extractMeta(script, requirements)
+                    }
+                    script.requirements = requirements
+
+                    // TODO make all in one parser (meta, require, definitions)
+                    const defs = []
+                    parseClasses(script.src, defs)
+                    parseFunctions(script.src, defs)
+                    parseConstants(script.src, defs)
+                    script.defs = defs
+                    break
+            }
+        },
+
+        _onLoaded: function(script) {
+            this._loaded ++
+            if (script) this._preEvalScript(script)
+            this._checkEvalReadiness()
+        },
+
+        /*
+        onAttach: function(node, name, parent) {
+            // on attaching a resource
+            // TODO move autoloading by name to another autoloading node
+            //      definitelly don't need to autoload here in /res
+            //      since this is already autoloaded
+            //      avoid double autoloading
+            if (isStr(node)) {
+                console.log('attaching -> ' + name)
+                console.dir(node)
+                if (name) {
+                    // the name for the node is specified, so put under that one
+                    let rs = this._.load(node)
+                    parent.attach(rs, name)
+                } else {
+                    // no name for the node, load to filename
+                    this._.load(node, parent)
+                }
+            
+            } else if (isArr(node)) {
+                // load resource group
+                let _ = this._
+                let rgroup = []
+                // load
+                node.forEach( function(e) {
+                    rgroup.push(_.load(e))
+                })
+                // push
+                node.splice(0)
+                rgroup.forEach( function(e) {
+                    node.push(e)
+                })
+            } else {
+                // just ignore - that probably already loaded resource node
+            }
+        }
+        */
+    }))
+    // system functions
+    //this.attach(new Frame("sys"))
+    // library functions
+    //this.attach(new Frame("lib"))
+    // log functions
+    //this.attach(new Frame("log"))
+
+
+    // prototypes/constructors
+    this.attach(new Frame(), 'dna')
+
+    this.attach(new Frame(), 'lib')
+
+    // augment functions
+    // TODO remove in favor of .aug
+    //this.attach(new Frame(), 'aug')
+    //
+    // static environment data entities
+    this.attach(new Frame({
+        name: "env",
+        _started: false,
+        _evoSpeed: 1,
+    }))
+
+    // container for acting entities - actors, ghosts, props
+    this.attach(new LabFrame({
+        labxy: function(x, y) {
+            return this.gxy(x, y)
+        },
+        labVector: function(v2) {
+            return v2
+        },
+    }), 'lab')
+
+    this.attach(new CueFrame(), 'cue')
+
+    this.attach(new Frame(), 'job')
+
+    // container for mods
+    // TODO what to do with this autoloading?
+    //      doesn't make any sense to me
+    var mod = function mod(path, name) {
+        if (!name) {
+            let i = path.lastIndexOf('/')
+            if (i >= 0) name = path.substring(i+1)
+            else name = path
+        }
+        let nmod = this.mod.touch(name)
+        // TODO we've removed fix() function for now
+        //      use load instead?
+        //nmod.fix(nmod, path, 'fix')
+    }
+    augment(mod, new LabFrame())
+
+    mod.touch = touchFun((name, __, st) => {
+        let mod
+        if (name.endsWith('-buf')) {
+            // TODO create a WebGL canvas as well (?) or maybe need '-gl' for that (?)
+            _scene.log.sys(`creating a buffer canvas for ${name}`)
+            const canvas = document.createElement('canvas')
+            //const ctx = augmentCtx(canvas.getContext('2d'))
+            const ctx = canvas.getContext('2d')
+            canvas.cl = true
+            canvas.buffer = true
+
+            mod = new Mod( extend({
+                name:       name,
+                canvasName: '',
+                canvas:     canvas,
+                ctx:        ctx,
+            }), st)
+        } else {
+            mod = new Mod(name)
+        }
+        mod._   = mod            // this mod points to itself
+        mod._$  = _scene         // reference to the root mod
+        mod.___ = this.getMod()  // reference to the parent mod
+        Object.defineProperty(this, '_',   { enumerable: false })
+        Object.defineProperty(this, '_$',  { enumerable: false })
+        Object.defineProperty(this, '___', { enumerable: false })
+        return mod
+    })
+    this.attach(mod)
+
+    // container for traps
+    const trap = function trap(name, st) {
+        return trap.echo(name, st, 1)
+    }
+    trap.mask     = null
+    trap.ignore   = []
+    trap.subTraps = []
+
+    // signal processing implementation
+    // @returns {boolean} - true if halted along the propagation chain, false otherwise
+    trap.echo = function echo(name, st, level) {
+        let processed = false
+        // filter out ignored signals
+        if (this.ignore[name]) return processed
+        // when mask is defined, pass only the masked signals
+        if (this.mask && !this.mask[name]) return processed
+
+        if ((!level && !_.disabled) || (level === 1 && !trap.disabled)) {
+            const fn = trap.selectOne(name)
+            if (isFun(fn)) {
+                fn(st)
+                processed = true
+                if (fn.halt || (st && st.halt)) return processed
+            }
+
+            // propagate the signal to subtraps
+            trap.subTraps.forEach( subTrap => {
+                const sfn = subTrap.selectOne(name)
+                if (isFun(sfn)) {
+                    sfn(st)
+                    processed = true
+                }
+            })
+        }
+        
+        // propagate the signal to subMods
+        switch(level) {
+            case 0:
+                this.__.mod._ls.forEach( m => {
+                    if (m.signal(name, st)) processed = true
+                })
+                break
+            case 1:
+                this.__.mod._ls.forEach( m => {
+                    if (m.trap.signal(name, st)) processed = true
+                })
+                break
+        }
+        return processed
+    }
+
+    augment(trap, new Frame())
+
+    trap.attach = function(node, name) {
+        if (isFun(node)) {
+            node = chain(this._dir[name], node)
+        }
+        Frame.prototype.attach.call(this, node, name)
+    }
+
+    // make sure all subFrames also have custom touch and attach
+    trap.touch = touchFun((name, __, st) => {
+        const node = new Frame(name, st)
+        node.attach = trap.attach
+        node.touch = trap.touch
+        node.on = trap.on
+        return node
+    })
+
+    trap.on = function on(eventName, fn) {
+        if (!eventName) throw 'event name is expected'
+        if (!isFun(fn)) throw 'function is expected'
+        this.attach(fn, eventName)
+    }
+
+    trap.signal = function signal(name, st) {
+        return trap.echo(name, st, 1)
+    }
+
+    this.attach(trap)
+
+    const signal = function(name, st) {
+        return _.trap.echo(name, st, 0)
+    }
+    this.attach(signal)
+}
+
+Mod.prototype = Object.create(Frame.prototype)
+
+Mod.prototype.getMod = function() {
+    return this
+}
+
+Mod.prototype.getRoot = function() {
+    return this._$
+}
+
+Mod.prototype.touch = touchFun((name, __, st) => {
+    const node = new Frame(name, st)
+    if (name === 'box') {
+        // _/box should create mods on touch - just like _/mod
+        node.touch = __.mod.touch
+    }
+    return node
+})
+
+Mod.prototype.defineDrawContext = function() {
+    const _   = this,
+          ctx = _.ctx
+    if (!ctx) return
 
     const TAU = Math.PI * 2
     let mode = 0
@@ -2644,7 +3218,7 @@ function augmentCtx(ctx) {
     let fontSize
     let fontName
 
-    ctx.draw = {
+    _._drawContext = {
 
         rx:function(x) {
             return ctx.width * x
@@ -2989,563 +3563,10 @@ function augmentCtx(ctx) {
         hsl: hsl,
         hsla: hsla,
     }
+    // TODO temporary legacy solution - refactor to remove any ctx.draw use
+    ctx.draw = _._drawContext
     return ctx
 }
-
-// Mod context container
-const Mod = function(st) {
-    const _ = this._ = this
-    this._patchLog = []
-    this._scope = {
-        key:         _key,
-        pad:         _pad,
-        mouse:       _mouse,
-        extend:      extend,
-        augment:     augment,
-        supplement:  supplement,
-        before:      before,
-        after:       after,
-        chain:       chain,
-        isBool:      isBool,
-        isBoolean:   isBoolean,
-        isNum:       isNum,
-        isNumber:    isNumber,
-        isStr:       isStr,
-        isString:    isString,
-        isFun:       isFun,
-        isFunction:  isFunction,
-        isClass:     isClass,
-        isObj:       isObj,
-        isObject:    isObject,
-        isArr:       isArr,
-        isArray:     isArray,
-        isContainer: isContainer,
-        isFrame:     isFrame,
-        isEmpty:     isEmpty,
-        assert:      assert,
-
-        // math
-        E:       Math.E,
-        PI:      Math.PI,
-        PI2:     Math.PI * 2,
-        TAU:     Math.PI * 2,
-        HALF_PI: Math.PI / 2,
-        QUARTER_PI: Math.PI / 4,
-        INV_PI:  1 / Math.PI,
-        INV_PI2: 1 / (Math.PI * 2),
-        INV_TAU: 1 / (Math.PI * 2),
-        DEG_TO_RAD: Math.PI / 180,
-        RAD_TO_DEG: 180 / Math.PI,
-        EPSILON: 0.000001,
-
-        abs:   Math.abs,
-        sign:  Math.sign,
-        pow:   Math.pow,
-        exp:   Math.exp,
-        sqrt:  Math.sqrt,
-        min:   Math.min,
-        max:   Math.max,
-        ceil:  Math.ceil,
-        floor: Math.floor,
-        round: Math.round,
-        trunc: Math.trunc,
-        fract: (val) => val - Math.floor(val),
-        sin:   Math.sin,
-        cos:   Math.cos,
-        tan:   Math.tan,
-        acos:  Math.acos,
-        asin:  Math.asin,
-        atan:  Math.atan,
-        atan2: Math.atan2,
-
-        // TODO should we change to determenistic one and introduce seed?
-        // TODO maybe have rndi as a separate one
-        rnd: function(v1, v2) {
-            if (v2) {
-                return v1 + Math.random() * (v2 - v1)
-            } else if (v1) {
-                return Math.random() * v1
-            } else {
-                return Math.random()
-            }
-        },
-
-        RND: function(v1, v2) {
-            if (v2) {
-                return Math.floor(v1 + Math.random() * (v2 - v1 + 1))
-            } else if (v1) {
-                return Math.floor(Math.random() * (v1 + 1))
-            }
-            return 0
-        },
-
-        clamp: clamp,
-
-        within: function(val, min, max) {
-            return (val >= min && val <= max)
-        },
-
-        warp: function(val, min, max) {
-            const range = max - min
-            if (range <= 0) return 0;
-            if (val < min) return max - Math.abs(min-val) % range
-            return min + (val - min) % range
-        },
-
-        lerp: function(start, stop, val) {
-            return (start * (1 - val)  +  stop * val)
-        },
-
-        step: function(edge, val) {
-            return (val < edge? 0 : 1)
-        },
-
-        smoothstep: function(start, stop, val) {
-            const t = clamp((val - start)/(stop - start), 0, 1)
-            return (t * t * (3 - 2 * t))
-        },
-
-        remap: function(val, origStart, origStop, targetStart, targetStop) {
-            return targetStart + ((val - origStart) / (origStop - origStart)) * (targetStop - targetStart)
-        },
-
-        hypot: Math.hypot,
-
-        length: Math.hypot,
-
-        distance: distance,
-
-        angleTo: function(x, y) {
-            return Math.atan2(y, x)
-        },
-
-        // angle from source to target vectors
-        bearing: function(sx, sy, tx, ty) {
-            return Math.atan2(ty - sy, tx - sx)
-        },
-
-        $$: $$,
-
-        kill: kill,
-
-        /*
-        select: function(q) {
-            return _.select(q)
-        },
-
-        selectOne: function(q) {
-            return _.selectOne(q)
-        },
-        */
-
-        defer: defer,
-
-        sleep: function(s) {
-            if (!s || !isNum(s)) s = 0
-            return new Promise(resolve => setTimeout(resolve, (s * 1000) | 0))
-        },
-
-        on: function(name, st) {
-            return _.sys.on.apply(_.sys, arguments)
-        },
-
-        gtrap: function(name, st) {
-            return $.signal(name, st)
-        },
-
-        print: function() {
-            return _.sys.print.apply(_.sys, arguments)
-        },
-
-        input: function() {
-            return _.sys.input.apply(_.sys, arguments)
-        },
-
-        ask: function() {
-            return _.sys.ask.apply(_.sys, arguments)
-        },
-
-        say: function() {
-            return _.sys.alert.apply(_.sys, arguments)
-        },
-
-        cls: function() {
-            return _.sys.cls.apply(_.sys, arguments)
-        },
-
-        sfx: function(src, vol, pan) {
-            _scene.lib.sfx(src, vol, pan)
-        },
-
-        require: function(path) {
-            _.log.sys('[require]', path)
-            const rq = _.select(path)
-            if (rq && rq.length > 0) {
-                if (rq.length === 1) return rq[0]
-                else return rq
-            } else {
-                throw 'no requirement found: [' + path + ']'
-            }
-        },
-    }
-    this.paused = false
-    this.hidden = false
-
-    // rendering context
-    this.canvasName   = canvasName
-    this.canvas       = null
-    this.ctx          = null
-    this.glCanvasName = glCanvasName
-    this.glCanvas     = null
-    this.gl           = null
-
-    Frame.call(this, st)
-
-    // resources container
-    this.attach(new Frame({
-        name:     'res',
-        _included: 0,
-        _loaded:   0,
-        _errors:   0,
-        _evalList: [],
-
-        _schedule: function(batch, script) {
-            if (batch < 0) {
-                // determine the batch
-                const lastBatch = this._evalList[this._evalList.length - 1]
-                if (!lastBatch || lastBatch.indexOf(script) >= 0) {
-                    // create a new batch for this one
-                    batch = this._evalList.length
-                } else {
-                    // schedule in the last batch
-                    batch = this._evalList.length - 1
-                }
-            }
-
-            if (!this._evalList[batch]) {
-                this._evalList[batch] = []
-            }
-            this._evalList[batch].push(script)
-            return batch
-        },
-
-        _eval: function() {
-            for (let batch = 1; batch < this._evalList.length; batch++) {
-                if (!this._evalList[batch]) continue
-                _.log.sys('[eval]', `scheduling evaluation of batch #${batch} for ${this.__.name}...`)
-
-                // sort batch alphanumerically before the evaluation
-                this._evalList[batch].sort((a, b) => a.path.localeCompare(b.path))
-
-                const evalList = this._evalList[batch]
-                evalLoadedBatch(batch, evalList, this.__)
-
-                /*
-                // Doesn't work due to the missing reschedules - they depend on the next batch in row,
-                // but the eval list for those is already scheduled!!!
-
-                // TODO 
-                // create a unified evaluation manager that handles all aspects of loaded/included files,
-                // eval orders, batch scheduling, dependencies, reevaluations
-                // and calls for the start trigger if needed.
-                //
-                const ibatch = batch
-                const evalList = this._evalList[batch]
-                const _ = this._
-                _._scheduled++
-                setTimeout(() => {
-                    evalLoadedBatch(ibatch, evalList, _)
-                    _._evaluated++
-                }, 0)
-                */
-
-                // clean up batch
-                this._evalList[batch] = []
-            }
-        },
-
-        _checkEvalReadiness: function() {
-            if (this.__.env._started) return // it looks like we've already started
-
-            // check if all resources are loaded
-            if (this._included <= this._loaded) {
-                // OK - everything is loaded, call setup functions
-                // TODO how to deal with mods with no res? how start would be triggered?
-                _.log.sys('[loader]', 'Total ' + this._loaded + ' resources are loaded in ' + this.__.name)
-                const startedEvalTimestamp = Date.now()
-                this.__._scheduled = 0
-                this.__._evaluated = 0
-                this._errors = 1
-                this._eval()       // TODO refactor this heavy call - we are trying to parse and eval everything in a sync call here!!!
-                this._errors = 0
-                const evalTime = Date.now() - startedEvalTimestamp
-                _.log.sys('[loader] Time: ' + evalTime + 'ms')
-
-                //this._.start()
-                function startTrigger() {
-                    _.log.sys('trying to start... ' + _._evaluated + ' <> ' + _._scheduled)
-                    if (_._evaluated >= _._scheduled) {
-                        _.start()
-                    } else {
-                        setTimeout(startTrigger, 100)
-                    }
-                }
-                setTimeout(startTrigger, 0)
-            }
-        },
-
-        _preEvalScript: function(script) {
-            switch(script.ext) {
-                case 'js':
-                    const requirements = []
-                    if (_scene.env.config.debug) {
-                        script.meta = extractMeta(script, requirements)
-                    }
-                    script.requirements = requirements
-
-                    // TODO make all in one parser (meta, require, definitions)
-                    const defs = []
-                    parseClasses(script.src, defs)
-                    parseFunctions(script.src, defs)
-                    parseConstants(script.src, defs)
-                    script.defs = defs
-                    break
-            }
-        },
-
-        _onLoaded: function(script) {
-            this._loaded ++
-            if (script) this._preEvalScript(script)
-            this._checkEvalReadiness()
-        },
-
-        /*
-        onAttach: function(node, name, parent) {
-            // on attaching a resource
-            // TODO move autoloading by name to another autoloading node
-            //      definitelly don't need to autoload here in /res
-            //      since this is already autoloaded
-            //      avoid double autoloading
-            if (isStr(node)) {
-                console.log('attaching -> ' + name)
-                console.dir(node)
-                if (name) {
-                    // the name for the node is specified, so put under that one
-                    let rs = this._.load(node)
-                    parent.attach(rs, name)
-                } else {
-                    // no name for the node, load to filename
-                    this._.load(node, parent)
-                }
-            
-            } else if (isArr(node)) {
-                // load resource group
-                let _ = this._
-                let rgroup = []
-                // load
-                node.forEach( function(e) {
-                    rgroup.push(_.load(e))
-                })
-                // push
-                node.splice(0)
-                rgroup.forEach( function(e) {
-                    node.push(e)
-                })
-            } else {
-                // just ignore - that probably already loaded resource node
-            }
-        }
-        */
-    }))
-    // system functions
-    //this.attach(new Frame("sys"))
-    // library functions
-    //this.attach(new Frame("lib"))
-    // log functions
-    //this.attach(new Frame("log"))
-
-    this.attach(new Frame(), 'alt')
-
-    // prototypes/constructors
-    this.attach(new Frame(), 'dna')
-
-    this.attach(new Frame(), 'lib')
-
-    // augment functions
-    // TODO remove in favor of .aug
-    //this.attach(new Frame(), 'aug')
-    //
-    // static environment data entities
-    this.attach(new Frame({
-        name: "env",
-        _started: false,
-        _evoSpeed: 1,
-    }))
-
-    // container for acting entities - actors, ghosts, props
-    this.attach(new LabFrame({
-        labxy: function(x, y) {
-            return this.gxy(x, y)
-        },
-        labVector: function(v2) {
-            return v2
-        },
-    }), 'lab')
-
-    this.attach(new CueFrame(), 'cue')
-
-    this.attach(new Frame(), 'job')
-
-    // container for mods
-    // TODO what to do with this autoloading?
-    //      doesn't make any sense to me
-    var mod = function mod(path, name) {
-        if (!name) {
-            let i = path.lastIndexOf('/')
-            if (i >= 0) name = path.substring(i+1)
-            else name = path
-        }
-        let nmod = this.mod.touch(name)
-        // TODO we've removed fix() function for now
-        //      use load instead?
-        //nmod.fix(nmod, path, 'fix')
-    }
-    augment(mod, new LabFrame())
-
-    mod.touch = touchFun((name, __, st) => {
-        let mod
-        if (name.endsWith('-buf')) {
-            // TODO create a WebGL canvas as well (?) or maybe need '-gl' for that (?)
-            _scene.log.sys(`creating a buffer canvas for ${name}`)
-            const canvas = document.createElement('canvas')
-            const ctx = augmentCtx(canvas.getContext('2d'))
-            canvas.cl = true
-            canvas.buffer = true
-
-            mod = new Mod( extend({
-                name:       name,
-                canvasName: '',
-                canvas:     canvas,
-                ctx:        ctx,
-            }), st)
-        } else {
-            mod = new Mod(name)
-        }
-        mod._   = mod            // this mod points to itself
-        mod._$  = _scene         // reference to the root mod
-        mod.___ = this.getMod()  // reference to the parent mod
-        Object.defineProperty(this, '_',   { enumerable: false })
-        Object.defineProperty(this, '_$',  { enumerable: false })
-        Object.defineProperty(this, '___', { enumerable: false })
-        return mod
-    })
-    this.attach(mod)
-
-    // container for traps
-    const trap = function trap(name, st) {
-        return trap.echo(name, st, 1)
-    }
-    trap.mask     = null
-    trap.ignore   = []
-    trap.subTraps = []
-
-    // signal processing implementation
-    // @returns {boolean} - true if halted along the propagation chain, false otherwise
-    trap.echo = function echo(name, st, level) {
-        let processed = false
-        // filter out ignored signals
-        if (this.ignore[name]) return processed
-        // when mask is defined, pass only the masked signals
-        if (this.mask && !this.mask[name]) return processed
-
-        if ((!level && !_.disabled) || (level === 1 && !trap.disabled)) {
-            const fn = trap.selectOne(name)
-            if (isFun(fn)) {
-                fn(st)
-                processed = true
-                if (fn.halt || (st && st.halt)) return processed
-            }
-
-            // propagate the signal to subtraps
-            trap.subTraps.forEach( subTrap => {
-                const sfn = subTrap.selectOne(name)
-                if (isFun(sfn)) {
-                    sfn(st)
-                    processed = true
-                }
-            })
-        }
-        
-        // propagate the signal to subMods
-        switch(level) {
-            case 0:
-                this.__.mod._ls.forEach( m => {
-                    if (m.signal(name, st)) processed = true
-                })
-                break
-            case 1:
-                this.__.mod._ls.forEach( m => {
-                    if (m.trap.signal(name, st)) processed = true
-                })
-                break
-        }
-        return processed
-    }
-
-    augment(trap, new Frame())
-
-    trap.attach = function(node, name) {
-        if (isFun(node)) {
-            node = chain(this._dir[name], node)
-        }
-        Frame.prototype.attach.call(this, node, name)
-    }
-
-    // make sure all subFrames also have custom touch and attach
-    trap.touch = touchFun((name, __, st) => {
-        const node = new Frame(name, st)
-        node.attach = trap.attach
-        node.touch = trap.touch
-        node.on = trap.on
-        return node
-    })
-
-    trap.on = function on(eventName, fn) {
-        if (!eventName) throw 'event name is expected'
-        if (!isFun(fn)) throw 'function is expected'
-        this.attach(fn, eventName)
-    }
-
-    trap.signal = function signal(name, st) {
-        return trap.echo(name, st, 1)
-    }
-
-    this.attach(trap)
-
-    const signal = function(name, st) {
-        return _.trap.echo(name, st, 0)
-    }
-    this.attach(signal)
-}
-
-Mod.prototype = Object.create(Frame.prototype)
-
-Mod.prototype.getMod = function() {
-    return this
-}
-
-Mod.prototype.getRoot = function() {
-    return this._$
-}
-
-Mod.prototype.touch = touchFun((name, __, st) => {
-    const node = new Frame(name, st)
-    if (name === 'box') {
-        // _/box should create mods on touch - just like _/mod
-        node.touch = __.mod.touch
-    }
-    return node
-})
 
 Mod.prototype.populateAlt = function() {
     const _ = this
@@ -3554,14 +3575,14 @@ Mod.prototype.populateAlt = function() {
         _.alt.attach(fn, name)
     })
 
-    Object.keys(this.ctx.draw).forEach(name => {
-        const fn = _.ctx.draw[name]
+    if (!_._drawContext) debugger
+    Object.keys(_._drawContext).forEach(name => {
+        const fn = _._drawContext[name]
         _.alt.attach(fn, name)
     })
 }
 
 Mod.prototype.init = function() {
-
     // clone the rendering context from the parent mod if not set explicitly
     if (!this.ctx) {
         this.canvasName   = this.___.canvasName
@@ -3573,6 +3594,7 @@ Mod.prototype.init = function() {
         this.glCanvas     = this.___.glCanvas
         this.gl           = this.___.gl
     }
+    this.defineDrawContext()
     this.populateAlt()
     this.inherit()
 }
@@ -4839,7 +4861,9 @@ function reconstructScene() {
     Mod.call(_scene)
     constructScene(_scene)
     // TODO we are taking it again? what if it is webgl? where is canvas coming from?
-    _scene.ctx = augmentCtx(canvas.getContext("2d"))
+    _scene.ctx = canvas.getContext('2d')
+    //_scene.ctx = augmentCtx(canvas.getContext("2d"), _scene)
+    _scene.defineDrawContext()
     _scene.populateAlt()
 
     repatchScene(_scene, protoLog)
@@ -4974,7 +4998,9 @@ const bootstrap = function() {
     // bind context
     if (canvas) {
         _scene.canvas = canvas
-        _scene.ctx = augmentCtx(canvas.getContext('2d'))
+        //_scene.ctx = augmentCtx(canvas.getContext('2d'), _scene)
+        _scene.ctx = canvas.getContext('2d')
+        _scene.defineDrawContext()
         canvas.cl = true
         canvas.buffer = false
         canvas.contextId = '2d'
@@ -5015,6 +5041,7 @@ const bootstrap = function() {
             }
         }
     }
+    _scene.defineDrawContext()
     _scene.populateAlt()
 
     _scene.loadUnits(_scene, _scene.env.syspath)
