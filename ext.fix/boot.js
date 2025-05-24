@@ -522,7 +522,8 @@ function evoContent(dt) {
         let msg = POWERED_BY
         if (env.config.alert) {
             const leadRegion = env.alertRegion
-            msg = ALERT_MESSAGE.replace('[REGION]', ` in ${leadRegion.alias || leadRegion.name || ''}`)
+            if (leadRegion) msg = ALERT_MESSAGE.replace('[REGION]', ` in ${leadRegion.alias || leadRegion.name || ''}`)
+            else msg = ALERT_MESSAGE.replace('[REGION]', '')
         } else if (env.config.debug) {
             msg = DEVELOPING_WITH
         }
@@ -720,7 +721,9 @@ function raiseAlert(leadRegion) {
     if (!$.boot) {
         $._boot.reset()
     } else {
-        const message = ALERT_MESSAGE.replace('[REGION]', ` in ${leadRegion.alias || leadRegion.name || ''}`)
+        let message
+        if (leadRegion) message = ALERT_MESSAGE.replace('[REGION]', ` in ${leadRegion.alias || leadRegion.name || ''}`)
+        else message = ALERT_MESSAGE.replace('[REGION]', '')
         replacePoweredMessage(message)
     }
 }

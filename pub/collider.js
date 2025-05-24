@@ -2844,7 +2844,7 @@ const Mod = function(st) {
         },
 
         sfx: function(src, vol, pan) {
-            _scene.lib.sfx(src, vol, pan)
+            _.lib.sfx(src, vol, pan)
         },
 
         require: function(path) {
