@@ -364,7 +364,7 @@ function kill(e, st) {
     if (!isObj(e)) return
     e.dead = true
     defer(() => {
-        // notify the entity about the kill
+        // notify the entity it's about to be killed
         if (isFun(e.onKill)) e.onKill(st)
 
         if (isFun(e.kill)) {
@@ -2641,16 +2641,6 @@ const evalLoadedBatch = function(ibatch, batch, _) {
 const Mod = function(st) {
     const _ = this._ = this
 
-    /*
-    // rendering context
-    this.canvasName   = canvasName
-    this.canvas       = null
-    this.ctx          = null
-    this.glCanvasName = glCanvasName
-    this.glCanvas     = null
-    this.gl           = null
-    */
-
     extend(this, {
         _patchLog:     [],
         paused:        false,
@@ -2820,7 +2810,7 @@ const Mod = function(st) {
         },
 
         gtrap: function(name, st) {
-            return $.signal(name, st)
+            return _scene.signal(name, st)
         },
 
         print: function() {
@@ -2859,6 +2849,7 @@ const Mod = function(st) {
         },
     }
     if (!this._drawScope) {
+        // TODO define a new one?
     }
 
     // resources container
@@ -5106,6 +5097,7 @@ function startCycle() {
     _scene.env.lastFrame = performance.now()
     _scene.env.time = 0
     _scene.env.realTime = 0
+    _scene.env._keyAction = {}
     window.requestAnimFrame(cycle)
     /*
         // old-fasioned way to setup animation
@@ -5257,6 +5249,7 @@ function expandCanvas(name) {
 }
 
 function expandView() {
+    // TODO differenciate canvases as free and pinned to the window, resize only pinned
     for (let i = 0; i < canvasList.length; i++) {
         const canvas = canvasList[i]
         if (!canvas.buffer) {
@@ -5430,10 +5423,13 @@ function handleContextMenu(e) {
 function handleKeyDown(e) {
     let keyName = e.code.substring(0, 1).toLowerCase()
         + e.code.substring(1)
+    e.keyName = keyName
 
     _scene.env._touched = true
     _key[keyName]       = true
     _key[e.key]         = true
+    const action = _scene.env._keyAction[keyName]
+    if (action) _key[action] = true
 
     const processed = _scene.signal(keyName + 'Down', e)
     if (!e.halt) _scene.signal('keyDown', e)
@@ -5447,9 +5443,12 @@ function handleKeyDown(e) {
 function handleKeyUp(e) {
     let keyName = e.code.substring(0, 1).toLowerCase()
         + e.code.substring(1)
+    e.keyName = keyName
 
     delete _key[keyName]
     delete _key[e.key]
+    const action = _scene.env._keyAction[keyName]
+    if (action) delete _key[action]
 
     const processed = _scene.signal(keyName + 'Up', e)
     if (!e.halt) _scene.signal('keyUp', e)
