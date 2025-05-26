@@ -732,46 +732,37 @@ Frame.prototype.onAttach = function(node, name, parent) {
 //      now when you want to detach a node that happend to be null,
 //      you end up with the whole frame detached... Not good.
 Frame.prototype.detach = function(node) {
-    if (node === undefined) {
-        // detaching this
-        let i = this.__._ls.indexOf(this);
-        if (i >= 0) {
-            // find index on parent
-            this.__._ls.splice(i, 1);
-        }
-        if (this.name && this.__._dir[this.name] === this) {
-            this.__.detachByName(this.name);
-        }
+    if (!node) return
+
+    if (node.name && (this._dir[node.name]) === node) {
+        this.detachByName(node.name)
     } else {
         let i = this._ls.indexOf(node);
         if (i >= 0) {
-            // find index on parent
             this._ls.splice(i, 1);
         }
-        if (node.name && (this._dir[node.name]) === node) {
-            this.detachByName(node.name);
-        }
+        if (isFun(node.onDetach)) node.onDetach()
     }
 }
 
 Frame.prototype.detachAll = function() {
-    while(this._ls.length){
-        let node = this._ls[0];
+    const ls = this._ls
+    for (let i = ls.length - 1; i >= 0; i--) {
+        const node = ls[i]
         this.detach(node)
     }
+    this._ls = []
+    this._dir = {}
 }
 
 Frame.prototype.detachByName = function(name) {
-    const obj = this[name] || this._dir[name];
-    if (obj === undefined){
+    const node = this[name] || this._dir[name];
+    if (node === undefined){
+        // TODO should we be silent in this case or it has any value?
         throw new Error("No node with name:" + name);
     }
-    //
-    //  FINISH called when element detached
-    //
-    // TODO shouldn't that be onDetach()?
-    if (obj.finish) obj.finish();
 
+    /*
     // TODO what is the purpose of this? Is that should be generic?
     //      Or maybe that can be covered by finish()/onDetach()?
     if (obj.propagateDetach){
@@ -781,15 +772,22 @@ Frame.prototype.detachByName = function(name) {
             obj.propagateDetach.__.detach(obj.propagateDetach);
         }
     }
+    */
 
     // detach named
-    delete this[name];
     delete this._dir[name];
+    if (this[name] === node) delete this[name];
     // detach by index if exists
-    let index = this._ls.indexOf(obj);
+    let index = this._ls.indexOf(node);
     if (index >= 0){
         this._ls.splice(index, 1);
     }
+
+    if (isFun(node.onDetach)) node.onDetach()
+}
+
+Frame.prototype.detachSelf = function() {
+    this.__.detach(this)
 }
 
 Frame.prototype.apply = function(fn, predicate) {
