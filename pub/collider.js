@@ -1,13 +1,13 @@
 /*
- * Collider.JAM Ring
+ * Collider.JAM Framework Core
  *
- * The core framework definitions are provided here.
+ * Core framework definitions are provided here.
  *
- * The Ring controls the boot and resource loading.
+ * The core controls the boot and resource loading.
  * Once all assets are loaded, evaluated and
  * mixed into the core mix, it starts the game loop.
  *
- * The Ring hardly provides any significant game framework features,
+ * The core hardly provides any significant game framework features,
  * but rather creates a stucture to mix in
  * functionality from various supplied and optional mixes.
  *
@@ -23,7 +23,7 @@ $ = mix = (function(window) {
 // ***********
 // environment
 const SCRIPT_SRC = 'collider.mix/collider.js'
-const UNITS_MAP = 'units.map'
+const UNITS_MAP  = 'units.map'
 const JAM_CONFIG = 'jam.config'
 
 const containerName = 'container'
@@ -97,7 +97,7 @@ const isClass = function(f) {
     return (f && typeof f === 'function' && /^\s*class\s+/.test(f.toString()))
 }
 const isObj = function(o) {
-    return (o && typeof o === 'object')
+    return (o && typeof o === 'object' && !Array.isArray(o))
 }
 const isObject = function(o) {
     return (o && typeof o === 'object' && !Array.isArray(o))
@@ -113,10 +113,10 @@ const isArray = function(a) {
     return (Array.isArray(a) || isTypedArr(a))
 }
 const isContainer = function(o) {
-    return isObj(o) || isFun(o)
+    return isObj(o) || isArr(o) || isFun(o)
 }
 const isFrame = function(f) {
-    return !!(f && f._frame)
+    return !!(f && f._ls && f._dir)
 }
 const isEmpty = function(o) {
     if (!o) return true
@@ -258,6 +258,7 @@ function mixin() {
 }
 
 function extend(mixin) {
+    if (!mixin) mixin = {}
     if (!isContainer(mixin)) throw new Error('a target container is expected!')
 
     let predicate = null
@@ -1184,6 +1185,8 @@ Frame.prototype.orderZ = function() {
     })
 }
 
+// Frame MUST have a custom supplement function
+// to avoid blind copying of other frames and use _ls instead
 Frame.prototype.supplement = function(src) {
     if (isFrame(src)) {
         // copy the content list
@@ -3098,7 +3101,7 @@ const Mod = function(st) {
     }
     trap.mask     = null
     trap.ignore   = []
-    trap.subTraps = []
+    trap.subtraps = []
 
     // signal processing implementation
     // @returns {boolean} - true if halted along the propagation chain, false otherwise
@@ -3118,23 +3121,26 @@ const Mod = function(st) {
             }
 
             // propagate the signal to subtraps
-            trap.subTraps.forEach( subTrap => {
+            for (let i = 0; i < this.subtraps.length; i++) {
+                const subtrap = this.subtrap[i]
                 const sfn = subTrap.selectOne(name)
                 if (isFun(sfn)) {
                     sfn(st)
                     processed = true
                 }
-            })
+            }
         }
-        
+
         // propagate the signal to subMods
         switch(level) {
             case 0:
+                // called on the global/mod level
                 this.__.mod._ls.forEach( m => {
                     if (m.signal(name, st)) processed = true
                 })
                 break
             case 1:
+                // called on the trap level (trap.signal())
                 this.__.mod._ls.forEach( m => {
                     if (m.trap.signal(name, st)) processed = true
                 })

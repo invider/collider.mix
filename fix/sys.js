@@ -394,7 +394,11 @@ const system = {
     },
 
     sfx: function(src, vol, pan) {
-        if (!_.___.env._touched) {
+        if (!src) {
+            _.log.warn(`[sfx] can't play - no audio clip was provided!`)
+            return
+        }
+        if (!_._$.env._touched) {
             _.log.sys(`[sfx:${isStr(src)? src : src.name}]`, `ignoring - no user interaction`)
             return
         }
