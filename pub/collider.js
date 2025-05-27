@@ -2836,6 +2836,7 @@ const Mod = function(st) {
 
         sfx: function(src, vol, pan) {
             _.lib.sfx(src, vol, pan)
+            return alt
         },
 
         require: function(path) {
@@ -3015,7 +3016,6 @@ const Mod = function(st) {
     //this.attach(new Frame("lib"))
     // log functions
     //this.attach(new Frame("log"))
-
 
     // prototypes/constructors
     this.attach(new Frame(), 'dna')
@@ -3204,7 +3204,8 @@ Mod.prototype.touch = touchFun((name, __, st) => {
 
 Mod.prototype.defineDrawContext = function() {
     const _   = this,
-          ctx = _.ctx
+          ctx = _.ctx,
+          alt = _.alt
     if (!ctx) return
 
     const TAU = Math.PI * 2
@@ -3224,19 +3225,24 @@ Mod.prototype.defineDrawContext = function() {
 
         save: function() {
             ctx.save()
+            return alt
         },
         restore: function() {
             ctx.restore()
+            return alt
         },
 
         scale: function(w, h) {
             ctx.scale(w, h)
+            return alt
         },
         rotate: function(a) {
             ctx.rotate(a)
+            return alt
         },
         translate: function(x, y) {
             ctx.translate(x, y)
+            return alt
         },
         clip: function(x, y, w, h) {
             ctx.beginPath()
@@ -3246,19 +3252,24 @@ Mod.prototype.defineDrawContext = function() {
             ctx.lineTo(x, y + h)
             ctx.closePath()
             ctx.clip()
+            return alt
         },
         smooth: function() {
             ctx.imageSmoothingEnabled = true
+            return alt
         },
         // @deprecated
         blocky: function() {
             ctx.imageSmoothingEnabled = false
+            return alt
         },
         pixelated: function() {
             ctx.imageSmoothingEnabled = false
+            return alt
         },
         alpha: function(v) {
             ctx.globalAlpha = v
+            return alt
         },
 
         stroke: function(v1, v2, v3, v4) {
@@ -3280,10 +3291,12 @@ Mod.prototype.defineDrawContext = function() {
                     ctx.strokeStyle = hsla(v1, v2, v3, v4)
                 }
             }
+            return alt
         },
 
         lineWidth: function(val) {
             ctx.lineWidth = val 
+            return alt
         },
 
         fill: function(v1, v2, v3, v4, v5, v6, v7, v8) {
@@ -3342,6 +3355,7 @@ Mod.prototype.defineDrawContext = function() {
             } else {
                 throw 'wrong color arguments for fill()'
             }
+            return alt
         },
 
         background: function(v1, v2, v3, v4) {
@@ -3370,6 +3384,7 @@ Mod.prototype.defineDrawContext = function() {
                 }
                 ctx.fillRect(0, 0, ctx.width, ctx.height)
             }
+            return alt
         },
 
         line: function(x1, y1, x2, y2) {
@@ -3377,10 +3392,12 @@ Mod.prototype.defineDrawContext = function() {
             ctx.moveTo(x1, y1)
             ctx.lineTo(x2, y2)
             ctx.stroke()
+            return alt
         },
 
         plot: function(x, y) {
             ctx.fillRect(x-ctx.lineWidth/2, y-ctx.lineWidth/2, ctx.lineWidth, ctx.lineWidth)
+            return alt
         },
         triangle: function(x1, y1, x2, y2, x3, y3) {
             ctx.beginPath()
@@ -3390,6 +3407,7 @@ Mod.prototype.defineDrawContext = function() {
             ctx.closePath()
             if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
+            return alt
         },
         quad: function(x1, y1, x2, y2, x3, y3, x4, y4) {
             ctx.beginPath()
@@ -3400,16 +3418,19 @@ Mod.prototype.defineDrawContext = function() {
             ctx.closePath()
             if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
+            return alt
         },
         rect: function(x, y, w, h) {
             if (mode > 0) ctx.fillRect(x, y, w, h)
             if (mode < 2) ctx.strokeRect(x, y, w, h)
+            return alt
         },
         circle: function(x, y, r) {
             ctx.beginPath()
             ctx.arc(x, y, r, 0, TAU)
             if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
+            return alt
         },
         ellipse: function(x, y, hr, vr, r) {
             ctx.beginPath()
@@ -3420,18 +3441,21 @@ Mod.prototype.defineDrawContext = function() {
             }
             if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
+            return alt
         },
         arc: function(x, y, r, sa, fa) {
             ctx.beginPath()
             ctx.arc(x, y, r, sa, fa)
             if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
+            return alt
         },
         earc: function(x, y, xr, yr, ra, sa, fa) {
             ctx.beginPath()
             ctx.ellipse(x, y, xr, yr, ra, sa, fa)
             if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
+            return alt
         },
         polygon: function() {
             ctx.beginPath()
@@ -3442,6 +3466,7 @@ Mod.prototype.defineDrawContext = function() {
             ctx.closePath()
             if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
+            return alt
         }, 
 
         moveTo: function(x, y) {
@@ -3450,27 +3475,34 @@ Mod.prototype.defineDrawContext = function() {
                 shape = true
             }
             ctx.moveTo(x, y)
+            return alt
         },
         lineTo: function(x, y) {
             ctx.lineTo(x, y)
+            return alt
         },
         arcTo: function(x1, y1, x2, y2, r) {
             ctx.arcTo(x1, y1, x2, y2, r)
+            return alt
         },
         quadraticTo: function(cpx, cpy, ex, ey) {
             ctx.quadraticCurveTo(cpx, cpy, ex, ey)
+            return alt
         },
         bezierTo: function(cp1x, cp1y, cp2x, cp2y, ex, ey) {
             ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, ex, ey)
+            return alt
         },
         closePath: function() {
             ctx.closePath()
+            return alt
         },
         shape: function() {
             if (!shape) return
             if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
             shape = false
+            return alt
         },
 
         font: function(font) {
@@ -3511,29 +3543,37 @@ Mod.prototype.defineDrawContext = function() {
                 fontSize = parseInt(ctx.font)
             }
             ctx.font = fontSize + 'px ' + fontName
+            return alt
         },
 
         alignLeft: function() {
             ctx.textAlign = 'left'
+            return alt
         },
         alignCenter: function() {
             ctx.textAlign = 'center'
+            return alt
         },
         alignRight: function() {
             ctx.textAlign = 'right'
+            return alt
         },
         baseTop: function() {
             ctx.textBaseline = 'top'
+            return alt
         },
         baseMiddle: function() {
             ctx.textBaseline = 'middle'
+            return alt
         },
         baseBottom: function() {
             ctx.textBaseline = 'bottom'
+            return alt
         },
         text: function(text, x, y) {
             if (mode < 2) ctx.strokeText(text, x, y)
             if (mode > 0) ctx.fillText(text, x, y)
+            return alt
         },
         textWidth: function(txt) {
             if (!txt) return 0
@@ -3549,6 +3589,7 @@ Mod.prototype.defineDrawContext = function() {
             case 7: ctx.drawImage(img, x, y, w, h, dx, dy); break;
             case 9: ctx.drawImage(img, x, y, w, h, dx, dy, dw, dh); break;
             }
+            return alt
         },
 
         rgb: rgb,

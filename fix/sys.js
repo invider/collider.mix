@@ -139,13 +139,13 @@ const system = {
         if (!cons) throw `can't find the spawn dna: ${source}`
 
         if (sys.isFun(cons)) {
-            // source is function - constructor or factory
+            // source is function - a constructor or a factory
             if (/[A-Z]/.test(cons.name[0])) {
-                // uppercase means constructor
+                // uppercase means a constructor
                 res = new cons(spawnData)
                 //return sys.attachNode(dest, res)
             } else {
-                // lowercase means factory
+                // lowercase means a factory
                 res = cons(spawnData)
                 //return sys.attachNode(dest, res)
             }
@@ -245,21 +245,25 @@ const system = {
     // @param {object} obj
     // @param {object} meta
     // @return {object} - the cloned object
-    clone: function(obj, meta) {
+    clone: function(obj, st) {
         if (!this.isObj(obj)) return
         if (this.isFun(obj.clone)) return obj.clone(meta)
 
         const clone = Object.create(Object.getPrototypeOf(obj))
+
+        // copy data
         let data = JSON.parse(JSON.stringify(obj))
         this.augment(clone, data)
+
+        // copy functions
         Object.keys(obj).forEach(k => {
             if (isFun(obj[k])) clone[k] = obj[k]
         })
 
         if (isFun(clone.onClone)) {
-            clone.onClone(meta)
+            clone.onClone(st)
         } else {
-            this.augment(clone, meta)
+            this.augment(clone, st)
         }
         clone._dna = obj
 
