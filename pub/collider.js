@@ -5474,7 +5474,10 @@ function handleKeyDown(e) {
     _key[keyName]       = true
     _key[e.key]         = true
     const action = _scene.env._keyAction[keyName]
-    if (action) _key[action] = true
+    if (action) {
+        e.action = action
+        _key[action] = true
+    }
 
     const processed = _scene.signal(keyName + 'Down', e)
     if (!e.halt) _scene.signal('keyDown', e)
@@ -5493,7 +5496,10 @@ function handleKeyUp(e) {
     delete _key[keyName]
     delete _key[e.key]
     const action = _scene.env._keyAction[keyName]
-    if (action) delete _key[action]
+    if (action) {
+        e.action = action
+        delete _key[action]
+    }
 
     const processed = _scene.signal(keyName + 'Up', e)
     if (!e.halt) _scene.signal('keyUp', e)
