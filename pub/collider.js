@@ -2849,6 +2849,8 @@ const Mod = function(st) {
                 throw 'no requirement found: [' + path + ']'
             }
         },
+
+        dir: console.dir,
     }
     if (!this._drawScope) {
         // TODO define a new one?
