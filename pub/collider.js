@@ -3114,7 +3114,8 @@ const Mod = function(st) {
 
     // container for traps
     const trap = function trap(name, st) {
-        return trap.echo(name, st, 1)
+        // TODO until trap() semantic refactoring preserve the "global" propagation behavior for compatibility
+        return trap.echo(name, st, false)
     }
     trap.mask     = null
     trap.ignore   = []
@@ -3122,14 +3123,14 @@ const Mod = function(st) {
 
     // signal processing implementation
     // @returns {boolean} - true if halted along the propagation chain, false otherwise
-    trap.echo = function echo(name, st, level) {
+    trap.echo = function echo(name, st, local) {
         let processed = false
         // filter out ignored signals
         if (this.ignore[name]) return processed
         // when mask is defined, pass only the masked signals
         if (this.mask && !this.mask[name]) return processed
 
-        if ((!level && !_.disabled) || (level === 1 && !trap.disabled)) {
+        if ((!local && !_.disabled) || (local && !trap.disabled)) {
             const fn = trap.selectOne(name)
             if (isFun(fn)) {
                 fn(st)
@@ -3148,20 +3149,11 @@ const Mod = function(st) {
             }
         }
 
-        // propagate the signal to subMods
-        switch(level) {
-            case 0:
-                // called on the global/mod level
-                this.__.mod._ls.forEach( m => {
-                    if (m.signal(name, st)) processed = true
-                })
-                break
-            case 1:
-                // called on the trap level (trap.signal())
-                this.__.mod._ls.forEach( m => {
-                    if (m.trap.signal(name, st)) processed = true
-                })
-                break
+        if (!local) {
+            // called on the mod level - propagate the signal to subMods
+            this.__.mod._ls.forEach( m => {
+                if (m.signal(name, st)) processed = true
+            })
         }
         return processed
     }
@@ -3191,13 +3183,13 @@ const Mod = function(st) {
     }
 
     trap.signal = function signal(name, st) {
-        return trap.echo(name, st, 1)
+        return trap.echo(name, st, true)
     }
 
     this.attach(trap)
 
     const signal = function(name, st) {
-        return _.trap.echo(name, st, 0)
+        return _.trap.echo(name, st, false)
     }
     this.attach(signal)
 }
@@ -3857,7 +3849,7 @@ Mod.prototype._runTests = function() {
 Mod.prototype.start = function() {
     if (this.env._started) return
 
-    this.signal('preSetup')
+    this.trap.signal('preSetup')
     this.env._started = true
     this.inherit()
 
@@ -3907,7 +3899,7 @@ Mod.prototype.start = function() {
 
         this.status = 'started'
     }
-    this.signal('postSetup')
+    this.trap.signal('postSetup')
 
     _scene.log.sys('starting evolution of [' + this.path() + ']')
 }
