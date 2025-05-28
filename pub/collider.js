@@ -3122,8 +3122,8 @@ const Mod = function(st) {
 
             // propagate the signal to subtraps
             for (let i = 0; i < this.subtraps.length; i++) {
-                const subtrap = this.subtrap[i]
-                const sfn = subTrap.selectOne(name)
+                const subtrap = this.subtraps[i]
+                const sfn = subtrap[name]
                 if (isFun(sfn)) {
                     sfn(st)
                     processed = true
