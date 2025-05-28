@@ -238,8 +238,12 @@ function mix() {
 }
 */
 
+// TODO try to achieve the same result with extend()?
 function mixin() {
     let mixin = arguments[0]
+    if (!mixin) mixin = {}
+    if (!isContainer(mixin)) throw new Error('a target container is expected!')
+
     for (let arg = 1; arg < arguments.length; arg++) {
         const source = arguments[arg]
         for (let prop in source) {
@@ -253,10 +257,18 @@ function mixin() {
         if (isFun(source.onMixin)) {
             source.onMixin.call(mixin)
         }
+        if (isFun(mixin.onTrait)) {
+            mixin.onTrait(source)
+        }
     }
     return mixin
 }
 
+// TODO define extend rules on the mixin object, follow those rules if defined
+//      (!!!) the first object in extend list could be the RULES!!!!!! or any other in the list
+//      we MUST check if rules has changed and apply them for each new extend operation!!!
+//      Do the same for augment and supplement
+//      The regular rules (like ignoring _, __ and _$) are the default ones that could be overriden
 function extend(mixin) {
     if (!mixin) mixin = {}
     if (!isContainer(mixin)) throw new Error('a target container is expected!')
@@ -290,6 +302,7 @@ function extend(mixin) {
     return mixin
 }
 
+// define rules as one of the sources, see the comments in extend()
 function augment(mixin) {
     if (!mixin) mixin = {}
     if (!isContainer(mixin)) throw new Error('a target container is expected!')
@@ -323,6 +336,8 @@ function augment(mixin) {
     }
     return mixin
 }
+
+// define rules as one of the sources, see the comments in extend()
 function supplement(mixin) {
     if (!mixin) mixin = {}
     if (!isContainer(mixin)) throw new Error('a target container is expected!')
@@ -352,6 +367,8 @@ function supplement(mixin) {
 }
 
 // TODO doubt we ever need it... why don't use $.select() instead? Can we chain it?
+//      could be our anwser to simple dependency injection
+//      also this syntax could be used from the debug console
 function $$(q) {
     return _scene.select(q)
 }
