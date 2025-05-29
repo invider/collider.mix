@@ -131,6 +131,13 @@ const isEmpty = function(o) {
     }
     return false
 }
+const isAncestor = function(src, tar) {
+    if (!isContainer(src) || !isContainer(tar)) return false
+
+    if (!src.__) return false
+    if (src.__ === tar) return true
+    return isAncestor(src.__, tar)
+}
 
 // TODO explore if we need both assert() and expect() in scope
 function assert(cond, msg) {
@@ -1411,36 +1418,132 @@ LabFrame.prototype.deactivate = function() {
     this.disable()
 }
 
-LabFrame.prototype.lx = function(x) {
-    return x
+LabFrame.prototype.lx = function(px) {
+    return px
 }
 
-LabFrame.prototype.ly = function(y) {
-    return y
+LabFrame.prototype.ly = function(py) {
+    return py
 }
 
-LabFrame.prototype.lxy = function(x, y) {
+LabFrame.prototype.lxy = function(px, py) {
     return {
-        x: x,
-        y: y,
+        x: px,
+        y: py,
     }
 }
 
-LabFrame.prototype.gx = function(x) {
-    return x
+LabFrame.prototype.lpos = function(iv) {
+    return iv
 }
 
-LabFrame.prototype.gy = function(y) {
-    return y
+LabFrame.prototype.ux = function(lx) {
+    return lx
 }
 
-LabFrame.prototype.gxy = function(x, y) {
+LabFrame.prototype.uy = function(ly) {
+    return ly
+}
+
+/*
+// TODO maybe this should go in order to have a more universal pvec2?
+LabFrame.prototype.uxy = function(lx, ly) {
     return {
-        x: x,
-        y: y,
+        x: lx,
+        y: ly,
+    }
+}
+*/
+
+LabFrame.prototype.upos = function(iv) {
+    return iv
+}
+
+LabFrame.prototype.xFromAncestor = function(x, basis) {
+    if (this.__ === basis) {
+        return this.lx(x)
+    } else {
+        return this.lx(this.__.xFromAncestor(x, basis))
     }
 }
 
+LabFrame.prototype.xToTarget = function(x, target) {
+    if (!this.__) {
+        return NaN
+    } else if (this.__ === target) {
+        return this.px(x)
+    } else {
+        return this.__.bux(this.px(x), target)
+    }
+}
+
+LabFrame.prototype.xFrom = function(x, basis) {
+    if (isAncestor(this, basis)) {
+        return this.blx(x, basis)
+    } else if (isAncestor(basis, this)) {
+        return basis.bux(x, this)
+    } else {
+        return NaN
+    }
+}
+
+LabFrame.prototype.yFromAncestor = function(y, basis) {
+    if (this.__ === basis) {
+        return this.ly(y)
+    } else {
+        return this.ly(this.__.yFromAncestor(y, basis))
+    }
+}
+
+LabFrame.prototype.yToTarget = function(y, target) {
+    if (!this.__) {
+        return NaN
+    } else if (this.__ === target) {
+        return this.uy(y)
+    } else {
+        return this.__.yToTarget(this.uy(y), target)
+    }
+}
+
+LabFrame.prototype.yFrom = function(y, basis) {
+    if (isAncestor(this, basis)) {
+        return this.yFromParent(y, basis)
+    } else if (isAncestor(basis, this)) {
+        return basis.yToTarget(y, this)
+    } else {
+        return NaN
+    }
+}
+
+LabFrame.prototype.toLocalPos = function(iv, basis) {
+    if (this.__ === basis) {
+        return this.lvec2(iv)
+    } else {
+        return this.lvec2(this.__.toLocalPos(iv, basis))
+    }
+}
+
+LabFrame.prototype.toTargetPos = function(iv, target) {
+    if (!this.__) {
+        return NaN
+    } else if (this.__ === target) {
+        return this.pvec2(iv)
+    } else {
+        return this.__.toTargetPos(this.pvec2(iv), target)
+    }
+}
+
+LabFrame.prototype.posToLocalBasis = function(iv, basis) {
+    if (isAncestor(this, basis)) {
+        return this.toLocalPos(iv, basis)
+    } else if (isAncestor(basis, this)) {
+        return basis.toTargetPos(iv, this)
+    } else {
+        return null
+    }
+}
+
+/*
 LabFrame.prototype.labxy = function(x, y) {
     const g = this.gxy(x, y)
     return this.__.labxy(g.x, g.y)
@@ -1449,6 +1552,7 @@ LabFrame.prototype.labxy = function(x, y) {
 LabFrame.prototype.labVector = function(v2) {
     return this.__.labVector(v2)
 }
+*/
 
 LabFrame.prototype.poke = function(x, y, opt) {
     let lx
@@ -1458,9 +1562,9 @@ LabFrame.prototype.poke = function(x, y, opt) {
         lx = this.lx(x)
         ly = this.ly(y)
     } else {
-        const l = this.lxy(x, y)
-        lx = l.x
-        ly = l.y
+        const lpos = this.lpos([x, y])
+        lx = lpos[0]
+        ly = lpos[1]
     }
 
     for (let i = 0; i < this._ls.length; i++) {
@@ -1482,9 +1586,9 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
         lx = this.lx(x)
         ly = this.ly(y)
     } else {
-        const l = this.lxy(x, y)
-        lx = l.x
-        ly = l.y
+        const lpos = this.lpos([x, y])
+        lx = lpos[0]
+        ly = lpos[1]
     }
     const fn = isFun(opt)? opt : false
 
