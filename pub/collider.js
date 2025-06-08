@@ -357,6 +357,7 @@ function supplement(mixin) {
             } else {
                 for (let prop in source) {
                     if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
+                        // TODO what to do with array cases
                         if (isObj(mixin[prop]) && isObj(source[prop])) {
                             if (mixin !== source[prop]) supplement(mixin[prop], source[prop])
                         } else if (mixin[prop] === undefined) {
@@ -386,7 +387,7 @@ function defer(fn, timeout) {
 }
 
 function kill(e, st) {
-    if (!isObj(e)) return
+    if (!isContainer(e)) return
     e.dead = true
     defer(() => {
         // notify the entity it's about to be killed
@@ -2374,7 +2375,7 @@ function withMeta(val, meta, name) {
 
     Object.keys(meta).forEach(k => {
         const subVal = val[k]
-        if (subVal && (isObj(subVal) || isFun(subVal))) {
+        if (subVal && (isContainer(subVal))) {
             subVal._meta = meta[k]
         }
     })
@@ -2501,10 +2502,11 @@ function evalJS(script, _, batch) {
             eval(code)
 
             if (module.def) {
-                if (isFun(module.def[script.name]) || isObj(module.def[script.name])) {
+                if (isContainer(module.def[script.name])) {
                     _.log.sys(`[eval:${script.path}]`, 'found defining node for export ' + script.name + '()')
                     return withMeta(module.def[script.name], meta, script.name)
                 }
+                // TODO what if it is just a primitive value (number/string/boolean) that we want to export?
                 return withMeta(module.def, meta, script.name)
             } else {
                 _.log.sys(`[eval:${script.path}]`, 'no value, exports or declarations from ' + script.path, '[eval]')
@@ -3726,7 +3728,6 @@ Mod.prototype.populateAlt = function() {
         _.alt.attach(fn, name)
     })
 
-    if (!_._drawContext) debugger
     Object.keys(_._drawContext).forEach(name => {
         const fn = _._drawContext[name]
         _.alt.attach(fn, name)
