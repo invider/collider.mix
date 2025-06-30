@@ -1,12 +1,5 @@
-
 // @depends(/sys/InjectLabFrame)
 
-const df = {
-    x: 0,
-    y: 0,
-    angle: 0,
-    scale: 1,
-}
 
 // an injectable node, capable to translate, scale and rotate the view
 //
@@ -16,8 +9,12 @@ const df = {
 // Use lxy() and gxy() instead.
 //
 function TransformFrame(st) {
-    augment(this, df)
-    InjectLabFrame.call(this, st)
+    sys.InjectLabFrame.call(this, augment({
+        x: 0,
+        y: 0,
+        angle: 0,
+        scale: 1,
+    }, st))
 }
 TransformFrame.prototype = Object.create(sys.InjectLabFrame.prototype)
 

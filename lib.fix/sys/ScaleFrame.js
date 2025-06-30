@@ -1,15 +1,12 @@
 // @depends(/sys/InjectLabFrame)
 const InjectLabFrame = sys.InjectLabFrame
 
-const df = {
-    x: 1,
-    y: 1,
-}
-
 // an injectable node, capable to scale the view
 function ScaleFrame(st) {
-    augment(this, df)
-    InjectLabFrame.call(this, st)
+    InjectLabFrame.call(this, augment({
+        x: 1,
+        y: 1,
+    }, st))
 }
 ScaleFrame.prototype = Object.create(InjectLabFrame.prototype)
 
