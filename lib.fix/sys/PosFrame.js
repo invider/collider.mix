@@ -24,52 +24,54 @@ PosFrame.prototype.draw = function() {
     restore()
 }
 
-// translate global x to local coordinates
-// @param {number} x - global x
+// translate upper (parent) x to local coordinates
+// @param {number} ux - upper x (in the parent's coordinate system)
 // @returns {number} - local x
-PosFrame.prototype.lx = function(x) {
-    return x - this.x
+PosFrame.prototype.lx = function(ux) {
+    return ux - this.x
 }
 
-// translate global y to local coordinates
-// @param {number} y - global y
+// translate upper (parent) y to local coordinates
+// @param {number} uy - upper y (in the parent's coordinate system)
 // @returns {number} - local y
-PosFrame.prototype.ly = function(y) {
-    return y - this.y
+PosFrame.prototype.ly = function(uy) {
+    return uy - this.y
 }
 
-// translate x,y to local coordinate system
-// @param {number} x - global x
-// @param {number} y - global y
-// @returns {object/2d-vector} - {x,y} in local coordinates
-PosFrame.prototype.lxy = function(x, y) {
-    return {
-        x: x - this.x,
-        y: y - this.y,
-    }
+// translate an upper (parent) vec2 to local coordinate system
+//
+// Note: the incoming vec2 is mutated for better efficiency
+//
+// @param {array/vec2} upos - vec2 in the upper (parent) coordinate system
+// @returns {array/vec2} - the incoming vec2 translated to local coordinates
+PosFrame.prototype.lpos = function(upos) {
+    upos[0] -= this.x
+    upos[1] -= this.y
+    return upos
 }
 
-// translate local x to global coordinates
-// @param {number} x - local x
-// @returns {number} - global x
-PosFrame.prototype.gx = function(x) {
-    return x + this.x
+// translate local x to upper (parent) coordinate system
+// @param {number} lx - local x
+// @returns {number} - upper x (in the parent's coordinate system)
+PosFrame.prototype.ux = function(lx) {
+    return lx + this.x
 }
 
-// translate local y to global coordinates
-// @param {number} y - local y
-// @returns {number} - global y
-PosFrame.prototype.gy = function(y) {
-    return y + this.y
+// translate local y to upper (parent) coordinate system
+// @param {number} ly - local y
+// @returns {number} - upper y (in the parent's coordinate system)
+PosFrame.prototype.uy = function(ly) {
+    return ly + this.y
 }
 
-// translate x,y to parent node coordinate system
-// @param {number} x - local x
-// @param {number} y - local y
-// @returns {object/2d-vector} - {x,y} in parent node coordinates
-PosFrame.prototype.gxy = function(x, y) {
-    return {
-        x: x + this.x,
-        y: y + this.y,
-    }
+// translate local vec2 to upper (parent) coordinate system
+//
+// Note: the incoming vec2 is mutated for better efficiency
+//
+// @param {number} lpos - vec2 in local coordinates
+// @returns {array/vec2} - the incoming vec2 translated to the upper (parent) coordinate system
+PosFrame.prototype.upos = function(lpos) {
+    lpos[0] += this.x
+    lpos[1] += this.y
+    return lpos
 }

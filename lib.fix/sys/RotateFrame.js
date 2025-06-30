@@ -22,39 +22,41 @@ RotateFrame.prototype.draw = function() {
     restore()
 }
 
-// translate x,y to local coordinate system
-// @param {number} x - global x
-// @param {number} y - global y
-// @returns {object/2d-vector} - {x,y} in local coordinates
-RotateFrame.prototype.lxy = function(x, y) {
-    return {
-        x: x * cos(this.angle) - y * sin(this.angle),
-        y: x * sin(this.angle) + y * cos(this.angle),
-    }
+// translate an upper (parent) vec2 to local coordinate system
+//
+// Note: the incoming vec2 is mutated for better efficiency
+//
+// @param {array/vec2} upos - vec2 in the upper (parent) coordinate system
+// @returns {array/vec2} - the incoming vec2 translated to local coordinates
+RotateFrame.prototype.lpos = function(upos) {
+    const ux = upos[0] * cos(this.angle) - upos[1] * sin(this.angle)
+    const uy = upos[0] * sin(this.angle) + upos[1] * cos(this.angle)
+
+    upos[0] = ux
+    upos[1] = uy
+    return upos
 }
 
-// translate x,y to parent node coordinate system
-// @param {number} x - local x
-// @param {number} y - local y
-// @returns {object/2d-vector} - {x,y} in parent node coordinates
-RotateFrame.prototype.gxy = function(x, y) {
-    return {
-        x: x * cos(-this.angle) - y * sin(-this.angle),
-        y: x * sin(-this.angle) + y * cos(-this.angle),
-    }
+// translate local vec2 to upper (parent) coordinate system
+//
+// Note: the incoming vec2 is mutated for better efficiency
+//
+// @param {number} lpos - vec2 in local coordinates
+// @returns {array/vec2} - the incoming vec2 translated to the upper (parent) coordinate system
+RotateFrame.prototype.upos = function(lpos) {
+    const lx = lpos[0] * cos(-this.angle) - lpos[1] * sin(-this.angle)
+    const ly = lpos[0] * sin(-this.angle) + lpos[1] * cos(-this.angle)
+
+    lpos[0] = lx
+    lpos[1] = ly
+    return lpos
 }
 
 RotateFrame.prototype.lx = false
 
 RotateFrame.prototype.ly = false
 
-RotateFrame.prototype.gx = false
+RotateFrame.prototype.ux = false
 
-RotateFrame.prototype.gy = false
+RotateFrame.prototype.uy = false
 
-// calculate a vector translated to the _/lab_ coordinate system
-// @param {object/2d-vector} v - source 2d vector
-// @returns {object/2d-vector} - {x,y} in _/lab_ coordinates
-RotateFrame.prototype.labVector = function(v2) {
-    return this.__.labVector( this.gxy(v2.x, v2.y) )
-}

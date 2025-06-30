@@ -1419,23 +1419,23 @@ LabFrame.prototype.deactivate = function() {
     this.disable()
 }
 
-LabFrame.prototype.lx = function(px) {
-    return px
+LabFrame.prototype.lx = function(ux) {
+    return ux
 }
 
-LabFrame.prototype.ly = function(py) {
-    return py
+LabFrame.prototype.ly = function(uy) {
+    return uy
 }
 
-LabFrame.prototype.lxy = function(px, py) {
+LabFrame.prototype.lxy = function(ux, uy) {
     return {
-        x: px,
-        y: py,
+        x: ux,
+        y: uy,
     }
 }
 
-LabFrame.prototype.lpos = function(iv) {
-    return iv
+LabFrame.prototype.lpos = function(upos) {
+    return upos
 }
 
 LabFrame.prototype.ux = function(lx) {
@@ -1456,8 +1456,8 @@ LabFrame.prototype.uxy = function(lx, ly) {
 }
 */
 
-LabFrame.prototype.upos = function(iv) {
-    return iv
+LabFrame.prototype.upos = function(lpos) {
+    return lpos
 }
 
 LabFrame.prototype.xFromAncestor = function(x, basis) {
@@ -1543,17 +1543,6 @@ LabFrame.prototype.posToLocalBasis = function(iv, basis) {
         return null
     }
 }
-
-/*
-LabFrame.prototype.labxy = function(x, y) {
-    const g = this.gxy(x, y)
-    return this.__.labxy(g.x, g.y)
-}
-
-LabFrame.prototype.labVector = function(v2) {
-    return this.__.labVector(v2)
-}
-*/
 
 LabFrame.prototype.poke = function(x, y, opt) {
     let lx
@@ -5072,7 +5061,7 @@ const preboot = function() {
     loadJson(JAM_CONFIG)
         .then(function(config) {
             if (config) {
-                _scene.log.sys('=== Config ===' + '\n' + JSON.stringify(config, null, ' '))
+                _scene.log.raw('===== CONFIG =====' + '\n' + JSON.stringify(config, null, ' '))
                 _scene.setConfig(config)
             }
             bootstrap()
@@ -5084,7 +5073,7 @@ const preboot = function() {
 }
 
 const bootstrap = function() {
-    _scene.log.sys('jam', '*** booting up ***')
+    _scene.log.raw('===== BOOTING UP =====')
 
     container = document.getElementById(containerName)
     // place WebGL context
@@ -5253,7 +5242,7 @@ function startCycle() {
     setInterval(focus, 100)
 
     // initiate the game loop
-    console.log('*** [jam] starting main cycle ***')
+    _scene.log.raw('===== STARTING MAIN EVO-DRAW CYCLE =====')
     _scene.env.startedTime = Date.now()
     _scene.env.lastFrame = performance.now()
     _scene.env.time = 0
@@ -5683,11 +5672,11 @@ for (let i = 0; i < scripts.length; i++) {
             }
         } 
 
-        _scene.log.sys('=== Environment ===')
-        _scene.log.sys('basename: ' + _scene.env.basename)
-        _scene.log.sys('syspath: ' + _scene.env.syspath)
-        _scene.log.sys('basepath: ' + _scene.env.basepath)
-        _scene.log.sys('title: ' + _scene.env.title)
+        _scene.log.raw('===== ENVIRONMENT =====')
+        _scene.log.sys(`basename:   [${_scene.env.basename}]`)
+        _scene.log.sys(`syspath:    [${_scene.env.syspath}]`)
+        _scene.log.sys(`basepath:   [${_scene.env.basepath}]`)
+        _scene.log.sys(`title:      [${_scene.env.title}]`)
         break
     }
 }

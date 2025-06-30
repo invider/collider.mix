@@ -41,45 +41,40 @@ TransformFrame.prototype.lx = false
 
 TransformFrame.prototype.ly = false
 
-TransformFrame.prototype.gx = false
+TransformFrame.prototype.ux = false
 
-TransformFrame.prototype.gy = false
+TransformFrame.prototype.uy = false
 
-// translate x,y to local coordinate system
-// @param {number} x - global x
-// @param {number} y - global y
-// @returns {object/2d-vector} - {x,y} in local coordinates
-TransformFrame.prototype.lxy = function(x, y) {
-    const lx = (x - this.x)/this.scale
-    const ly = (y - this.y)/this.scale
+// translate an upper (parent) vec2 to local coordinate system
+//
+// Note: the incoming vec2 is mutated for better efficiency
+//
+// @param {array/vec2} upos - vec2 in the upper (parent) coordinate system
+// @returns {array/vec2} - the incoming vec2 translated to local coordinates
+TransformFrame.prototype.lpos = function(upos) {
+    const lx = (upos[0] - this.x)/this.scale
+    const ly = (upos[1] - this.y)/this.scale
 
-    return {
-        x: lx * cos(-this.angle) - ly * sin(-this.angle),
-        y: lx * sin(-this.angle) + ly * cos(-this.angle),
+    upos[0] = lx * cos(-this.angle) - ly * sin(-this.angle)
+    upos[1] = lx * sin(-this.angle) + ly * cos(-this.angle)
 
-    }
+    return upos
 }
 
-// translate x,y to parent node coordinate system
-// @param {number} x - local x
-// @param {number} y - local y
-// @returns {object/2d-vector} - {x,y} in parent node coordinates
-TransformFrame.prototype.gxy = function(x, y) {
-    return {
-        x: (x * cos(this.angle) - y * sin(this.angle))
-                * this.scale + this.x,
-        y: (x * sin(this.angle) + y * cos(this.angle))
-                * this.scale + this.y,
-    }
+// translate local vec2 to upper (parent) coordinate system
+//
+// Note: the incoming vec2 is mutated for better efficiency
+//
+// @param {number} lpos - vec2 in local coordinates
+// @returns {array/vec2} - the incoming vec2 translated to the upper (parent) coordinate system
+TransformFrame.prototype.upos = function(lpos) {
+    const ux = (lpos[0] * cos(this.angle) - lpos[1] * sin(this.angle))
+            * this.scale + this.x
+    const uy = (lpos[0] * sin(this.angle) + lpos[1] * cos(this.angle))
+            * this.scale + this.y
+
+    lpos[0] = ux
+    lpos[1] = uy
+    return lpos
 }
 
-// calculate a vector translated to the _/lab_ coordinate system
-// @param {object/2d-vector} v - source 2d vector
-// @returns {object/2d-vector} - {x,y} in _/lab_ coordinates
-TransformFrame.prototype.labVector = function(v) {
-    const s = this.scale
-    return this.__.labVector({
-        x: (x * cos(this.angle) - y/s * sin(this.angle)) * s,
-        y: (x * sin(this.angle) + y/s * cos(this.angle)) * s,
-    })
-}
