@@ -26,8 +26,21 @@ function expect(tar, title, up, upTitle) {
             if (Math.abs(tar - val) > epsilon)  throw new Error(`${tag} is expected to be near [${val}] (precision: ${epsilon})`)
             return this
         },
+        notToBe: function(val) {
+            if (tar === val) throw new Error(`${tag} is not expected to be [${val}]!`)
+            return this
+        },
+        notToBeNear: function(val, epsilon) {
+            epsilon = epsilon || this.EPSILON
+            if (Math.abs(tar - val) <= epsilon) throw new Error(`${tag} is not expected to be near [${val}] (precision: ${epsilon})`)
+            return this
+        },
         isNull: function() {
             if (tar != null) throw new Error(`${tag} is expected to be null`)
+            return this
+        },
+        isNot: function() {
+            if (tar) throw new Error(`${tag} is not expected - MUST be [0|false|null|undefined]`)
             return this
         },
         isUndefined: function() {
@@ -99,7 +112,7 @@ function expect(tar, title, up, upTitle) {
             return this
         },
 
-        notNull: function() {
+        isNotNull: function() {
             if (tar == null) throw new Error(`value is expected, but ${tag} found`)
             return this
         },
