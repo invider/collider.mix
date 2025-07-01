@@ -1427,13 +1427,6 @@ LabFrame.prototype.ly = function(uy) {
     return uy
 }
 
-LabFrame.prototype.lxy = function(ux, uy) {
-    return {
-        x: ux,
-        y: uy,
-    }
-}
-
 LabFrame.prototype.lpos = function(upos) {
     return upos
 }
@@ -1446,81 +1439,15 @@ LabFrame.prototype.uy = function(ly) {
     return ly
 }
 
-/*
-// TODO maybe this should go in order to have a more universal pvec2?
-LabFrame.prototype.uxy = function(lx, ly) {
-    return {
-        x: lx,
-        y: ly,
-    }
-}
-*/
-
 LabFrame.prototype.upos = function(lpos) {
     return lpos
 }
 
-LabFrame.prototype.xFromAncestor = function(x, basis) {
-    if (this.__ === basis) {
-        return this.lx(x)
-    } else {
-        return this.lx(this.__.xFromAncestor(x, basis))
-    }
-}
-
-LabFrame.prototype.xToTarget = function(x, target) {
-    if (!this.__) {
-        return NaN
-    } else if (this.__ === target) {
-        return this.px(x)
-    } else {
-        return this.__.bux(this.px(x), target)
-    }
-}
-
-LabFrame.prototype.xFrom = function(x, basis) {
-    if (isAncestor(this, basis)) {
-        return this.blx(x, basis)
-    } else if (isAncestor(basis, this)) {
-        return basis.bux(x, this)
-    } else {
-        return NaN
-    }
-}
-
-LabFrame.prototype.yFromAncestor = function(y, basis) {
-    if (this.__ === basis) {
-        return this.ly(y)
-    } else {
-        return this.ly(this.__.yFromAncestor(y, basis))
-    }
-}
-
-LabFrame.prototype.yToTarget = function(y, target) {
-    if (!this.__) {
-        return NaN
-    } else if (this.__ === target) {
-        return this.uy(y)
-    } else {
-        return this.__.yToTarget(this.uy(y), target)
-    }
-}
-
-LabFrame.prototype.yFrom = function(y, basis) {
-    if (isAncestor(this, basis)) {
-        return this.yFromParent(y, basis)
-    } else if (isAncestor(basis, this)) {
-        return basis.yToTarget(y, this)
-    } else {
-        return NaN
-    }
-}
-
 LabFrame.prototype.toLocalPos = function(iv, basis) {
     if (this.__ === basis) {
-        return this.lvec2(iv)
+        return this.lpos(iv)
     } else {
-        return this.lvec2(this.__.toLocalPos(iv, basis))
+        return this.lpos(this.__.toLocalPos(iv, basis))
     }
 }
 
@@ -1528,9 +1455,9 @@ LabFrame.prototype.toTargetPos = function(iv, target) {
     if (!this.__) {
         return NaN
     } else if (this.__ === target) {
-        return this.pvec2(iv)
+        return this.upos(iv)
     } else {
-        return this.__.toTargetPos(this.pvec2(iv), target)
+        return this.__.toTargetPos(this.upos(iv), target)
     }
 }
 
