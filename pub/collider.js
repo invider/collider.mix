@@ -3923,6 +3923,7 @@ Mod.prototype.start = function() {
     this.trap.signal('postSetup')
 
     _scene.log.sys('starting evolution of [' + this.path() + ']')
+    this.trap.signal('start')
 }
 
 Mod.prototype.inherit = function() {
