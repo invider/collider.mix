@@ -3076,12 +3076,16 @@ const Mod = function(st) {
 
     // container for acting entities - actors, ghosts, props
     this.attach(new LabFrame({
+        /*
+        // TODO why these two were defined on /lab and /lab only?
         labxy: function(x, y) {
+            // !!! this one not even work anymore - is it used somewhere?
             return this.gxy(x, y)
         },
         labVector: function(v2) {
             return v2
         },
+        */
     }), 'lab')
 
     this.attach(new CueFrame(), 'cue')
