@@ -1550,17 +1550,6 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
     return last
 }
 
-LabFrame.prototype.killAll = function() {
-    this._ls.forEach(node => {
-        kill(node)
-    })
-}
-
-LabFrame.prototype.kill = function() {
-    kill(this)
-}
-
-
 const CueFrame = function(st, extra) {
     Frame.call(this, st, extra)
 }
