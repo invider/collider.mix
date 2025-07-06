@@ -2584,16 +2584,21 @@ const checkScriptDependencies = function(script, batch) {
 
     let match
     while(match = extendRegExp.exec(script.src)) {
-        let k = match[1]
+        const path = match[1]
+        // a special case to test against paths without leading /
+        const localPath = path.startsWith('/')? path.substring(1) : null
+
+        // make sure we can identify the dependency in the current batch
         let dependency
         batch.forEach(s => {
-            if (s.path === k) dependency = s
+            if (s.path === path || (localPath && s.path === localPath)) dependency = s
         })
-        if (dependency) depends.push(dependency)
-        else {
+        if (dependency) {
+            depends.push(dependency)
+        } else {
             _scene.log.sys('current batch:')
             _scene.log.dump(batch)
-            throw '[' + script.origin + ']: dependency [' + k + '] is not found'
+            throw '[' + script.origin + ']: dependency [' + path + '] is not found'
         }
     }
     return depends
@@ -3058,10 +3063,16 @@ const Mod = function(st) {
     //
     // static environment data entities
     this.attach(new Frame({
-        name: "env",
-        _started: false,
-        _evoSpeed: 1,
+        name:       'env',
+        _started:    false,
+        _evoSpeed:   1,
+        startedTime: Date.now(),
+        lastFrame:   performance.now(),
+        time:        0,
+        realTime:    0,
+        _keyAction:  {},
     }))
+
 
     // container for acting entities - actors, ghosts, props
     this.attach(new LabFrame({
@@ -4800,13 +4811,13 @@ function constructScene(target) {
     const mod = target || new Mod()
     mod.name = '/'
 
-    mod._   = mod  // set the context
-    mod._$  = mod  // root context
-    mod.__  = null // don't have any parents
-    mod.___ = mod  // parent context
-    Object.defineProperty(mod, '_', { enumerable: false })
-    Object.defineProperty(mod, '_$', { enumerable: false })
-    Object.defineProperty(mod, '__', { enumerable: false })
+    mod._   = mod  // the context is the root itself
+    mod._$  = mod  // the root context is the root itself
+    mod.__  = null // the root doesn't have any parents
+    mod.___ = mod  // the parent context is the root itself
+    Object.defineProperty(mod, '_',   { enumerable: false })
+    Object.defineProperty(mod, '_$',  { enumerable: false })
+    Object.defineProperty(mod, '__',  { enumerable: false })
     Object.defineProperty(mod, '___', { enumerable: false })
     mod.inherit = function() {}
 
@@ -5164,11 +5175,12 @@ function startCycle() {
 
     // initiate the game loop
     _scene.log.raw('===== STARTING MAIN EVO-DRAW CYCLE =====')
-    _scene.env.startedTime = Date.now()
-    _scene.env.lastFrame = performance.now()
-    _scene.env.time = 0
-    _scene.env.realTime = 0
-    _scene.env._keyAction = {}
+    // moved env initializers to new Mod() - probably don't need them here at all
+    // _scene.env.startedTime = Date.now()
+    // _scene.env.lastFrame = performance.now()
+    // _scene.env.time = 0
+    // _scene.env.realTime = 0
+    // _scene.env._keyAction = {}
     window.requestAnimFrame(cycle)
     /*
         // old-fasioned way to setup animation
