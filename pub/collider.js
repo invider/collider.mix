@@ -750,7 +750,7 @@ Frame.prototype.xlink = function(node, name) {
 }
 
 Frame.prototype.onAttach = function(node, name, parent) {
-    if (this.__) this.__.onAttach(node, name, parent)
+    if (this.__ && isFun(this.__.onAttach)) this.__.onAttach(node, name, parent)
 }
 
 // TODO split to 2 different methods by intent
@@ -766,8 +766,13 @@ Frame.prototype.detach = function(node) {
         if (i >= 0) {
             this._ls.splice(i, 1);
         }
-        if (isFun(node.onDetach)) node.onDetach()
+        //if (isFun(node.onDetach)) node.onDetach()
     }
+    this.onDetach(node, this)
+}
+
+Frame.prototype.onDetach = function(node, parent) {
+    if (this.__ && isFun(this.__.onDetach)) this.__.onDetach(node, parent)
 }
 
 Frame.prototype.detachAll = function() {
