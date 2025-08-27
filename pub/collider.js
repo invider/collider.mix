@@ -871,37 +871,55 @@ Frame.prototype.applyAll = function(fn, predicate) {
     return count
 }
 
-Frame.prototype.collide = function(fn, predicate) {
-    let i = 0
+// TODO since a collide function could potentially cause side effects
+//      (e.g. create particles, explosions...)
+//      maybe defer hit call for later - just collect hitting pairs in a double-list
+//      and execute collisions after the main loop to avoid potential side effects in collideFn
+Frame.prototype.collide = function(collideFn, predicate) {
+    let hits = 0
     if (isFun(predicate)) {
-        let ls = this._ls
-		ls.forEach( function(e) {
-			if (predicate(e)) {
-                ls.forEach( function(o) {
-                    if (predicate(o)) {
-                        if (e !== o) fn(e, o)
+        const ls = this._ls,
+              N  = ls.length
+        for (let i = 0; i < N; i++) {
+            const hitter = ls[i]
+            if (predicate(hitter)) {
+                for (let j = 0; j < N; j++) {
+                    const target = ls[j]
+                    if (hitter !== target && predicate(target) && predicate(hitter)) {
+                        collideFn(hitter, target)
+                        hits ++
                     }
-                })
+                }
             }
-		})
+        }
     } else if (isStr(predicate)) {
-        let ls = this.select(predicate)
-        ls.forEach( function(e) {
-            ls.forEach( function(o) {
-                if (e !== o) fn(e, o)
-                i++
-            })
-        })
+        const ls = this.select(predicate),
+              N  = ls.length
+        for (let i = 0; i < N; i++) {
+            const hitter = ls[i]
+            for (let j = 0; j < N; j++) {
+                const target = ls[j]
+                if (hitter !== target) {
+                    collideFn(hitter, target)
+                    hits ++
+                }
+            }
+        }
     } else {
-        let ls = this._ls
-		ls.forEach( function(e) {
-            ls.forEach( function(o) {
-                if (e !== o) fn(e, o)
-                i++
-            })
-        })
+        const ls = this._ls,
+              N  = ls.length
+        for (let i = 0; i < N; i++) {
+            const hitter = ls[i]
+            for (let j = 0; j < N; j++) {
+                const target = ls[j]
+                if (hitter !== target) {
+                    collideFn(hitter, target)
+                    hits ++
+                }
+            }
+        }
     }
-    return i
+    return hits
 }
 
 Frame.prototype.map = function(fn) {
