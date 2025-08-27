@@ -145,6 +145,7 @@ Emitter.prototype.spawn = function() {
     var p = this.createParticle()
     if (!p.draw) p.draw = this.drawParticle
     if (!p.move) p.move = this.moveParticle
+    if (this.evoParticle) p.evo = this.evoParticle
 
     // find a slot
     var placed = false
