@@ -2916,6 +2916,7 @@ const Mod = function(st) {
     this.attach(new Frame({
         name:     'res',
         _included: 0,
+        _scheduled: {},
         _loaded:   0,
         _errors:   0,
         _evalList: [],
@@ -3026,6 +3027,11 @@ const Mod = function(st) {
 
         _onLoaded: function(script) {
             this._loaded ++
+            if (script.currentTarget) {
+                this._scheduled[script.currentTarget.origin] = true
+            } else {
+                this._scheduled[script.origin] = true
+            }
             if (script) this._preEvalScript(script)
             this._checkEvalReadiness()
         },
@@ -4297,6 +4303,7 @@ function removeExtension(url) {
 
 function attachFont(_, name, url, base, path, ext, classifier, format, mimeType, onLoad, after) {
     _.res._included ++
+    _.res._scheduled[url] = false
     const fontFile = new FontFace(name, `url(${url})`)
     document.fonts.add(fontFile);
     const script = {
@@ -4314,7 +4321,8 @@ function attachFont(_, name, url, base, path, ext, classifier, format, mimeType,
             onLoad(script)
         },
         (err) => {
-            _.log.sys(`[font-loader]`, `unable to load ${name}:[${url}]`)
+            _.log.err(`[font-loader]`, `unable to load ${name}:[${url}]`)
+            _.log.err(err)
         }
     )
 
@@ -4339,9 +4347,11 @@ function attachWAV(url) {
 
 function patchImg(_, batch, url, base, path, classifier, onLoad) {
     _.res._included ++
+    _.res._scheduled[url] = false
 
     const img = new Image()
     img.src = randomizeUrl(url)
+    img.origin = url
     img.onload = onLoad
 
     if (classifier && classifier.startsWith('map')) {
@@ -4402,6 +4412,7 @@ function loadJson(url) {
 
 function scheduleLoad(_, batch, url, base, path, name, ext, classifier, type, after) {
     _.res._included ++
+    _.res._scheduled[url] = false
 
     const ajax = new XMLHttpRequest()
     ajax.onreadystatechange = function() {
