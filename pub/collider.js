@@ -3986,6 +3986,7 @@ Mod.prototype.inherit = function() {
 
 Mod.prototype.evo = function(dt) {
     // boot logic
+    // TODO - move out and inject only into the root mod
     if (!this.env._started || this.boot) {
         // try to find and evolve boot node or mod
         if (this.boot && isFun(this.boot.evo)) {
@@ -3995,12 +3996,11 @@ Mod.prototype.evo = function(dt) {
     }
     if (this.paused) return
 
+    // update local time
+    this.env.time += dt
     // evolve all entities in the lab
     if (!this.cue.paused) this.cue.evo(dt)
     if (!this.lab.paused) this.lab.evo(dt)
-    //this.lab._ls.forEach( e => {
-    //    if (e.evo && !e.dead && !e.paused) e.evo(dt)
-    //})
 
     // evolve all mods
     this.mod.evo(dt)
@@ -5386,7 +5386,6 @@ function cycle(now) {
 
     // adjust according to evo speed
     dt *= _scene.env._evoSpeed
-    _scene.env.time += dt
 
     // show, react and update cycle
     _scene.dt = dt
