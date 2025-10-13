@@ -4849,10 +4849,12 @@ function constructScene(target) {
     mod._$  = mod  // the root context is the root itself
     mod.__  = null // the root doesn't have any parents
     mod.___ = mod  // the parent context is the root itself
+    mod._canvasList = canvasList
     Object.defineProperty(mod, '_',   { enumerable: false })
     Object.defineProperty(mod, '_$',  { enumerable: false })
     Object.defineProperty(mod, '__',  { enumerable: false })
     Object.defineProperty(mod, '___', { enumerable: false })
+    Object.defineProperty(mod, '_canvasList', { enumerable: false })
     mod.inherit = function() {}
 
     // sys
