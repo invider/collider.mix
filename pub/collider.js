@@ -637,6 +637,7 @@ const Frame = function(st, extra) {
     //this._ = this
     this._ls = []
     this._dir = {}
+    this._attachPolicy = 0
     if (isStr(st)) {
         this.name = st
         if (isObj(extra)) augment(this, extra)
@@ -644,6 +645,12 @@ const Frame = function(st, extra) {
         augment(this, st)
     }
 }
+// attach naming conflict resolution policies 
+Frame.SHADOW  = 0  // shadow the existing node
+Frame.HIDE    = 1  // hide behind the existing node
+Frame.REPLACE = 2  // replace the existing node
+Frame.LEAVE   = 3  // leave the existing node as is and skip the attach operation
+Frame.DENY    = 4  // raise an error on a conflicting name
 Frame.prototype._frame = true
 Frame.prototype._dna = "Frame"
 
@@ -667,36 +674,55 @@ Frame.prototype.touch = touchFun((name, __, st) => {
     }
 })
 
-// TODO different attach modes maybe - regarding the naming, replacing, chaining? Maybe some props on the frame can control it?
-Frame.prototype.attach = function(node, name) {
+// TODO augmentation, supplement and chaining could be done with event handlers?
+Frame.prototype.attach = function(node, name, attachPolicy) {
     if (node === undefined || node === null) return
+    attachPolicy = attachPolicy || this._attachPolicy
 
     if (isObj(node) || isFun(node)) {
-        // attaching an object - inject mod, parent and name
+        // attaching an object - must inject the parent and the name
         node.__ = this
         Object.defineProperty(node, '__', { enumerable: false })
 
         // set name for the node if possible
         if (name && isObj(node)) node.name = name
-        // take name from the node if not defined
+        // derive the name from the node if none defined
         if (!name && node.name) name = node.name
 	}
 
     let prevNode
     if (name) {
         // make sure we are not shaddowing prototype definitions
-        // TODO make an option to ignore anyways or maybe that is an object prop as well?
         prevNode = this[name]
-        if (prevNode) this.detach(prevNode)
+        if (prevNode) {
+            if (attachPolicy === Frame.DENY) {
+                throw Error(`Can't attach the node - naming conflict for [${name}]`)
+            } else if (attachPolicy === Frame.LEAVE) {
+                // leave the old and silently ignore the new node
+                return
+            } else if (attachPolicy === Frame.REPLACE) {
+                if (isFun(prevNode.onReplaceBy)) prevNode.onReplaceBy(node)
+                this.detach(prevNode)
+            }
+            // ... do nothing here for SHADOW or HIDE
+        }
 
         if (!this.__proto__ || !this.__proto__[name]) {
-            this[name] = node
+            // the name is not shadowed by the prototype definition
+            // so we can define it on the object itself
+            if (attachPolicy !== Frame.HIDE || !prevNode) {
+                this[name] = node
+            }
         }
-        this._dir[name] = node
+        // include the name in the frame directory
+        if (attachPolicy !== Frame.HIDE || !prevNode) {
+            this._dir[name] = node
+        }
     }
+    // include the name in the frame list
     this._ls.push(node)
 
-    if (isNum(node.Z)) this.orderZ()
+    if (isNum(node.Z)) this.orderZ() // TODO a more complex Z-ordering techniques must be applied, maybe sort while inserting in _ls?
     this.onAttach(node, name, this)
     if (prevNode && isFun(node.onReplace)) node.onReplace(prevNode)
     if (isFun(node.init)) node.init() // initialize node
@@ -1284,7 +1310,7 @@ LabFrame.prototype.spawn = function(dna, st) {
         return this.getMod().sys.spawn(dna, st, this)
 
     } else {
-        // === pawn in an orphan node ===
+        // === spawn in an orphan node ===
         if (isStr(dna)) throw `can't do path lookups in orphan nodes - provide a DNA object or attach the parent node first!`
 
         let res
