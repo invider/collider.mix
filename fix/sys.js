@@ -443,5 +443,26 @@ const system = {
             src.play()
         }
     },
+
+    // TODO include sys/killAll autodocs
+    killAll: function(target, predicate, st) {
+        if (!target) return
+
+        let ls
+        if (isArray(target)) ls = target
+        else if (isFrame(target)) ls = target._ls
+        else return
+
+        const skipPredicate = !isFun(predicate)
+        for (let i = ls.length - 1; i >= 0; i--) {
+            const e = ls[i]
+            if (e && !e.dead) {
+                if (skipPredicate || predicate(e)) {
+                    kill(e, st)
+                }
+            }
+        }
+    },
+
 }
 module.exports = system

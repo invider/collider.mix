@@ -388,13 +388,14 @@ function defer(fn, timeout) {
 
 function kill(e, st) {
     if (!isContainer(e)) return
+
     e.dead = true
     defer(() => {
         // notify the entity it's about to be killed
         if (isFun(e.onKill)) e.onKill(st)
 
         if (isFun(e.kill)) {
-            e.kill(st)  // killing with a specified procedure
+            e.kill(st)  // killing with a special procedure
         } else if (e.__) {
             e.__.detach(e) // just detaching the node from the parent
         } else {
@@ -674,7 +675,8 @@ Frame.prototype.touch = touchFun((name, __, st) => {
     }
 })
 
-// TODO augmentation, supplement and chaining could be done with event handlers?
+// TODO can chaining be done with event handlers?
+// TODO document attach policies
 Frame.prototype.attach = function(node, name, attachPolicy) {
     if (node === undefined || node === null) return
     attachPolicy = attachPolicy || this._attachPolicy
