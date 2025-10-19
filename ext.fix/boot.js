@@ -596,7 +596,7 @@ function updateLoadingStatus() {
         // a boot-time error
         if (bootLabel !== ERROR) {
             const sound = !res.sfx || res.sfx[cf.sfx.error.res]
-            if (sound) sfx(sound, cf.sfx.error.vol || cf.sfx.vol)
+            if (sound) sys.sfx(sound, cf.sfx.error.vol || cf.sfx.vol)
         }
         bootLabel = ERROR
         cf.color.content = cf.color.contentErr
@@ -631,7 +631,7 @@ function evoBoot(dt) {
             bootState = FADING 
 
             const sound = !res.sfx || res.sfx[cf.sfx.boot.res]
-            if (sound) sfx(sound, cf.sfx.boot.vol || cf.sfx.vol)
+            if (sound) sys.sfx(sound, cf.sfx.boot.vol || cf.sfx.vol)
         }
         break;
 
