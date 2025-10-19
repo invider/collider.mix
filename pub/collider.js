@@ -698,13 +698,16 @@ Frame.prototype.attach = function(node, name, attachPolicy) {
             if (attachPolicy === Frame.DENY) {
                 throw Error(`Can't attach the node - naming conflict for [${name}]`)
             } else if (attachPolicy === Frame.LEAVE) {
-                // leave the old and silently ignore the new node
+                // leave the old and ignore the new node, fire onTouchBy event
+                if (isFun(prevNode.onTouchBy)) prevNode.onTouchBy(node, attachPolicy)
                 return
             } else if (attachPolicy === Frame.REPLACE) {
                 if (isFun(prevNode.onReplaceBy)) prevNode.onReplaceBy(node)
                 this.detach(prevNode)
+            } else if (attachPolicy === Frame.SHADOW) {
+                if (isFun(prevNode.onShadowBy)) prevNode.onShadowBy(node)
             }
-            // ... do nothing here for SHADOW or HIDE
+            // ... do nothing here for HIDE
         }
 
         if (!this.__proto__ || !this.__proto__[name]) {
@@ -717,6 +720,8 @@ Frame.prototype.attach = function(node, name, attachPolicy) {
         // include the name in the frame directory
         if (attachPolicy !== Frame.HIDE || !prevNode) {
             this._dir[name] = node
+        } else {
+            if (isFun(prevNode.onTouchBy)) prevNode.onTouchBy(node, attachPolicy)
         }
     }
     // include the name in the frame list
@@ -779,9 +784,6 @@ Frame.prototype.onAttach = function(node, name, parent) {
     if (this.__ && isFun(this.__.onAttach)) this.__.onAttach(node, name, parent)
 }
 
-// TODO split to 2 different methods by intent
-//      now when you want to detach a node that happend to be null,
-//      you end up with the whole frame detached... Not good.
 Frame.prototype.detach = function(node) {
     if (!node) return
 
@@ -792,7 +794,7 @@ Frame.prototype.detach = function(node) {
         if (i >= 0) {
             this._ls.splice(i, 1);
         }
-        //if (isFun(node.onDetach)) node.onDetach()
+        if (isFun(node.unplug)) node.unplug() // a symmetrical call to node.init()
     }
     this.onDetach(node, this)
 }
