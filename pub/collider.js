@@ -681,13 +681,13 @@ Frame.prototype.attach = function(node, name, attachPolicy) {
     if (node === undefined || node === null) return
     attachPolicy = attachPolicy || this._attachPolicy
 
-    if (isObj(node) || isFun(node)) {
+    if (isContainer(node)) {
         // attaching an object - must inject the parent and the name
         node.__ = this
         Object.defineProperty(node, '__', { enumerable: false })
 
         // set name for the node if possible
-        if (name && isObj(node)) node.name = name
+        if (name && (isObj(node) || isArray(node))) node.name = name
         // derive the name from the node if none defined
         if (!name && node.name) name = node.name
 	}
@@ -2313,7 +2313,7 @@ function generateSource(script, __) {
         + def 
         + script.src
         + script.def
-    + '}).call(scope, __, __.ctx, __.gl, __._$, __._$, module, __.sys, __.lib, __.lib.math, __.lib.color, __.res, __.dna, __.env, __.lab, __.mod, __.pin, __.pub, __.log, __.cue, __.job, __.trap, __.signal)'
+    + '}).call(scope, __, __.ctx, __.gl, __._$, __._$, module, __.sys, __.lib, __._$.lib.math, __.lib.color, __.res, __.dna, __.env, __.lab, __.mod, __.pin, __.pub, __.log, __.cue, __.job, __.trap, __.signal)'
     + '\n//# sourceURL=' + script.origin
 }
 
@@ -2930,7 +2930,7 @@ const Mod = function(st) {
         },
 
         sfx: function(src, vol, pan) {
-            _.lib.sfx(src, vol, pan)
+            _scene.lib.sfx(src, vol, pan)
             return alt
         },
 
