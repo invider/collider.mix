@@ -3152,10 +3152,12 @@ const Mod = function(st) {
                     path: __.path() + '/' + entry.name,
                     node: node,
                 })
-                entry.path = __.path()
-                entry.node = node
-                entry.ambiguous = true
+                if (this[name] === entry.node) delete this[name]
                 delete this._reg[name]
+
+                entry.path      = __.path()
+                entry.node      = node
+                entry.ambiguous = true
             } else {
                 this._catalog[name] = entry = {
                     name:      name,
@@ -3164,6 +3166,7 @@ const Mod = function(st) {
                     ambiguous: false,
                 }
                 this._reg[name] = node
+                if (!this[name]) this[name] = node
             }
 
             Frame.prototype.onAttach.call(this, node, name, __)
