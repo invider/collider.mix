@@ -730,9 +730,11 @@ Frame.prototype.attach = function(node, name, attachPolicy) {
     this._ls.push(node)
 
     if (isNum(node.Z)) this.orderZ() // TODO a more complex Z-ordering techniques must be applied, maybe sort while inserting in _ls?
-    this.onAttach(node, name, this)
     if (prevNode && isFun(node.onReplace)) node.onReplace(prevNode)
-    if (isFun(node.init)) node.init() // initialize node
+    // initialize the node
+    if (isFun(node.init)) node.init()
+    // notify the tree
+    this.onAttach(node, name, this)
 
     return node
 }
@@ -789,20 +791,23 @@ Frame.prototype.onAttach = function(node, name, parent) {
 Frame.prototype.detach = function(node) {
     if (!node) return
 
-    if (node.name && (this._dir[node.name]) === node) {
+    if (node.name && (this._dir[node.name] === node)) {
         this.detachByName(node.name)
     } else {
-        let i = this._ls.indexOf(node);
-        if (i >= 0) {
-            this._ls.splice(i, 1);
-        }
+        // unplug first
         if (isFun(node.unplug)) node.unplug() // a symmetrical call to node.init()
+        // notify the tree
+        this.onDetach(node, node.name, this)
+
+        let i = this._ls.indexOf(node)
+        if (i >= 0) {
+            this._ls.splice(i, 1)
+        }
     }
-    this.onDetach(node, this)
 }
 
-Frame.prototype.onDetach = function(node, parent) {
-    if (this.__ && isFun(this.__.onDetach)) this.__.onDetach(node, parent)
+Frame.prototype.onDetach = function(node, name, parent) {
+    if (this.__ && isFun(this.__.onDetach)) this.__.onDetach(node, name, parent)
 }
 
 Frame.prototype.detachAll = function() {
@@ -816,10 +821,10 @@ Frame.prototype.detachAll = function() {
 }
 
 Frame.prototype.detachByName = function(name) {
-    const node = this[name] || this._dir[name];
+    const node = this._dir[name] || this[name]
     if (node === undefined){
-        // TODO should we be silent in this case or it has any value?
-        throw new Error("No node with name:" + name);
+        log.warn(`[${this.path()}] unable to detach - can't find the node [${name}]`)
+        return
     }
 
     /*
@@ -834,16 +839,20 @@ Frame.prototype.detachByName = function(name) {
     }
     */
 
-    // detach named
-    delete this._dir[name];
-    if (this[name] === node) delete this[name];
-    // detach by index if exists
-    let index = this._ls.indexOf(node);
-    if (index >= 0){
-        this._ls.splice(index, 1);
-    }
+    // unplug first
+    if (isFun(node.unplug)) node.unplug() // a symmetrical call to node.init()
+    // notify the tree
+    this.onDetach(node, name, this)
 
-    if (isFun(node.onDetach)) node.onDetach()
+    // remove from the frame directory by name
+    delete this._dir[name]
+    // remove from the object itself if matches
+    if (this[name] === node) delete this[name]
+    // remove from the frame list if present
+    let index = this._ls.indexOf(node)
+    if (index >= 0){
+        this._ls.splice(index, 1)
+    }
 }
 
 Frame.prototype.detachSelf = function() {
