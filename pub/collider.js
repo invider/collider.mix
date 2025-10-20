@@ -3121,7 +3121,54 @@ const Mod = function(st) {
     //this.attach(new Frame("log"))
 
     // prototypes/constructors
-    this.attach(new Frame(), 'dna')
+    this.attach(new Frame({
+        name:     'dna',
+        _reg:     {},
+        _catalog: {},
+        _locate:  function(path) {
+            if (!path) return
+
+            let target = this._reg[path]
+            if (target) return target
+
+            target = this.selectOne(path)
+            if (target) return target
+
+            const mod = this.getMod()
+            if (mod.___ !== mod) return mod.___.dna._locate(path)
+        },
+
+        onAttach: function(node, name, __) {
+            // register a dna entry in the catalog
+            let entry = this._catalog[name]
+
+            if (entry) {
+                // name collision!
+                if (!entry.variety) entry.variety = [ {
+                    path: entry.path + '/' + entry.name,
+                    node: entry.node,
+                }]
+                entry.variety.push({
+                    path: __.path() + '/' + entry.name,
+                    node: node,
+                })
+                entry.path = __.path()
+                entry.node = node
+                entry.ambiguous = true
+                delete this._reg[name]
+            } else {
+                this._catalog[name] = entry = {
+                    name:      name,
+                    path:      __.path(),
+                    node:      node,
+                    ambiguous: false,
+                }
+                this._reg[name] = node
+            }
+
+            Frame.prototype.onAttach.call(this, node, name, __)
+        },
+    }))
 
     this.attach(new Frame(), 'lib')
 

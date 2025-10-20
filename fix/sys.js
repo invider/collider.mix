@@ -117,7 +117,8 @@ const system = {
     // @param {object|string} source
     // @param {object} spawnData - optional init data
     // @param {string} sbase - optinal dna lookup base
-    construct: function(source, spawnData, sbase) {
+    // @param {object/node} target - target node
+    construct: function(source, spawnData, sbase, target) {
         const _ = this.getMod()
         if (sbase === undefined) sbase = 'dna/'
 
@@ -126,17 +127,23 @@ const system = {
         let path
         let cons = source
         if (_.sys.isString(source)) {
-            path = this.url.addPath(sbase, source)
-            cons = _.selectOne(path)
+            const mod = this.mod(target)
+            if (mod) cons = mod.dna._locate(source)
+            else cons = _.selectOne(source)
+            if (!cons) cons = _.selectOne(this.url.addPath(sbase, source))
 
+            /*
             if (!isFun(cons) && !isObj(cons)) {
                 // look up in the root mod
-                cons = _._$.selectOne(sbase + source)
+                console.log('!!! spawn trying: ' + sbase + source)
+                cons = _._$.selectOne(this.url.addPath(sbase, source))
             }
-            if (!isFun(cons) && !isObj(cons)) throw "can't find the spawn dna: "
-                + _.name + '/' + sbase + source
+            */
+            if (!isFun(cons) && !isObj(cons)) {
+                throw new Error("can't find the spawn dna: " + _.name + '/' + this.url.addPath(sbase, source))
+            }
         }
-        if (!cons) throw `can't find the spawn dna: ${source}`
+        if (!cons) throw new Error(`can't find the spawn dna: ${source}`)
 
         if (sys.isFun(cons)) {
             // source is function - a constructor or a factory
@@ -220,7 +227,7 @@ const system = {
             dest = dest[0]
         }
 
-        const entity = this.construct(source, spawnData, sbase)
+        const entity = this.construct(source, spawnData, sbase, target)
         if (entity === undefined) return false
 
         const node = sys.attachNode(dest, entity)
@@ -289,6 +296,13 @@ const system = {
         if (!node || !this.isObj(node) || !this.isObj(node.__)) return ''
         if (node.__.name === '/') return this.getName(node)
         return this.path(node.__) + '/' + this.getName(node)
+    },
+
+    mod: function(node) {
+        if (!node || !isContainer(node) || !isObj(node.__)) return
+
+        if (isFun(node.getMod)) return node.getMod()
+        return this.mod(node.__)
     },
 
     // determine node's name
