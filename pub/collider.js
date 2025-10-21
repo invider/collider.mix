@@ -568,6 +568,10 @@ const matchType = function(v) {
 };
 
 const getParentPath = function(path) {
+    if (!path) return ''
+    if (path.endsWith('/')) {
+        return getParentPath(path.substring(0, path.length - 1))
+    }
     return path.replace(/[^\/]+$/, '')
 }
 
@@ -2400,38 +2404,41 @@ function withMeta(val, meta, name) {
     return val
 }
 
+function touchParent(childPath, $, batch) {
+    const path = getParentPath(childPath)
+
+    let st
+    if (batch && batch._patch) {
+        const patch = batch._patch[path]
+        if (patch && !patch._patched) {
+            console.log('patching ' + patch.path)
+            st = evalJS(patch, $, batch)
+            patch._patched = true
+        }
+    }
+
+    const __ = $.touch(path, st)
+
+    return __
+}
+
 function evalJS(script, $, batch) {
     const scope = {}
     const module = {}
 
     // determine the scope 
     let __$ = $ // default scope is loader mod
-    const parentPath = getParentPath(script.path)
-    // TODO should be loader mod?
-    let st
-    if (batch && batch._patch) {
-        const patch = batch._patch[parentPath]
-        if (patch && !patch._patched) {
-            patch._patched = true
-            st = evalJS(patch, $, batch)
-        }
-    }
 
+    const __ = script.patch? touchParent(getParentPath(script.path), $, batch) : touchParent(script.path, $, batch)
 
-    if (!script.patch) {
-        parent = __$.touch(parentPath, st)
-        if (parent && parent.getMod) {
-            // found context from the parent node
-            // TODO should search up the path until we got suitable context
-            //__$ = parent._
-            __$ = parent.getMod()
-        }
+    if (__ && isFun(__.getMod)) {
+        __$ = __.getMod()
     }
 
     script.def = ''
 
     const meta = script.meta,
-        requirements = script.requirements || []
+          requirements = script.requirements || []
     /*
     // TODO move out to preEval handlers
     //      why do we run that after the eval? we can do that before just as easy
@@ -2606,6 +2613,7 @@ function evalLoadedContent(script, _, batch) {
     //try {
     switch(script.ext) {
         case 'js':
+            // TODO patch it properly
             const val = evalJS(script, _, batch)
             if (script.patch) return val
 
