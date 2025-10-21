@@ -279,13 +279,22 @@ const math = {
         return Math.atan2(y2 - y1, x2 - x1)
     },
 
-    // normalize an angle to [0..2**PI] range
+    // normalize an angle to [-PI..PI) range
     //
     // @param {number/radians} a - original angle in radians
     // @returns {number/radians} - normalized angle in radians
     normalizeAngle: function(a) {
-        a = a % (2*Math.PI)
-        return a < 0? a + 2*Math.PI : a
+        return (a - TAU * Math.floor((a + Math.PI) / TAU))
+    },
+
+    // normalize and bias an angle to [0..2*PI) range
+    //
+    // @param {number/radians} a - original angle in radians
+    // @returns {number/radians} - normalized and biased angle in radians
+    biNormalizeAngle: function(a) {
+        // TODO figure out which way is faster
+        // return (a < 0? (a % TAU + TAU) : (a % TAU))
+        return (a - TAU * Math.floor((a + Math.PI - Math.PI) / TAU))
     },
 
     // get an opposite angle normalazed in [0..2**PI] range
