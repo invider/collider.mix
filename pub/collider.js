@@ -676,7 +676,7 @@ Frame.prototype.touch = touchFun((name, __, st) => {
 })
 
 // TODO can chaining be done with event handlers?
-// TODO document attach policies
+// TODO document attach policies in help.mod
 Frame.prototype.attach = function(node, name, attachPolicy) {
     if (node === undefined || node === null) return
     attachPolicy = attachPolicy || this._attachPolicy
@@ -737,6 +737,30 @@ Frame.prototype.attach = function(node, name, attachPolicy) {
     this.onAttach(node, name, this)
 
     return node
+}
+
+Frame.prototype.attachAll = function(source, attachPolicy) {
+    if (!source) return
+
+    let ls
+    if (isFrame(source))  {
+        ls = source._ls
+    } else if (isArr(source)) {
+        ls = source
+    } else if (isObj(source)) {
+        const entries = Object.getEntries(source)
+        for (let i = 0; i < entries.length; i++) {
+            const e = entries[i]
+            this.attach(e.value, e.key, attachPolicy)
+        }
+        return
+    } else {
+        return
+    }
+
+    for (let i = 0; i < ls.length; i++) {
+        this.attach(ls[i], null, attachPolicy)
+    }
 }
 
 Frame.prototype.link = function(node, name) {
@@ -803,6 +827,30 @@ Frame.prototype.detach = function(node) {
         if (i >= 0) {
             this._ls.splice(i, 1)
         }
+    }
+}
+
+Frame.prototype.detachAll = function(source) {
+    if (!source) return
+
+    let ls
+    if (isFrame(source))  {
+        ls = source._ls
+    } else if (isArr(source)) {
+        ls = source
+    } else if (isObj(source)) {
+        const entries = Object.getEntries(source)
+        for (let i = 0; i < entries.length; i++) {
+            const e = entries[i]
+            this.detach(e.value)
+        }
+        return
+    } else {
+        return
+    }
+
+    for (let i = 0; i < ls.length; i++) {
+        this.detach(ls[i])
     }
 }
 
