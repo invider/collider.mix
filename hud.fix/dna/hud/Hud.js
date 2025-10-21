@@ -222,8 +222,8 @@ Hud.prototype.onMouseUp = function(x, y, b, e) {
 // @param {number} y
 // @param {object} e - original mouse event
 Hud.prototype.onMouseMove = function(x, y, e) {
-    const dx = _._$.env.mouse.x - _._$.env.mouse.lx
-    const dy = _._$.env.mouse.y - _._$.env.mouse.ly
+    const dx = $.env.mouse.x - $.env.mouse.lx
+    const dy = $.env.mouse.y - $.env.mouse.ly
     this.captured.forEach(g => {
         if (sys.isFun(g.onMouseMove)) g.onMouseMove(dx, dy, e)
         if (sys.isFun(g.onMouseDrag)) g.onMouseDrag(dx, dy, e)

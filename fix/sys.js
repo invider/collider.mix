@@ -413,22 +413,22 @@ const system = {
 
     sfx: function(src, vol, pan) {
         if (!src) {
-            _.log.warn(`[sfx] can't play - no audio clip was provided!`)
+            log.warn(`[sfx] can't play - no audio clip was provided!`)
             return
         }
-        if (!_._$.env._touched) {
-            _.log.sys(`[sfx:${isStr(src)? src : src.name}]`, `ignoring - no user interaction`)
+        if (!$.env._touched) {
+            log.sys(`[sfx:${isStr(src)? src : src.name}]`, `ignoring - no user interaction`)
             return
         }
         if (!pan) pan = 0
         if (!vol) vol = 1
-        if (isNum(_.env.sfxVolume)) {
-            vol *= _.env.sfxVolume
+        if (isNum($.env.sfxVolume)) {
+            vol *= $.env.sfxVolume
         }
 
         if (isStr(src)) {
             // find by path in resources
-            src = _.res.selectOne(src)
+            src = $.res.selectOne(src)
         }
 
         if (src && (src instanceof Audio

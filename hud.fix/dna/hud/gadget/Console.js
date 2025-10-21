@@ -88,10 +88,12 @@ Console.prototype.pushText = function(text) {
 
     if (!sys.isString(text)) {
         if (sys.isObj(text)) {
-            text._ = undefined
-            text.__ = undefined
-            text.___ = undefined
-            text = JSON.stringify(text, null, 4)
+            // TODO remove cyclic links before json serialization
+            const printableCopy = extend({}, text)
+            printableCopy.__  = undefined
+            printableCopy._$  = undefined
+            printableCopy.__$ = undefined
+            text = JSON.stringify(printableCopy, null, 4)
         } else {
             text = '' + text
         }

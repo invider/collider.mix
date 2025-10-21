@@ -321,7 +321,7 @@ function augment(mixin) {
                 mixin.augment(source)
             } else {
                 for (let prop in source) {
-                    if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
+                    if (prop !== '__' && prop !== '__$' && prop !== '_$') {
                         if (isObj(mixin[prop]) && isObj(source[prop])) {
                             // property is already assigned - augment it
                             if (mixin !== source[prop]) augment(mixin[prop], source[prop])
@@ -356,7 +356,7 @@ function supplement(mixin) {
                 mixin.supplement(source)
             } else {
                 for (let prop in source) {
-                    if (prop !== '_' && prop !== '__' && prop !== '___' && prop !== '_$') {
+                    if (prop !== '__' && prop !== '__$' && prop !== '_$') {
                         // TODO what to do with array cases
                         if (isObj(mixin[prop]) && isObj(source[prop])) {
                             if (mixin !== source[prop]) supplement(mixin[prop], source[prop])
@@ -2337,31 +2337,33 @@ function parseConstants(src, res) {
     }
 }
 
-function generateSource(script, __) {
+function generateSource(script, __$) {
 
     let def = ''
-    Object.keys(__.alt._dir).forEach(f => {
-        def += `let ${f} = __.alt._dir.${f};`
+    Object.keys(__$.alt._dir).forEach(f => {
+        def += `let ${f} = __$.alt._dir.${f};`
     })
-    // declare scope
+    // declare the scope
     /*
-    Object.keys(__._scope).forEach(f => {
+    Object.keys(__$._scope).forEach(f => {
         def += `let ${f} = __._scope.${f};`
     })
 
-    // declare drawing context
-    Object.keys(__.ctx.draw).forEach(f => {
+    // declare the drawing context
+    Object.keys(__$.ctx.draw).forEach(f => {
         def += `let ${f} = ctx.draw.${f};`
     })
     */
 
     // provide lexical scope for mod context and scope object for this. definitions
     // TODO why do we need both $ and _$ here? Research which one is actually used?
-    return '(function(_, ctx, gl, $, _$, module, sys, lib, math, color, res, dna, env, lab, mod, pin, pub, log, cue, job, trap, signal) {'
+    // TODO MUST be evaluated outside of mix autoexec function, to exclude internal definitions form the evaluated JS scope
+    // __$ is already in scope ^^
+    return '(function(ctx, gl, $, module, sys, lib, math, color, res, dna, env, lab, mod, pin, pub, log, cue, job, trap, signal) {'
         + def 
         + script.src
         + script.def
-    + '}).call(scope, __, __.ctx, __.gl, __._$, __._$, module, __.sys, __.lib, __._$.lib.math, __.lib.color, __.res, __.dna, __.env, __.lab, __.mod, __.pin, __.pub, __.log, __.cue, __.job, __.trap, __.signal)'
+    + '}).call(scope, __$.ctx, __$.gl, __$._$, module, __$.sys, __$.lib, __$._$.lib.math, __$.lib.color, __$.res, __$.dna, __$.env, __$.lab, __$.mod, __$.pin, __$.pub, __$.log, __$.cue, __$.job, __$.trap, __$.signal)'
     + '\n//# sourceURL=' + script.origin
 }
 
@@ -2398,12 +2400,12 @@ function withMeta(val, meta, name) {
     return val
 }
 
-function evalJS(script, _, batch) {
+function evalJS(script, $, batch) {
     const scope = {}
     const module = {}
 
     // determine the scope 
-    let __ = _ // default scope is loader mod
+    let __$ = $ // default scope is loader mod
     const parentPath = getParentPath(script.path)
     // TODO should be loader mod?
     let st
@@ -2411,18 +2413,18 @@ function evalJS(script, _, batch) {
         const patch = batch._patch[parentPath]
         if (patch && !patch._patched) {
             patch._patched = true
-            st = evalJS(patch, _, batch)
+            st = evalJS(patch, $, batch)
         }
     }
 
 
     if (!script.patch) {
-        parent = __.touch(parentPath, st)
+        parent = __$.touch(parentPath, st)
         if (parent && parent.getMod) {
             // found context from the parent node
             // TODO should search up the path until we got suitable context
-            //__ = parent._
-            __ = parent.getMod()
+            //__$ = parent._
+            __$ = parent.getMod()
         }
     }
 
@@ -2443,20 +2445,20 @@ function evalJS(script, _, batch) {
         // determine if all requirements are satisfied
         let missing
         requirements.forEach(req => {
-            if (!_.selectOne(req)) missing = req
+            if (!$.selectOne(req)) missing = req
         })
         if (missing) {
             if (script.retries > LOAD_RETRIES) {
                 throw '[eval]', `unable to find dependency [${missing}] in [${script.path}]`
             } 
-            _.log.sys('[eval]', `missing dependency [${missing}], rescheduling [${script.path}]`)
+            $.log.sys('[eval]', `missing dependency [${missing}], rescheduling [${script.path}]`)
             script.retries = script.retries? script.retries + 1 : 1
-            _.res._schedule(-1, script)
+            $.res._schedule(-1, script)
             return 
         }
     }
 
-    const code = generateSource(script, __)
+    const code = generateSource(script, __$)
 
     /*
     // TODO is there a better way to handle evaluation errors?
@@ -2480,8 +2482,8 @@ function evalJS(script, _, batch) {
         if (e && isStr(e) && e.includes('no requirement found') && script.evalTries < 64) {
             // TODO I don't like the test for a string and what can we do with cyclic dependencies?
             //      Maybe there should be a limit on script reevaluation?
-            _.log.sys(`[eval:${script.path}]`, `${e}, rescheduling`)
-            _.res._schedule(-1, script)
+            $.log.sys(`[eval:${script.path}]`, `${e}, rescheduling`)
+            $.res._schedule(-1, script)
             return 
         }
     }
@@ -2503,11 +2505,11 @@ function evalJS(script, _, batch) {
         */
 
         if (defs.length > 0) {
-            _.log.sys(`[eval:${script.path}]`, 'no value - reevaluating to extract definitions')
+            $.log.sys(`[eval:${script.path}]`, 'no value - reevaluating to extract definitions')
 
             // definitions storage code
             script.def = '\n' + defs.map(d => `if (typeof ${d} !== 'undefined') module.def.${d} = ${d}`).join(';')
-            const code = generateSource(script, __)
+            const code = generateSource(script, __$)
 
             // evaluate once again with definition extraction code
             const module = {
@@ -2518,18 +2520,18 @@ function evalJS(script, _, batch) {
 
             if (module.def) {
                 if (isContainer(module.def[script.name])) {
-                    _.log.sys(`[eval:${script.path}]`, 'found defining node for export ' + script.name + '()')
+                    $.log.sys(`[eval:${script.path}]`, 'found defining node for export ' + script.name + '()')
                     return withMeta(module.def[script.name], meta, script.name)
                 }
                 // TODO what if it is just a primitive value (number/string/boolean) that we want to export?
                 return withMeta(module.def, meta, script.name)
             } else {
-                _.log.sys(`[eval:${script.path}]`, 'no value, exports or declarations from ' + script.path, '[eval]')
+                $.log.sys(`[eval:${script.path}]`, 'no value, exports or declarations from ' + script.path, '[eval]')
                 return null
             }
 
         } else {
-            _.log.sys(`[eval:${script.path}]`, 'no value, exports or declarations from ' + script.path, '[eval]')
+            $.log.sys(`[eval:${script.path}]`, 'no value, exports or declarations from ' + script.path, '[eval]')
             return null
         }
     }
@@ -3183,7 +3185,7 @@ const Mod = function(st) {
             if (target) return target
 
             const mod = this.getMod()
-            if (mod.___ !== mod) return mod.___.dna._locate(path)
+            if (mod.__$ !== mod) return mod.__$.dna._locate(path)
         },
 
         onAttach: function(node, name, __) {
@@ -3294,12 +3296,10 @@ const Mod = function(st) {
         } else {
             mod = new Mod(name)
         }
-        mod._   = mod            // this mod points to itself
         mod._$  = _scene         // reference to the root mod
-        mod.___ = this.getMod()  // reference to the parent mod
-        Object.defineProperty(this, '_',   { enumerable: false })
+        mod.__$ = this.getMod()  // reference to the parent mod
         Object.defineProperty(this, '_$',  { enumerable: false })
-        Object.defineProperty(this, '___', { enumerable: false })
+        Object.defineProperty(this, '__$', { enumerable: false })
         return mod
     })
     this.attach(mod)
@@ -3823,14 +3823,14 @@ Mod.prototype.populateAlt = function() {
 Mod.prototype.init = function() {
     // clone the rendering context from the parent mod if not set explicitly
     if (!this.ctx) {
-        this.canvasName   = this.___.canvasName
-        this.canvas       = this.___.canvas
-        this.ctx          = this.___.ctx
+        this.canvasName   = this.__$.canvasName
+        this.canvas       = this.__$.canvas
+        this.ctx          = this.__$.ctx
     }
     if (!this.gl) {
-        this.glCanvasName = this.___.glCanvasName
-        this.glCanvas     = this.___.glCanvas
-        this.gl           = this.___.gl
+        this.glCanvasName = this.__$.glCanvasName
+        this.glCanvas     = this.__$.glCanvas
+        this.gl           = this.__$.gl
     }
     this.defineDrawContext()
     this.populateAlt()
@@ -4099,12 +4099,12 @@ Mod.prototype.start = function() {
 Mod.prototype.inherit = function() {
     this.touch('sys')
 
-    this.link(this.___.pub)
-    extend(this.sys, this.___.sys)
+    this.link(this.__$.pub)
+    extend(this.sys, this.__$.sys)
     this.lib.attach({ name: 'math' })
-    extend(this.lib.math, this.___.lib.math)
+    extend(this.lib.math, this.__$.lib.math)
     this.lib.attach({ name: 'color' })
-    extend(this.lib.color, this.___.lib.color)
+    extend(this.lib.color, this.__$.lib.color)
     /*
     function log(msg, post) {
         log.out(msg, post)
@@ -4112,13 +4112,13 @@ Mod.prototype.inherit = function() {
     */
 
     // log
-    this.log = this.___.log
+    this.log = this.__$.log
     this._ls.push(this.log)
     this._dir['log'] = this.log
-    //const log = this.___.log
+    //const log = this.__$.log
     //augment(log, new Frame())
     //this.attach(log, 'log')
-    //supplement(this.log, this.___.log)
+    //supplement(this.log, this.__$.log)
 }
 
 Mod.prototype.evo = function(dt) {
@@ -4384,8 +4384,10 @@ Mod.prototype.disableAll = function() {
 }
 
 Mod.prototype.disableOthers = function() {
-    if (this.___) {
-        this.___.disableAll()
+    if (this.__$) {
+        this.__$.disableAll()
+    } else {
+        this.disableAll()
     }
     this.enable()
 }
@@ -4400,8 +4402,10 @@ Mod.prototype.enableAll = function() {
 }
 
 Mod.prototype.enableOthers = function() {
-    if (this.___) {
-        this.___.enableAll()
+    if (this.__$) {
+        this.__$.enableAll()
+    } else {
+        this.enableAll()
     }
 }
 
@@ -4981,16 +4985,15 @@ function createRootMod() {
 function constructScene(target) {
     const mod = target || new Mod()
     mod.name = '/'
+    mod.alias = '$'
 
-    mod._   = mod  // the context is the root itself
-    mod._$  = mod  // the root context is the root itself
+    mod._$  = mod  // the root mod is the root itself
     mod.__  = null // the root doesn't have any parents
-    mod.___ = mod  // the parent context is the root itself
+    mod.__$ = null // the root doesn't have parent node
     mod._canvasList = canvasList
-    Object.defineProperty(mod, '_',   { enumerable: false })
     Object.defineProperty(mod, '_$',  { enumerable: false })
     Object.defineProperty(mod, '__',  { enumerable: false })
-    Object.defineProperty(mod, '___', { enumerable: false })
+    Object.defineProperty(mod, '__$', { enumerable: false })
     Object.defineProperty(mod, '_canvasList', { enumerable: false })
     mod.inherit = function() {}
 

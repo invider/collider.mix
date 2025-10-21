@@ -295,7 +295,7 @@ const defaults = {
     y: 0,
     w: 200,
     h: 200,
-    dir: _._$,
+    dir:   $,
     trail: [],
 }
 

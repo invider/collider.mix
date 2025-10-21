@@ -146,10 +146,10 @@ NodeInspector.prototype.onFocus = function() {}
 NodeInspector.prototype.onKeyDown = function(e) {
     switch(e.code) {
         case 'Escape':
-            if (this.dir === _.___) {
+            if (this.dir === $) {
                 if (this.onExit) this.onExit()
             } else {
-                this.land(_.___)
+                this.land($)
             }
             break
         case 'Backslash':
