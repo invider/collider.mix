@@ -320,20 +320,6 @@ const system = {
         return '?'
     },
 
-    // trigger an event and call all handlers in lab/
-    // Usually called from the global on() function
-    on: function(name, st) {
-        name = 'on' + name.substring(0, 1).toUpperCase() + name.substring(1)
-
-        let last
-        lab.applyAll((node) => {
-            if (isFun(node[name])) {
-                last = node[name](st)
-            }
-        })
-        return last
-    },
-
     textSurface: false,
 
     // a service function used by print()/input() to create a text surface

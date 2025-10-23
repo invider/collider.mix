@@ -1533,6 +1533,26 @@ LabFrame.prototype.deactivate = function() {
     this.disable()
 }
 
+LabFrame.prototype.on = function(name, st) {
+    const handler = 'on' + name.substring(0, 1).toUpperCase() + name.substring(1)
+
+    let applied = false
+
+    if (isFun(this[handler])) {
+        this[handler](st)
+        applied = true
+    }
+
+    this.applyAll( node => {
+        if (isFun(node[handler])) {
+            node[handler](st)
+            applied = true
+        }
+    })
+
+    return applied
+}
+
 LabFrame.prototype.lx = function(ux) {
     return ux
 }
@@ -2962,8 +2982,15 @@ const Mod = function(st) {
             return new Promise(resolve => setTimeout(resolve, (s * 1000) | 0))
         },
 
-        on: function(name, st) {
-            return _.sys.on.apply(_.sys, arguments)
+        on: function(name, st, target) {
+            if (!target) {
+                target = lab
+            } else if (isStr(target)) {
+                target = lab.selectOne(target)
+            }
+            if (!target || !isFun(target.on)) return false 
+
+            return target.on(name)
         },
 
         gtrap: function(name, st) {
