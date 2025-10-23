@@ -2405,13 +2405,16 @@ function withMeta(val, meta, name) {
 }
 
 function touchParent(childPath, $, batch) {
+    if (!childPath || childPath === '/') return
+
     const path = getParentPath(childPath)
+    touchParent(path, $, batch)
 
     let st
     if (batch && batch._patch) {
         const patch = batch._patch[path]
         if (patch && !patch._patched) {
-            console.log('patching ' + patch.path)
+            _scene.log.sys(`patching [${patch.path}]`)
             st = evalJS(patch, $, batch)
             patch._patched = true
         }
