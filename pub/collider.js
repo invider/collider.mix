@@ -4420,13 +4420,13 @@ Mod.prototype.enableOthers = function() {
     }
 }
 
-Mod.prototype.on = function() {
+Mod.prototype.activate = function() {
     this.show()
     this.resume()
     this.enableAll()
 }
 
-Mod.prototype.off = function() {
+Mod.prototype.deactivate = function() {
     this.hide()
     this.pause()
     this.disableAll()
