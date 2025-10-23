@@ -1369,14 +1369,35 @@ LabFrame.prototype.touch = touchFun((name, __, st) => {
     }
 })
 
-LabFrame.prototype.spawn = function(dna, st) {
+LabFrame.prototype.spawn = function(dna, st, pods) {
+
+    function spawnPods(entity, pods) {
+        if (!pods) return entity
+
+        if (!isFun(entity.spawn)) throw new Error(`an entity MUST have the spawn() method to spawn pods`)
+        if (!isFun(entity.attach)) throw new Error(`an entity MUST have the attach() method to spawn pods`)
+        if (!isArray(pods)) throw new Error(`pods is expected to be an array`)
+
+        for (let i = 0; i < pods.length; i++) {
+            const blueprint = pods[i]
+            if (isObj(blueprint) && blueprint.DNA) {
+                entity.spawn(blueprint.DNA, blueprint)
+            } else {
+                entity.spawn(blueprint)
+            }
+        }
+
+        return entity
+    }
+
     if (this.__) {
         // full-featured spawn
-        return this.getMod().sys.spawn(dna, st, this)
+        const entity = this.getMod().sys.spawn(dna, st, this)
+        return spawnPods(entity, pods)
 
     } else {
         // === spawn in an orphan node ===
-        if (isStr(dna)) throw `can't do path lookups in orphan nodes - provide a DNA object or attach the parent node first!`
+        if (isStr(dna)) throw new Error(`can't do path lookups in orphan nodes - provide a DNA object or attach the parent node first!`)
 
         let res
         let cons = dna
@@ -1419,7 +1440,7 @@ LabFrame.prototype.spawn = function(dna, st) {
                 node.onSpawn(st)
             }
         }
-        return res
+        return spawnPods(res, pods)
     }
 }
 
