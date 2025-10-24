@@ -3005,9 +3005,9 @@ const Mod = function(st) {
 
         on: function(name, st, target) {
             if (!target) {
-                target = lab
+                target = _.lab
             } else if (isStr(target)) {
-                target = lab.selectOne(target)
+                target = _.lab.selectOne(target)
             }
             if (!target || !isFun(target.on)) return false 
 
