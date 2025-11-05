@@ -12,7 +12,7 @@ function testAnyArray(tar) {
 }
 
 function expect(tar, title, up, upTitle) {
-    const tarStr = isObj(tar)? JSON.stringify(tar) : '' + tar
+    const tarStr = isArr(tar)? `[${tar}]` : (isObj(tar)? JSON.stringify(tar) : '' + tar)
     const tag = title? `[${title} == ${tarStr}]` : `${tarStr}`
     const stag = title? `[${title}] ` : ``
 
