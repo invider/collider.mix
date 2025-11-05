@@ -12,7 +12,8 @@ function testAnyArray(tar) {
 }
 
 function expect(tar, title, up, upTitle) {
-    const tag = title? `[${title} == ${tar}]` : `${tar}`
+    const tarStr = isObj(tar)? JSON.stringify(tar) : '' + tar
+    const tag = title? `[${title} == ${tarStr}]` : `${tarStr}`
     const stag = title? `[${title}] ` : ``
 
     return {
@@ -144,6 +145,69 @@ function expect(tar, title, up, upTitle) {
         up: function() {
             if (!up) throw new Error(`can't move up from here!`)
             return expect(up, upTitle)
+        },
+
+        toMatch: function(v) {
+            if (testAnyArray(v)) {
+                this.isAnyArray()
+
+                if (v.length !== tar.length) throw new Error(`${tag}.length is expected to be [${v.length}]`)
+
+                for (let i = 0; i < tar.length; i++) {
+                    const e = tar[i]
+                    const w = v[i]
+                    if (e !== w) throw new Error(`${tag}[#${i}] is expected to be [${w}], but [${e}] found!`)
+                }
+
+                return this
+
+            } else if (isObj(v)) {
+                this.isObject()
+
+                Object.keys(v).forEach(key => {
+                    const val = tar[key]
+                    if (typeof val === 'undefined') throw new Error(`${tag}[${key}] is missing`)
+
+                    const matchVal = v[key]
+                    if (val !== matchVal) throw new Error(`${tag}[${key}] is expected to be [${matchVal}], but [${val}] found!`)
+                })
+
+                Object.keys(tar).forEach(key => {
+                    const matchVal = v[key]
+                    if (typeof matchVal === 'undefined') throw new Error(`${tag}[${key}] is unexpected`)
+                })
+
+            } else {
+                return this.toBe(v)
+            }
+        },
+
+        toContain: function(v) {
+            if (testAnyArray(v)) {
+                this.isAnyArray()
+
+                for (let i = 0; i < tar.length; i++) {
+                    const e = tar[i]
+                    const w = v[i]
+                    if (e !== w) throw new Error(`${tag}[#${i}] is expected to be [${w}], but [${e}] found!`)
+                }
+
+                return this
+
+            } else if (isObj(v)) {
+                this.isObject()
+
+                Object.keys(v).forEach(key => {
+                    const val = tar[key]
+                    if (typeof val === 'undefined') throw new Error(`${tag}[${key}] is missing`)
+
+                    const matchVal = v[key]
+                    if (val !== matchVal) throw new Error(`${tag}[${key}] is expected to be [${matchVal}], but [${val}] found!`)
+                })
+
+            } else {
+                return this.toBe(v)
+            }
         },
 
         elementsMatch: function(v) {

@@ -4008,7 +4008,7 @@ Mod.prototype._runTests = function() {
 
         ls.forEach(test => {
             const name = test.name
-            _.log.sys('* testing [' + name + ']')
+            _.log.sys('* Running [' + name + ']')
             let res = runTests(_, test)
         })
         _.log.sys('------------------------------------')
