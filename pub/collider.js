@@ -2231,11 +2231,16 @@ function extractMeta(script, requirements) {
         let lastName
         let lastComment
 
+        function _defMeta(type, name, comment, params) {
+            defMeta(type, name, comment, params)
+            lastComment = null
+        }
+
         while(token) {
 
             if (token.t === BLOCK_COMMENT) {
                 lastComment = token
-                if (state.commentCount === 1) defMeta('module', script.name, token)
+                if (state.commentCount === 1) _defMeta('module', script.name, token)
 
             } else if (token.t === LINE_COMMENT) {
                 if (lastComment && lastComment.l + 1 >= token.l) {
@@ -2247,7 +2252,7 @@ function extractMeta(script, requirements) {
                 if (state.commentCount === 1) {
                     const next = lookupToken()
                     if (!next || next.t !== LINE_COMMENT) {
-                        defMeta('module', script.name, token)
+                        _defMeta('module', script.name, token)
                     }
                 }
             }
@@ -2269,21 +2274,21 @@ function extractMeta(script, requirements) {
                         && lastName) {
                     // <name>: function
                     const params = parseFunctionParams(true)
-                    defMeta('function', lastName, lastComment, params)
+                    _defMeta('function', lastName, lastComment, params)
                     lastName = undefined
 
                 } else if (token.t === SPECIAL
                         && token.v === '{'
                         && lastName) {
                     // <name>: {...}
-                    defMeta('object', lastName, lastComment)
+                    _defMeta('object', lastName, lastComment)
                     lastName = undefined
 
                 } else if (token.t === SPECIAL
                         && token.v === '['
                         && lastName) {
                     // <name>: [...]
-                    defMeta('array', lastName, lastComment)
+                    _defMeta('array', lastName, lastComment)
                     lastName = undefined
 
                 } else if (lastToken.t === ID
@@ -2298,7 +2303,7 @@ function extractMeta(script, requirements) {
                         // class method declaration
                         returnToken()
                         const params = parseFunctionParams(false)
-                        defMeta('function', lastToken.v, lastComment, params)
+                        _defMeta('function', lastToken.v, lastComment, params)
                         /*
                         if (script.debug) {
                             console.log('=============== class method ' + lastToken.v + '()')
@@ -2316,7 +2321,7 @@ function extractMeta(script, requirements) {
                 } else if (token.t === ID
                         && lastName) {
                     // <name>: <value>
-                    defMeta('value', lastName, lastComment)
+                    _defMeta('value', lastName, lastComment)
                     lastName = undefined
 
                 } else if (lastToken.t === ID
@@ -2324,19 +2329,19 @@ function extractMeta(script, requirements) {
                         && token.t === ID) {
                     // function <name>
                     const params = parseFunctionParams(false)
-                    defMeta('function', token.v, lastComment, params)
+                    _defMeta('function', token.v, lastComment, params)
 
                 } else if (lastToken.t === ID
                         && lastToken.v === 'const'
                         && token.t === ID) {
                     // const <name>
-                    defMeta('const', token.v, lastComment)
+                    _defMeta('const', token.v, lastComment)
 
                 } else if (lastToken.t === ID
                         && lastToken.v === 'class'
                         && token.t === ID) {
                     // const <name>
-                    defMeta('class', token.v, lastComment)
+                    _defMeta('class', token.v, lastComment)
                     state.class = true
 
                 } else {
