@@ -66,7 +66,8 @@ module.exports = {
 
     step(t, v) {
         if (this.onComplete) this.onComplete()
-        if (!this.loop) this.kill()
+        if (this.times) this.times--
+        if (!this.loop && !this.times) this.kill()
     },
 
     // map easing value on property value

@@ -4,6 +4,12 @@
  * Spawn it somewhere in /lab. Usually it goes to /lab/control,
  * where all of control ghosts are placed by convention.
  *
+ * Like so:
+ * ```
+ * lab.touch('control') // make sure the 'control' node is there
+ * lab.control.spawn(dna.kinetix.Kinetix)
+ * ```
+ *
  * Tweening is a way to place values in between other values over a timespan.
  * Let's assume we want to show a transparent actor
  * by gradually increasing it's alpha value.
@@ -37,6 +43,7 @@
  *     * loop:      is the key should be infinitely looped
  *     * exclusive: when true, all other keys on the same target will be canceled
  *     * follow:    follow the last key on the target if present
+ *     * times:     how many steps to keep the key going
  */
 class Kinetix {
 
