@@ -918,7 +918,7 @@ Frame.prototype.apply = function(fn, predicate) {
     if (isFun(predicate)) {
         for (let i = 0, l = ls.length; i < l; i++) {
             const e = ls[i]
-			if (predicate(e)) {
+			if (e != null && predicate(e)) {
                 fn(e)
                 count ++
             }
@@ -928,15 +928,19 @@ Frame.prototype.apply = function(fn, predicate) {
         const sls = this.select(predicate)
         for (let i = 0, l = sls.length; i < l; i++) {
             const e = sls[i]
-            fn(e)
-            count ++
+            if (e != null) {
+                fn(e)
+                count ++
+            }
         }
 
     } else {
         for (let i = 0, l = ls.length; i < l; i++) {
             const e = ls[i]
-            fn(e)
-            count ++
+            if (e != null) {
+                fn(e)
+                count ++
+            }
         }
     }
     return count
@@ -949,19 +953,23 @@ Frame.prototype.applyAll = function(fn, predicate) {
     if (isFun(predicate)) {
         for (let i = 0, l = ls.length; i < l; i++) {
             const e = ls[i]
-			if (predicate(e)) {
-                fn(e)
-                count ++
+            if (e != null) {
+                if (predicate(e)) {
+                    fn(e)
+                    count ++
+                }
+                if (e.applyAll) count += e.applyAll(fn, predicate)
             }
-            if (e.applyAll) count += e.applyAll(fn, predicate)
 		}
     } else {
         for (let i = 0, l = ls.length; i < l; i++) {
             const e = ls[i]
 
-            fn(e)
-            count ++
-            if (e.applyAll) count += e.applyAll(fn, predicate)
+            if (e != null) {
+                fn(e)
+                count ++
+                if (e.applyAll) count += e.applyAll(fn, predicate)
+            }
         }
     }
     return count
@@ -978,10 +986,10 @@ Frame.prototype.collide = function(collideFn, predicate) {
               N  = ls.length
         for (let i = 0; i < N; i++) {
             const hitter = ls[i]
-            if (predicate(hitter)) {
+            if (hitter && predicate(hitter)) {
                 for (let j = 0; j < N; j++) {
                     const target = ls[j]
-                    if (hitter !== target && predicate(target) && predicate(hitter)) {
+                    if (target && hitter !== target && predicate(target) && predicate(hitter)) {
                         collideFn(hitter, target)
                         hits ++
                     }
@@ -993,11 +1001,13 @@ Frame.prototype.collide = function(collideFn, predicate) {
               N  = ls.length
         for (let i = 0; i < N; i++) {
             const hitter = ls[i]
-            for (let j = 0; j < N; j++) {
-                const target = ls[j]
-                if (hitter !== target) {
-                    collideFn(hitter, target)
-                    hits ++
+            if (hitter) {
+                for (let j = 0; j < N; j++) {
+                    const target = ls[j]
+                    if (target && hitter !== target) {
+                        collideFn(hitter, target)
+                        hits ++
+                    }
                 }
             }
         }
@@ -1006,11 +1016,13 @@ Frame.prototype.collide = function(collideFn, predicate) {
               N  = ls.length
         for (let i = 0; i < N; i++) {
             const hitter = ls[i]
-            for (let j = 0; j < N; j++) {
-                const target = ls[j]
-                if (hitter !== target) {
-                    collideFn(hitter, target)
-                    hits ++
+            if (hitter) {
+                for (let j = 0; j < N; j++) {
+                    const target = ls[j]
+                    if (target && hitter !== target) {
+                        collideFn(hitter, target)
+                        hits ++
+                    }
                 }
             }
         }
