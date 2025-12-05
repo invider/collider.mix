@@ -233,6 +233,7 @@ function expect(tar, title, up, upTitle) {
 
         elementsNearlyMatch: function(vals, epsilon) {
             if (!testAnyArray(tar)) throw new Error(`${tag} is expected to be an array`)
+            if (!testAnyArray(vals)) throw new Error(`${vals} is expected to be an array`)
             if (vals.length !== tar.length) throw new Error(`${tag}.length is expected to be [${vals.length}]`)
 
             epsilon = epsilon || this.EPSILON
