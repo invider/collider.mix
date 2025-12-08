@@ -3861,12 +3861,18 @@ Mod.prototype.defineDrawContext = function() {
         textHeight: function() {
             return parseInt(ctx.font)
         },
-        image: function(img, x, y, w, h, dx, dy, dw, dh) {
+        image: function(img, x, y, w, h, sx, sy, sw, sh) {
+            ctx.drawImage.apply(ctx, arguments)
+            return alt
+        },
+        sprite: function(img, x, y, w, h, sx, sy, sw, sh) {
+            x = x - .5 * w
+            y = y - .5 * h
             switch(arguments.length) {
-            case 3: ctx.drawImage(img, x, y); break;
-            case 5: ctx.drawImage(img, x, y, w, h); break;
-            case 7: ctx.drawImage(img, x, y, w, h, dx, dy); break;
-            case 9: ctx.drawImage(img, x, y, w, h, dx, dy, dw, dh); break;
+                case 3: ctx.drawImage(img, x, y); break;
+                case 5: ctx.drawImage(img, x, y, w, h); break;
+                case 7: ctx.drawImage(img, x, y, w, h, sx, sy); break;
+                case 9: ctx.drawImage(img, x, y, w, h, sx, sy, sw, sh); break;
             }
             return alt
         },
