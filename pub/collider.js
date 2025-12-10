@@ -1641,7 +1641,7 @@ LabFrame.prototype.posToLocalBasis = function(iv, basis) {
 LabFrame.prototype.poke = function(x, y, opt) {
     let lx
     let ly
-    const fn = isFun(opt)? opt : false
+    const fn = isFun(opt)? opt : null
     if (this.lx) {
         lx = this.lx(x)
         ly = this.ly(y)
@@ -1663,7 +1663,7 @@ LabFrame.prototype.poke = function(x, y, opt) {
     }
 }
 
-LabFrame.prototype.pick = function(x, y, ls, opt) {
+LabFrame.prototype.pick = function(x, y, list, opt) {
     let lx
     let ly
     if (this.lx) {
@@ -1674,7 +1674,8 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
         lx = lpos[0]
         ly = lpos[1]
     }
-    const fn = isFun(opt)? opt : false
+    const ls = isArr(list)? list : null
+    const fn = isFun(opt)? opt : (isFun(list)? list : null)
 
     let last
     for (let i = 0; i < this._ls.length; i++) {
@@ -1705,11 +1706,11 @@ LabFrame.prototype.pick = function(x, y, ls, opt) {
         ) {
             if (fn) {
                 if (fn(node)) {
-                    ls.push(node)
+                    if (ls) ls.push(node)
                     last = node
                 }
             } else {
-                ls.push(node)
+                if (ls) ls.push(node)
                 last = node
             }
         }
