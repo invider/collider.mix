@@ -71,7 +71,7 @@ function expect(tar, title, up, upTitle) {
             return this
         },
         isAnyObject: function() {
-            if (typeof tar !== 'object' || tar === null) {
+            if (tar === null || (typeof tar !== 'object' && !testTypedArray(tar))) {
                 throw new Error(`${tag} is expected to be any object or array`)
             }
             return this
