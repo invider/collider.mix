@@ -151,7 +151,7 @@ function expect(tar, title, up, upTitle) {
             if (testAnyArray(v)) {
                 this.isAnyArray()
 
-                if (v.length !== tar.length) throw new Error(`${tag}.length is expected to be [${v.length}]`)
+                if (v.length !== tar.length) throw new Error(`${tag}.length is expected to be [${v.length}], but [${tar.length}] found!`)
 
                 for (let i = 0; i < tar.length; i++) {
                     const e = tar[i]
@@ -220,7 +220,7 @@ function expect(tar, title, up, upTitle) {
                 vals = arguments
             }
 
-            if (vals.length !== tar.length) throw new Error(`${tag}.length is expected to be [${vals.length}]`)
+            if (vals.length !== tar.length) throw new Error(`${tag}.length is expected to be [${vals.length}], but [${tar.length}] is found!`)
 
             for (let i = 0; i < tar.length; i++) {
                 const e = tar[i]
@@ -234,7 +234,7 @@ function expect(tar, title, up, upTitle) {
         elementsNearlyMatch: function(vals, epsilon) {
             if (!testAnyArray(tar)) throw new Error(`${tag} is expected to be an array`)
             if (!testAnyArray(vals)) throw new Error(`${vals} is expected to be an array`)
-            if (vals.length !== tar.length) throw new Error(`${tag}.length is expected to be [${vals.length}]`)
+            if (vals.length !== tar.length) throw new Error(`${tag}.length is expected to be [${vals.length}], but [${vals.length}] found!`)
 
             epsilon = epsilon || this.EPSILON
             for (let i = 0; i < tar.length; i++) {
