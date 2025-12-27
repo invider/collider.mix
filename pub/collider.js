@@ -3355,7 +3355,9 @@ const Mod = function(st) {
 
     mod.touch = touchFun((name, __, st) => {
         let mod
-        if (name.endsWith('-buf')) {
+
+        const modConfig = _scene.env.config[name + '.mod'] || {}
+        if (modConfig.buffered || name.endsWith('-buf')) {
             // TODO create a WebGL canvas as well (?) or maybe need '-gl' for that (?)
             _scene.log.sys(`creating a buffer canvas for ${name}`)
             const canvas = document.createElement('canvas')
