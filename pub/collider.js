@@ -3262,7 +3262,7 @@ const Mod = function(st) {
             if (target) return target
 
             const mod = this.getMod()
-            if (mod.__$ !== mod) return mod.__$.dna._locate(path)
+            if (mod.__$ !== null) return mod.__$.dna._locate(path)
         },
 
         onAttach: function(node, name, __) {
