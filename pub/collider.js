@@ -3515,7 +3515,11 @@ Mod.prototype.defineDrawContext = function() {
         },
 
         scale: function(w, h) {
-            ctx.scale(w, h)
+            if (arguments.length === 1) {
+                ctx.scale(w, w)
+            } else {
+                ctx.scale(w, h)
+            }
             return alt
         },
         rotate: function(a) {
