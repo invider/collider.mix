@@ -4150,33 +4150,58 @@ Mod.prototype.start = function() {
 
     if (!captured) {
         // no test or box has captured the control
-        const mod = this
-        Object.keys(this).forEach(k => {
-            if (k.startsWith('setup')) {
-                const setup = mod[k]
-                if (isFun(setup)) {
-                    setup.call(mod)
-                } else if (isFrame(setup)) {
-                    setup._ls.forEach(fn => {
-                        if (isFun(fn)) {
-                            fn.call(mod)
-                        }
+        const _ = this
+
+        // run setup functions - from resources and libraries to DNA and live entities
+        const setupPriorityList = [
+            _.res,
+            _.lib,
+            _.alt,
+            _.dna,
+            _.env,
+            _.job,
+            _.cue,
+            _.trap,
+            _.lab
+        ]
+
+        setupPriorityList.forEach(e => {
+            if (e) {
+                if (isFrame(e)) {
+                    e.applyAll((node) => {
+                        if (isFun(node.setup)) node.setup()
                     })
-                } else {
-                    _scene.log.sys('[setup] ignoring [' + k + ']')
+                }
+                if (isFun(e.setup)) {
+                    e.setup()
                 }
             }
         })
 
-        // run in-lab setup functions
-        if (isFun(this.lab.setup)) {
-            this.lab.setup()
-        }
-        this.lab.applyAll((node) => {
-            if (isFun(node.setup)) node.setup()
-        })
+        // handle dedicated setup functions
+        function handleSetup(setupNode) {
+            if (!setupNode) return
 
-        this.status = 'started'
+            Object.keys(setupNode).forEach(k => {
+                if (k.startsWith('setup')) {
+                    const setupElement = setupNode[k]
+                    if (isFun(setupElement)) {
+                        setupElement.call(setupNode)
+                    } else if (isFrame(setupElement)) {
+                        handleSetup(setupElement)
+                    } else {
+                        _scene.log.sys('[setup] ignoring [' + k + ']')
+                    }
+                }
+            })
+
+            if (isFun(setupNode)) {
+                setupNode()
+            }
+        }
+        handleSetup(_.setup)
+
+        _.status = 'started'
     }
     this.trap.signal('postSetup')
 
