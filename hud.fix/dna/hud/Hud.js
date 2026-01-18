@@ -44,7 +44,6 @@ Hud.prototype.injectTraps = function() {
     localTrap.on('click', function(e) {
         if (hud.hidden || hud.disabled || mod.hidden) return
 
-
         const x = hud.lx(e.pageX)
         const y = hud.ly(e.pageY)
         hud.onClick(x, y, e)
@@ -222,13 +221,47 @@ Hud.prototype.onMouseUp = function(x, y, b, e) {
 // @param {number} y
 // @param {object} e - original mouse event
 Hud.prototype.onMouseMove = function(x, y, e) {
+    const __ = this
     const dx = $.env.mouse.x - $.env.mouse.lx
     const dy = $.env.mouse.y - $.env.mouse.ly
     this.captured.forEach(g => {
-        if (sys.isFun(g.onMouseMove)) g.onMouseMove(dx, dy, e)
-        if (sys.isFun(g.onMouseDrag)) g.onMouseDrag(dx, dy, e)
+        // if (sys.isFun(g.onMouseMove)) g.onMouseMove(x, y, e)
+        if (sys.isFun(g.onMouseDrag)) {
+            const lpos = __.toLocalFor(g, x, y)
+            g.onMouseDrag(dx, dy, lpos.x, lpos.y, e)
+        }
     })
     Container.prototype.onMouseMove.call(this, x, y, e)
+}
+
+Hud.prototype.toLocalFor = function(g, x, y) {
+    const __ = this
+
+    function mapPos(pos, g) {
+        if (!g) return
+        else if (g !== __) {
+            // going higher
+            mapPos(pos, g.__)
+        }
+
+        // map to local coordinates
+        if (g.lx) {
+            pos.x = g.lx(pos.x)
+            pos.y = g.ly(pos.y)
+        } else if (g.lxy) {
+            const xy = g.lxy(pos.x, pos.y)
+            pos.x = xy.x
+            pos.y = xy.y
+        } else {
+            pos.x = pos.x - g.x
+            pos.y = pos.y - g.y
+        }
+    }
+
+    const pos = { x, y }
+    mapPos(pos, g)
+
+    return pos
 }
 
 /*

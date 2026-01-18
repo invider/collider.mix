@@ -134,7 +134,6 @@ MonoContainer.prototype.onMouseUp = function(x, y, b, e) {
 
 MonoContainer.prototype.onMouseMove = function(x, y, e) {
     //if (x < 0 || y < 0 || x > this.w || y > this.h) return
-
     const g = this.active
 
     if (g && sys.isFun(g.onMouseMove)) {
