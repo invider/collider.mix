@@ -1684,11 +1684,10 @@ LabFrame.prototype.pick = function(x, y, list, opt) {
             let val
             if (fn) {
                 if (fn(node)) val = node.pick(lx, ly, ls, opt)
-                if (val) last = val
             } else {
                 val = node.pick(lx, ly, ls, opt)
-                if (val) last = val
             }
+            if (val) last = val
         } else if ((node.within && node.within(lx, ly))
                 || (node._centered && node._circular
                     && distance(lx, ly, node.x, node.y) <= node.r)
