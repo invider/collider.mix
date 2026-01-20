@@ -4179,27 +4179,26 @@ Mod.prototype.start = function() {
         })
 
         // handle dedicated setup functions
-        function handleSetup(setupNode) {
+        function handleSetup(setupNode, __) {
             if (!setupNode) return
 
-            Object.keys(setupNode).forEach(k => {
-                if (k.startsWith('setup')) {
-                    const setupElement = setupNode[k]
-                    if (isFun(setupElement)) {
-                        setupElement.call(setupNode)
-                    } else if (isFrame(setupElement)) {
-                        handleSetup(setupElement)
-                    } else {
-                        _scene.log.sys('[setup] ignoring [' + k + ']')
+            if (isFrame(setupNode)) {
+                setupNode._ls.forEach(e => {
+                    handleSetup(e, setupNode)
+                })
+            } else if (isObj(setupNode)) {
+                Object.keys(setupNode).forEach(k => {
+                    if (k.startsWith('setup')) {
+                        handleSetup(setupNode[k], setupNode)
                     }
-                }
-            })
+                })
+            }
 
             if (isFun(setupNode)) {
-                setupNode()
+                setupNode.call(__)
             }
         }
-        handleSetup(_.setup)
+        handleSetup(_.setup, _)
 
         _.status = 'started'
     }
