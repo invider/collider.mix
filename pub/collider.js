@@ -1680,15 +1680,11 @@ LabFrame.prototype.pick = function(x, y, list, opt) {
     let last
     for (let i = 0; i < this._ls.length; i++) {
         const node = this._ls[i]
-        if (isFun(node.pick)) {
-            let val
-            if (fn) {
-                if (fn(node)) val = node.pick(lx, ly, ls, opt)
-            } else {
-                val = node.pick(lx, ly, ls, opt)
-            }
-            if (val) last = val
-        } else if ((node.within && node.within(lx, ly))
+
+        // probe by-convention picking procedures
+        // TODO maybe have some option to allow or skip this step? Like _pickable or something...
+        if (!node.hidden &&
+                  ((node.within && node.within(lx, ly))
                 || (node._centered && node._circular
                     && distance(lx, ly, node.x, node.y) <= node.r)
                 || (node._centered
@@ -1702,7 +1698,7 @@ LabFrame.prototype.pick = function(x, y, list, opt) {
                     && lx <= node.x + node.w
                     && ly >= node.y
                     && ly <= node.y + node.h)
-        ) {
+        )) {
             if (fn) {
                 if (fn(node)) {
                     if (ls) ls.push(node)
@@ -1712,6 +1708,17 @@ LabFrame.prototype.pick = function(x, y, list, opt) {
                 if (ls) ls.push(node)
                 last = node
             }
+        }
+
+        // try custom picking routine
+        if (isFun(node.pick)) {
+            let val
+            if (fn) {
+                if (fn(node)) val = node.pick(lx, ly, ls, opt)
+            } else {
+                val = node.pick(lx, ly, ls, opt)
+            }
+            if (val) last = val
         }
     }
     return last
