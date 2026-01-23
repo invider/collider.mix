@@ -5844,12 +5844,12 @@ function handleGameFocus(e) {
 }
 
 function handleHashChange() {
-    if (location.hash.startsWith('#test')) {
+    if (location.hash.startsWith('#!test')) {
         doTest(_scene, location.hash.substring(1))
-    } else if (location.hash.startsWith('#box')) {
+    } else if (location.hash.startsWith('#!box')) {
         doBox(_scene, location.hash.substring(1), true)
     } else {
-        _scene.signal('hash', location.hash)
+        _scene.signal('hash', location.hash.substring(1))
     }
 }
 
