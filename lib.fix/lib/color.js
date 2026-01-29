@@ -15,7 +15,15 @@ function color2RGBA(c) {
     const B = parseInt(c.substring(4, 6), 16)
     let A = 255
     if (c.length > 6) A = parseInt(c.substring(6, 8), 16)
-    return [R, G, B, A]
+    return [ R, G, B, A ]
+}
+
+function color2RGB(c) {
+    if (c.startsWith('#')) c = c.substring(1)
+    const R = parseInt(c.substring(0, 2), 16)
+    const G = parseInt(c.substring(2, 4), 16)
+    const B = parseInt(c.substring(4, 6), 16)
+    return [ R, G, B ]
 }
 
 function color2rgba(c) {
@@ -25,7 +33,15 @@ function color2rgba(c) {
     const B = parseInt(c.substring(4, 6), 16)
     let A = 255
     if (c.length > 6) A = parseInt(c.substring(6, 8), 16)
-    return [R/255, G/255, B/255, A/255]
+    return [ R/255, G/255, B/255, A/255 ]
+}
+
+function color2rgb(c) {
+    if (c.startsWith('#')) c = c.substring(1)
+    const R = parseInt(c.substring(0, 2), 16)
+    const G = parseInt(c.substring(2, 4), 16)
+    const B = parseInt(c.substring(4, 6), 16)
+    return [ R/255, G/255, B/255 ]
 }
 
 function rgb2hsl(r, g, b) {
@@ -117,3 +133,4 @@ function shiftHue(c, shift) {
     chsl[0] = Math.abs((chsl[0] + shift) % 1)
     return hsl(chsl[0], chsl[1], chsl[2])
 }
+

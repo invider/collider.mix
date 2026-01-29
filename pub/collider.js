@@ -419,51 +419,85 @@ function hue2rgb(p, q, t) {
 }
 
 function rgb(r, g, b) {
-    r = clamp(Math.round(r * 255), 0, 255).toString(16)
-    g = clamp(Math.round(g * 255), 0, 255).toString(16)
-    b = clamp(Math.round(b * 255), 0, 255).toString(16)
-    if (r.length === 1) r = '0'+r
-    if (g.length === 1) g = '0'+g
-    if (b.length === 1) b = '0'+b
+    if (isArray(r)) {
+        const v = r
+        r = v[0]
+        g = v[1]
+        b = v[2]
+    } else if (isObj(r)) {
+        const o = r
+        r = o.r
+        g = o.g
+        b = o.b
+    }
+    const R = clamp(Math.round(r * 255), 0, 255).toString(16).padStart(2, '0'),
+          G = clamp(Math.round(g * 255), 0, 255).toString(16).padStart(2, '0'),
+          B = clamp(Math.round(b * 255), 0, 255).toString(16).padStart(2, '0')
 
-    return '#' + r + g + b
+    return `#${R}${G}${B}`
 }
 
 function rgba(r, g, b, a) {
-    r = clamp(Math.round(r * 255), 0, 255).toString(16)
-    g = clamp(Math.round(g * 255), 0, 255).toString(16)
-    b = clamp(Math.round(b * 255), 0, 255).toString(16)
-    a = clamp(Math.round(a * 255), 0, 255).toString(16)
-    if (r.length === 1) r = '0'+r
-    if (g.length === 1) g = '0'+g
-    if (b.length === 1) b = '0'+b
-    if (a.length === 1) a = '0'+a
+    if (isArray(r)) {
+        const v = r
+        r = v[0]
+        g = v[1]
+        b = v[2]
+        a = v[3]
+    } else if (isObj(r)) {
+        const o = r
+        r = o.r
+        g = o.g
+        b = o.b
+        a = o.a
+    }
+    const R = clamp(Math.round(r * 255), 0, 255).toString(16).padStart(2, '0'),
+          G = clamp(Math.round(g * 255), 0, 255).toString(16).padStart(2, '0'),
+          B = clamp(Math.round(b * 255), 0, 255).toString(16).padStart(2, '0'),
+          A = clamp(Math.round(a * 255), 0, 255).toString(16).padStart(2, '0')
 
-    return '#' + r + g + b + a
+    return `#${R}${G}${B}${A}`
 }
 
 function RGB(r, g, b) {
-    r = clamp(Math.round(r), 0, 255).toString(16)
-    g = clamp(Math.round(g), 0, 255).toString(16)
-    b = clamp(Math.round(b), 0, 255).toString(16)
-    if (r.length === 1) r = '0'+r
-    if (g.length === 1) g = '0'+g
-    if (b.length === 1) b = '0'+b
+    if (isArray(r)) {
+        const v = r
+        r = v[0]
+        g = v[1]
+        b = v[2]
+    } else if (isObj(r)) {
+        const o = r
+        r = o.r
+        g = o.g
+        b = o.b
+    }
+    const R = clamp(Math.round(r), 0, 255).toString(16).padStart(2, '0'),
+          G = clamp(Math.round(g), 0, 255).toString(16).padStart(2, '0'),
+          B = clamp(Math.round(b), 0, 255).toString(16).padStart(2, '0')
 
-    return '#' + r + g + b
+    return `#${R}${G}${B}`
 }
 
 function RGBA(r, g, b, a) {
-    r = clamp(Math.round(r), 0, 255).toString(16)
-    g = clamp(Math.round(g), 0, 255).toString(16)
-    b = clamp(Math.round(b), 0, 255).toString(16)
-    a = clamp(Math.round(a), 0, 255).toString(16)
-    if (r.length === 1) r = '0'+r
-    if (g.length === 1) g = '0'+g
-    if (b.length === 1) b = '0'+b
-    if (a.length === 1) a = '0'+a
+    if (isArray(r)) {
+        const v = r
+        r = v[0]
+        g = v[1]
+        b = v[2]
+        a = v[3]
+    } else if (isObj(r)) {
+        const o = r
+        r = o.r
+        g = o.g
+        b = o.b
+        a = o.a
+    }
+    const R = clamp(Math.round(r), 0, 255).toString(16).padStart(2, '0'),
+          G = clamp(Math.round(g), 0, 255).toString(16).padStart(2, '0'),
+          B = clamp(Math.round(b), 0, 255).toString(16).padStart(2, '0'),
+          A = clamp(Math.round(a), 0, 255).toString(16).padStart(2, '0')
 
-    return '#' + r + g + b + a
+    return `#${R}${G}${B}${A}`
 }
 
 function hsl(h, s, l) {
