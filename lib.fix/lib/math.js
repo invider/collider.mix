@@ -6,7 +6,7 @@ function LCGSourceFactory() {
     let _rnd_m = 0xFFFFFFFF
     let _rnd_a = 1664525
     let _rnd_c = 1013904223
-    let _seed = 1
+    let _seed  = 1
 
     // core random value
     function rndv() {
@@ -69,7 +69,7 @@ function createRandomGenerator(factory) {
         }
     }
 
-    // random int in [0..maxValue)
+    // random int in [0..maxValue) range
     function rndi(v1, v2) {
         if (v2) {
             return ~~(v1 + (v2 - v1)*rndf())
@@ -78,6 +78,7 @@ function createRandomGenerator(factory) {
         }
     }
 
+    //   random int in [0..maxValue] range
     function RND(v1, v2) {
         if (v2) {
             return ~~(v1 + ((v2 + 1) - v1)*rndf())
@@ -88,53 +89,106 @@ function createRandomGenerator(factory) {
 
     return {
         getSeed: function() {
-            if (generator.getSeed) generator.getSeed()
+            if ( isFun(generator.getSeed) ) generator.getSeed()
             else return 0
         },
         setSeed: function(seed) {
-            if (generator.setSeed) generator.setSeed(seed)
-            else throw new Error(`Selected random number generator doesn't support custom seeds!`)
+            if ( !isFun(generator.setSeed) ) throw new Error(`Selected random number generator doesn't support custom seeds!`)
+
+            generator.setSeed(seed)
+            return this
         },
+
         rndf: rndf,
 
         rnd:  rnd,
         rndi: rndi,
         RND:  RND,
 
-        // random angle in radians
+        buf:      0,
+        buffered: false,
+
+        // random normally distributed value with mean = 0 and standard deviation of 1
+        rndn: function rndn() {
+            if (this.buffered) {
+                this.buffered = false
+                return this.buf
+            }
+
+            while (true) {
+                const u = 2 * rndf() - 1,
+                      v = 2 * rndf() - 1,
+                      s = u * u  +  v * v
+
+                if (s > 0 && s < 1) {
+                    const f = Math.sqrt(-2 * Math.log(s) / s)
+
+                    this.buf = v * f
+                    this.buffered = true
+                    return u * f
+                }
+            }
+        },
+        // random gaussian (normally distributed) value
+        //
+        // @param mean
+        // @param stdDev
+        rndg: function rndn(mean = 0, stdDev = 1) {
+            if (this.buffered) {
+                this.buffered = false
+                return mean + this.buf * stdDev
+            }
+
+            while (true) {
+                const u = 2 * rndf() - 1,
+                      v = 2 * rndf() - 1,
+                      s = u * u  +  v * v
+
+                if (s > 0 && s < 1) {
+                    const f = Math.sqrt(-2 * Math.log(s) / s)
+
+                    this.buf = v * f
+                    this.buffered = true
+                    return mean + u * f * stdDev
+                }
+            }
+        },
+
+        // bipolar random value [-1..1)
+        rndb: function rndb() {
+            return 2 * rndf() - 1
+        },
+
+        // random angle [-PI..PI) in radians
         rnda: function rnda() {
-            return rndf()*PI2 - PI
+            return rndf()*TAU - PI
         },
 
         // random sign multiplicator [-1/1] with optional -1 probability
-        rnds: function rnds(n) {
-            n = n || .5
+        rnds: function rnds(n = .5) {
             return rndf() < n? -1 : 1
         },
 
         // random zero/one value multiplicator [0/1] with optional zero probability (.5 by default)
-        rndz: function rndz(n) {
-            n = n || .5
-            return rndf() < n? 0 : 1
+        rndz: function rndz(n = .5) {
+            return floor(rndf() + n)
         },
 
         // select random element from an object or an array
         rnde: function rnde(obj) {
             if (!obj) return
-            if (Array.isArray(obj)) {
-                return obj[rndi(obj.length)]
+            if (Array.isAnyArray(obj)) {
+                return obj[ rndi(obj.length) ]
             } else if (typeof obj === 'object') {
                 const keys = Object.keys(obj)
-                return obj[keys[rndi(keys.length)]]
+                return obj[ keys[rndi(keys.length)] ]
             }
             return null
         },
 
         // shuffle array elements
         shuffle: function shuffle(array, iter) {
-            if (!array) return
-            if (!iter) iter = array.length * 2
-
+            iter = iter ?? array.length * 2
             for (let i = 0; i < iter; i++) {
                 const i1 = rndi(array.length)
                 const i2 = rndi(array.length)
@@ -152,8 +206,9 @@ function createRandomGenerator(factory) {
 // math library
 module.exports = (function() { 
 
-const PI = Math.PI
-const PI2 = PI*2
+const PI  = Math.PI
+const PI2 = 2*PI
+const TAU = 2*PI
 
 const math = {
     name: 'math',
@@ -165,7 +220,9 @@ const math = {
     PI: PI,
 
     // Doulbe Pi constant
-    PI2: PI2,
+    PI2: TAU,
+
+    TAU: TAU,
 
     // calculates the length of a vector
     // @param {number} x
