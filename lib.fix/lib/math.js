@@ -372,6 +372,7 @@ const math = {
     },
 
     // clamp a value into the provided [min..max] range
+    //
     // @param {number} val - original value
     // @param {number} min
     // @param {number} max
@@ -381,19 +382,75 @@ const math = {
     },
 
     // linear interpolation between start .. stop of val in [0..1]
+    //
     // @param {number} start
     // @param {number} stop
     // @param {number} val - current value, assumed to be in the range [0..1]
+    // @returns {number} the interpolated value
     lerp: function(start, stop, val) {
         return (start * (1 - val)  +  stop * val)
     },
 
     // linear interpolation between start .. stop of val in [0..1]
+    //
     // @param {number} start
     // @param {number} stop
     // @param {number} val - current value, assumed to be in the range [0..1]
+    // @returns {number} the interpolated value
     mix: function(start, stop, val) {
         return (start * (1 - val)  +  stop * val)
+    },
+
+    // gamma-correct the provided value
+    //
+    // Can be used to translate linear RGB values to the gamma-corrected sRGB space.
+    // If gamma > 1 the values will be shifted upward toward one,
+    // if gamma < 1 the values will be shifted downward toward zero.
+    //
+    // @param {number} gamma - the gamma correction value
+    // @param {number} x - the value to adjust
+    // @returns {number} the gamma-corrected value
+    gammaCorrect(gamma, x) {
+        return pow(x, 1/gamma)
+    },
+
+    // bias values in [0..1] range just like in gamma-correction,
+    // but with b such that bias(b, .5) = b.
+    //
+    // Bias values above 0.5 pull the values upward,
+    // and the values below 0.5 push them downward.
+    // 
+    // @param {number} b - the bias value
+    // @param {number} x - the value to adjust
+    // @returns {number} the biased value
+    bias(b, x) {
+        return pow(x, Math.log(b) / Math.log(.5))
+    },
+
+    // adjust [0..1] interval into the S-shape
+    //
+    // Slowing the start and finish with gain values > .5
+    // inversing S shape into a sharp start and finish
+    // with gain values < .5
+    //
+    // @param {number} g - the gain
+    // @param {number} x - the value to gain
+    // @returns {number} the gained value
+    gain(g, x) {
+        if (x < .5) return ( this.bias(1-g, 2*x) / 2 )
+        else return ( this.bias(1-g, 2 - 2*x) / 2 )
+    },
+
+    // map x to a lineary-slopped value between a and b,
+    // to 0 when x is to the left of the range
+    // and 1 when x is to the right
+    //
+    // @param {number} a - the left edge where the slope starts
+    // @param {number} b - the right edge where the slope reaches 1
+    // @param {number} x - the value to map
+    // @returns {number} a step value between 0 and 1 lineary mapped from a to b
+    boxstep(a, b, x) {
+        return clamp( (x-a)/(b-a), 0, 1 )
     },
 
     // dot product of two N2 vectors
