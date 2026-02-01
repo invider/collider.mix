@@ -177,7 +177,7 @@ function createRandomGenerator(factory) {
         // select random element from an object or an array
         rnde: function rnde(obj) {
             if (!obj) return
-            if (Array.isAnyArray(obj)) {
+            if (isArray(obj)) {
                 return obj[ rndi(obj.length) ]
             } else if (typeof obj === 'object') {
                 const keys = Object.keys(obj)
