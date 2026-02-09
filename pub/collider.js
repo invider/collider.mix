@@ -5141,8 +5141,8 @@ function constructScene(target) {
     mod.alias = '$'
 
     mod._$  = mod  // the root mod is the root itself
-    mod.__  = null // the root doesn't have any parents
-    mod.__$ = null // the root doesn't have parent node
+    mod.__  = null // the root doesn't have a parent node
+    mod.__$ = null // the root doesn't have a parent mod
     mod._canvasList = canvasList
     Object.defineProperty(mod, '_$',  { enumerable: false })
     Object.defineProperty(mod, '__',  { enumerable: false })
@@ -5187,7 +5187,7 @@ function constructScene(target) {
 
     mod.sys.attach(reconstructScene)
 
-    mod.sys.attach(placeCanvas)
+    mod.sys.attach(adjustCanvas)
     mod.sys.attach(expandCanvas)
     mod.sys.attach(expandView)
     mod.sys.attach(evalLoadedContent)
@@ -5316,7 +5316,7 @@ _scene.packDeclarations = function(target) {
 // LIFECYCLE
 // main scene lifecycle - bootstrap, cycle[evo, draw]
 //
-const preboot = function() {
+function preboot() {
     _scene.log.sys('[loader]', 'loading config: ' + JAM_CONFIG)
 
     loadJson(JAM_CONFIG)
@@ -5333,10 +5333,71 @@ const preboot = function() {
         })
 }
 
-const bootstrap = function() {
-    _scene.log.raw('===== BOOTING UP =====')
+function defaultCanvasSetup(canvas) {
+    canvas.style.border   = "0px"
+    canvas.style.margin   = "0px"
+    canvas.style.padding  = "0px"
+    canvas.style.position = "absolute"
+    canvas.style.display  = "block"
+}
 
-    container = document.getElementById(containerName)
+function defaultBodySetup(body) {
+    document.body.style.margin   = "0"
+    document.body.style.padding  = "0"
+    document.body.style.overflow = "hidden"
+    document.body.setAttribute("scroll", "no")
+}
+
+function bindContainer() {
+    let container = document.getElementById(containerName)
+
+    // place canvas in a container div
+    if (!container) {
+        container = document.createElement('div')
+        container.id = 'container'
+        document.body.appendChild(container)
+    }
+
+    return container
+}
+
+function getWebGLContext(glCanvas) {
+    const gl = glCanvas.getContext('webgl2', {
+        depth:     true,
+        antialias: false,
+    })
+    if (gl) {
+        glCanvas.gl = true
+        glCanvas.version = 2
+        glCanvas.contextId = 'webgl2'
+    } else {
+        gl = glCanvas.getContext('webgl', {
+            antialias: false,
+            depth: false,
+        })
+        if (gl) {
+            glCanvas.gl = true
+            glCanvas.version = 1
+            glCanvas.contextId = 'webgl'
+        } else {
+            gl = glCanvas.getContext('experimental-webgl')
+            if (gl) {
+                glCanvas.gl = true
+                glCanvas.version = 0
+                glCanvas.contextId = 'experimental-webgl'
+            } else {
+                // TODO no WebGL support, should we remove it from DOM completely?
+                glCanvas.disabled = true
+                glCanvas.gl = false
+                glCanvas.version = -1
+                _scene.log.err('No WebGL support!')
+            }
+        }
+    }
+    return gl
+}
+
+function bindCanvas3D() {
     // place WebGL context
     let glCanvas = document.getElementById(glCanvasName)
     if (glCanvas == null) {
@@ -5344,30 +5405,31 @@ const bootstrap = function() {
         glCanvas = document.createElement('canvas')
         glCanvas.id = glCanvasName
         glCanvas.style.zIndex   = 5
-        glCanvas.style.border   = "0px"
-        glCanvas.style.margin   = "0px"
-        glCanvas.style.padding  = "0px"
-        glCanvas.style.position = "absolute"
-        glCanvas.style.display  = "block"
+        defaultCanvasSetup(glCanvas)
 
-        // place canvas in a container div
-        if (!container) {
-            container = document.createElement('div')
-            container.id = 'container'
-            document.body.appendChild(container)
-        }
         container.appendChild(glCanvas)
         canvasList.push(glCanvas)
         
-        // style the body
-        document.body.style.margin   = "0"
-        document.body.style.padding  = "0"
-        document.body.style.overflow = "hidden"
-        document.body.setAttribute("scroll", "no")
+        defaultBodySetup()
     } else {
         canvasList.push(glCanvas)
     }
 
+    if (glCanvas) {
+        glCanvas.buffer = false
+        _scene.glCanvas = glCanvas
+        _scene.gl = getWebGLContext(glCanvas)
+    }
+}
+
+function get2DContext(canvas) {
+    const ctx = canvas.getContext('2d')
+    canvas.cl = true
+    canvas.contextId = '2d'
+    return ctx
+}
+
+function bindCanvas2D() {
     // binding to the graphical canvas/context by convention
     let canvas = document.getElementById(canvasName)
     if (canvas == null) {
@@ -5375,74 +5437,28 @@ const bootstrap = function() {
         canvas = document.createElement('canvas')
         canvas.id = canvasName
         canvas.style.zIndex   = 7
-        canvas.style.border   = "0px"
-        canvas.style.margin   = "0px"
-        canvas.style.padding  = "0px"
-        canvas.style.position = "absolute"
-        canvas.style.display  = "block"
+        defaultCanvasSetup(canvas)
 
-        // place canvas in a container div
-        if (!container) {
-            container = document.createElement('div')
-            container.id = 'container'
-            document.body.appendChild(container)
-        }
         container.appendChild(canvas)
         canvasList.push(canvas)
 
-        // style the body
-        document.body.style.margin   = "0"
-        document.body.style.padding  = "0"
-        document.body.style.overflow = "hidden"
-        document.body.setAttribute("scroll", "no")
+        defaultBodySetup()
     }
 
-    // bind context
-    if (canvas) {
-        _scene.canvas = canvas
-        //_scene.ctx = augmentCtx(canvas.getContext('2d'), _scene)
-        _scene.ctx = canvas.getContext('2d')
-        _scene.defineDrawContext()
-        canvas.cl = true
-        canvas.buffer = false
-        canvas.contextId = '2d'
-    }
-    if (glCanvas) {
-        glCanvas.buffer = false
-        _scene.glCanvas = glCanvas
-        _scene.gl = glCanvas.getContext('webgl2', {
-            depth:     true,
-            antialias: false,
-        })
-        if (_scene.gl) {
-            glCanvas.gl = true
-            glCanvas.version = 2
-            glCanvas.contextId = 'webgl2'
-        } else {
-            _scene.gl = glCanvas.getContext('webgl', {
-                antialias: false,
-                depth: false,
-            })
-            if (_scene.gl) {
-                glCanvas.gl = true
-                glCanvas.version = 1
-                glCanvas.contextId = 'webgl'
-            } else {
-                _scene.gl = glCanvas.getContext('experimental-webgl')
-                if (_scene.gl) {
-                    glCanvas.gl = true
-                    glCanvas.version = 0
-                    glCanvas.contextId = 'experimental-webgl'
-                } else {
-                    // TODO no WebGL support, should we remove it from DOM completely?
-                    glCanvas.disabled = true
-                    glCanvas.gl = false
-                    glCanvas.version = -1
-                    _scene.log.err('No WebGL support!')
-                }
-            }
-        }
-    }
+    _scene.canvas = canvas
+    canvas.buffer = false
+    //_scene.ctx = augmentCtx(canvas.getContext('2d'), _scene)
+    _scene.ctx = get2DContext(canvas)
+    _scene.defineDrawContext()
+}
+
+function bootstrap() {
+    _scene.log.raw('===== BOOTING UP =====')
+
+    container = bindContainer()
+
+    bindCanvas3D()
+    bindCanvas2D()
     _scene.defineDrawContext()
     _scene.populateAlt()
 
@@ -5557,7 +5573,7 @@ function startFlow(url) {
     openSocket(`${socketProtocol}//${window.location.host}/flow/`)
 }
 
-function placeCanvas(name, baseX, baseY, baseWidth, baseHeight) {
+function adjustCanvas(name, baseX, baseY, baseWidth, baseHeight) {
     const canvas = document.getElementById(name)
     if (!canvas) return
 
@@ -5657,16 +5673,17 @@ function placeCanvas(name, baseX, baseY, baseWidth, baseHeight) {
 }
 
 function expandCanvas(name) {
-    _scene.sys.placeCanvas(name, 0, 0, window.innerWidth, window.innerHeight)
+    _scene.sys.adjustCanvas(name, 0, 0, window.innerWidth, window.innerHeight)
 }
 
 function expandView() {
     // TODO differenciate canvases as free and pinned to the window, resize only pinned
     for (let i = 0; i < canvasList.length; i++) {
         const canvas = canvasList[i]
+        // TODO how to automatically resize or not different canvases and buffers?
         if (!canvas.buffer) {
             //_scene.sys.expandCanvas(canvas.id)
-            _scene.sys.placeCanvas(canvas.id, 0, 0, window.innerWidth, window.innerHeight)
+            _scene.sys.adjustCanvas(canvas.id, 0, 0, window.innerWidth, window.innerHeight)
         }
     }
     _scene.signal('resize')
