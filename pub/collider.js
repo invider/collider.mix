@@ -26,10 +26,13 @@ const SCRIPT_SRC = 'collider.mix/collider.js'
 const UNITS_MAP  = 'units.map'
 const JAM_CONFIG = 'jam.config'
 
-const containerName = 'container'
-const canvasName    = 'canvas'
-const glCanvasName  = 'gl-canvas'
-let   container
+// TODO is there a way to rederine those if needed?
+const renderingSurfaceName = 'renderingSurface'
+const canvasName           = 'canvas'
+const glCanvasName         = 'gl-canvas'
+
+// TODO place them inside the mix or env?
+let   renderingSurface
 const canvasList = []
 
 const GAMEPADS = 4
@@ -3405,6 +3408,7 @@ const Mod = function(st) {
             const ctx = canvas.getContext('2d')
             canvas.cl = true
             canvas.buffer = true
+            canvas.activeContext = ctx
 
             mod = new Mod( extend({
                 name:       name,
@@ -3412,6 +3416,8 @@ const Mod = function(st) {
                 canvas:     canvas,
                 ctx:        ctx,
             }), st)
+            canvas.__ = mod
+            ctx.__    = mod
         } else {
             mod = new Mod(name)
         }
@@ -5120,6 +5126,98 @@ function constructLog() {
     return log
 }
 
+const adjustableCanvasTrait = {
+
+    adjust: function() {
+        const _    = this,
+              actx = _.activeContext,
+              mode = _.mode || _.getAttribute('mode') || 'fullscreen',
+              devicePixelRatio = _.devicePixelRatio ?? _.getAttribute('devicePixelRatio') ?? window.devicePixelRatio ?? 1
+
+        if (mode === 'preserve') {
+            // don't touch the canvas placing, just copy the size to the context
+            actx.width  = canvas.width
+            actx.height = canvas.height
+        } else if (mode === 'fullscreen') {
+            const W = window.innerWidth,
+                  H = window.innerHeight,
+                  w = W * devicePixelRatio,
+                  h = H * devicePixelRatio
+
+            _.style.left = '0px'
+            _.style.top  = '0px'
+            actx.width  = _.width  = w
+            actx.height = _.height = h
+            _.style.width  = `${W}px`
+            _.style.height = `${H}px`
+        } else if (mode === 'fix-aspect') {
+        } else if (mode === 'fix-resolution') {
+        }
+        /*
+            } else if (mode === 'fix-aspect') {
+                const viewportWidth = baseWidth
+                const viewportHeight = baseHeight
+
+                const aspect = parseFloat(canvas.getAttribute('aspect'))
+                const minHBorder = parseFloat(canvas.getAttribute('minHBorder'))
+                const minVBorder = parseFloat(canvas.getAttribute('minVBorder'))
+                const portAspect = viewportWidth / viewportHeight
+
+                let targetWidth = viewportWidth
+                let targetHeight = viewportHeight
+                if (minHBorder > 0) targetWidth = targetWidth - minHBorder*2
+                if (minVBorder > 0) targetHeight = targetHeight - minVBorder*2
+
+                if (portAspect > aspect) {
+                    // viewport is actually wider
+                    targetWidth = Math.round(targetHeight * aspect)
+                } else {
+                    // viewport is higher
+                    targetHeight = Math.round(targetWidth / aspect)
+                }
+                const hborder = Math.round((viewportWidth - targetWidth)/2)
+                const vborder = Math.round((viewportHeight - targetHeight)/2)
+
+                canvas.width = ctx.width = targetWidth
+                canvas.height = ctx.height = targetHeight
+                canvas.style.width = targetWidth + 'px'
+                canvas.style.height = targetHeight + 'px'
+                canvas.style.left = hborder + 'px'
+                canvas.style.top = vborder + 'px'
+
+            } else if (mode === 'fix-res') {
+                const viewportWidth = baseWidth
+                const viewportHeight = baseHeight
+
+                let targetWidth = canvas.getAttribute('targetWidth')
+                let targetHeight = canvas.getAttribute('targetHeight')
+                // TODO maybe show an error that we are expecting custom attributes in here?
+                if (!targetWidth) targetWidth = viewportWidth
+                if (!targetHeight) targetHeight = viewportHeight
+
+                // calculate canvas scale respecting the aspect
+                const aspect = targetWidth / targetHeight
+                const vscale = viewportWidth / targetWidth
+                const hscale = viewportHeight / targetHeight
+                let scale = hscale
+                if (hscale > vscale) scale = vscale
+
+                const hborder = Math.round((viewportWidth - (targetWidth*scale))/2)
+                const vborder = Math.round((viewportHeight - (targetHeight*scale))/2)
+
+                canvas.width = ctx.width = targetWidth
+                canvas.height = ctx.height = targetHeight
+                canvas.style.width = Math.round(targetWidth * scale) + 'px'
+                canvas.style.height = Math.round(targetHeight * scale) + 'px'
+                canvas.style.left = hborder + 'px'
+                canvas.style.top = vborder + 'px'
+            } else {
+        */
+    },
+}
+
+
+
 // ***********************
 // collider scene construction
 /*
@@ -5187,8 +5285,7 @@ function constructScene(target) {
 
     mod.sys.attach(reconstructScene)
 
-    mod.sys.attach(adjustCanvas)
-    mod.sys.attach(expandCanvas)
+    mod.sys.attach(adjustableCanvasTrait)
     mod.sys.attach(expandView)
     mod.sys.attach(evalLoadedContent)
     mod.sys.attach(doBox)
@@ -5348,17 +5445,17 @@ function defaultBodySetup(body) {
     document.body.setAttribute("scroll", "no")
 }
 
-function bindContainer() {
-    let container = document.getElementById(containerName)
+function bindRenderingSurface() {
+    let renderingSurface = document.getElementById(renderingSurfaceName)
 
     // place canvas in a container div
-    if (!container) {
-        container = document.createElement('div')
-        container.id = 'container'
-        document.body.appendChild(container)
+    if (!renderingSurface) {
+        renderingSurface = document.createElement('div')
+        renderingSurface.id = renderingSurfaceName
+        document.body.appendChild(renderingSurface)
     }
 
-    return container
+    return renderingSurface
 }
 
 function getWebGLContext(glCanvas) {
@@ -5371,6 +5468,7 @@ function getWebGLContext(glCanvas) {
         glCanvas.version = 2
         glCanvas.contextId = 'webgl2'
     } else {
+        // TODO is that even practial? We don't have mechanism to switch between different shaders!
         gl = glCanvas.getContext('webgl', {
             antialias: false,
             depth: false,
@@ -5380,6 +5478,7 @@ function getWebGLContext(glCanvas) {
             glCanvas.version = 1
             glCanvas.contextId = 'webgl'
         } else {
+            // TODO is that even practial? We don't have mechanism to switch between different shaders!
             gl = glCanvas.getContext('experimental-webgl')
             if (gl) {
                 glCanvas.gl = true
@@ -5394,6 +5493,12 @@ function getWebGLContext(glCanvas) {
             }
         }
     }
+
+    if (gl) {
+        gl.__ = glCanvas.__
+        glCanvas.gl = gl
+        glCanvas.activeContext = gl
+    }
     return gl
 }
 
@@ -5406,8 +5511,9 @@ function bindCanvas3D() {
         glCanvas.id = glCanvasName
         glCanvas.style.zIndex   = 5
         defaultCanvasSetup(glCanvas)
+        augment(glCanvas, adjustableCanvasTrait)
 
-        container.appendChild(glCanvas)
+        renderingSurface.appendChild(glCanvas)
         canvasList.push(glCanvas)
         
         defaultBodySetup()
@@ -5415,17 +5521,19 @@ function bindCanvas3D() {
         canvasList.push(glCanvas)
     }
 
-    if (glCanvas) {
-        glCanvas.buffer = false
-        _scene.glCanvas = glCanvas
-        _scene.gl = getWebGLContext(glCanvas)
-    }
+    glCanvas.__ = _scene
+    glCanvas.buffer = false
+    _scene.glCanvas = glCanvas
+    _scene.gl = getWebGLContext(glCanvas)
 }
 
 function get2DContext(canvas) {
     const ctx = canvas.getContext('2d')
+    ctx.__ = canvas.__
     canvas.cl = true
     canvas.contextId = '2d'
+    canvas.ctx = ctx
+    canvas.activeContext = ctx
     return ctx
 }
 
@@ -5438,14 +5546,16 @@ function bindCanvas2D() {
         canvas.id = canvasName
         canvas.style.zIndex   = 7
         defaultCanvasSetup(canvas)
+        augment(canvas, adjustableCanvasTrait)
 
-        container.appendChild(canvas)
+        renderingSurface.appendChild(canvas)
         canvasList.push(canvas)
 
         defaultBodySetup()
     }
 
     _scene.canvas = canvas
+    canvas.__ = _scene
     canvas.buffer = false
     //_scene.ctx = augmentCtx(canvas.getContext('2d'), _scene)
     _scene.ctx = get2DContext(canvas)
@@ -5455,7 +5565,7 @@ function bindCanvas2D() {
 function bootstrap() {
     _scene.log.raw('===== BOOTING UP =====')
 
-    container = bindContainer()
+    renderingSurface = bindRenderingSurface()
 
     bindCanvas3D()
     bindCanvas2D()
@@ -5573,9 +5683,13 @@ function startFlow(url) {
     openSocket(`${socketProtocol}//${window.location.host}/flow/`)
 }
 
+// TODO apply as a canvas adjustable traits - configurable, fixAspect, fullscreen, fullscreenRetina, fix-resolution?
+// @deprecated
 function adjustCanvas(name, baseX, baseY, baseWidth, baseHeight) {
     const canvas = document.getElementById(name)
     if (!canvas) return
+
+    const mode = canvas.mode || canvas.getAttribute('mode') || 'fullscreen'
 
     canvas.style.left = baseX + 'px'
     canvas.style.top = baseY + 'px'
@@ -5584,8 +5698,8 @@ function adjustCanvas(name, baseX, baseY, baseWidth, baseHeight) {
 
     const ctx = canvas.getContext( canvas.contextId )
 
-    let mode = canvas.getAttribute('mode')
-    mode = mode || 'fullscreen'
+    // let mode = canvas.getAttribute('mode')
+    // mode = mode || 'fullscreen'
 
     if (_scene.env.canvasStyle === 'preserve' || _scene.env.config.preserveCanvas) { 
         _scene.ctx.width = canvas.width
@@ -5672,18 +5786,12 @@ function adjustCanvas(name, baseX, baseY, baseWidth, baseHeight) {
     */
 }
 
-function expandCanvas(name) {
-    _scene.sys.adjustCanvas(name, 0, 0, window.innerWidth, window.innerHeight)
-}
-
 function expandView() {
     // TODO differenciate canvases as free and pinned to the window, resize only pinned
     for (let i = 0; i < canvasList.length; i++) {
         const canvas = canvasList[i]
-        // TODO how to automatically resize or not different canvases and buffers?
-        if (!canvas.buffer) {
-            //_scene.sys.expandCanvas(canvas.id)
-            _scene.sys.adjustCanvas(canvas.id, 0, 0, window.innerWidth, window.innerHeight)
+        if (canvas.adjust) {
+            canvas.adjust()
         }
     }
     _scene.signal('resize')
