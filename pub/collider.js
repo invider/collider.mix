@@ -2904,10 +2904,8 @@ const Mod = function(st) {
         _patchLog:     [],
         paused:        false,
         hidden:        false,
-        canvasName:    canvasName,
         canvas:        null,
         ctx:           null,
-        glCanvasName:  glCanvasName,
         glCanvas:      null,
         gl:            null,
     })
@@ -3400,31 +3398,48 @@ const Mod = function(st) {
         let mod
 
         const modConfig = _scene.env.config[name + '.mod'] || {}
-        if (modConfig.buffered || name.endsWith('-buf')) {
-            // TODO create a WebGL canvas as well (?) or maybe need '-gl' for that (?)
-            _scene.log.sys(`creating a buffer canvas for ${name}`)
-            const canvas = document.createElement('canvas')
-            //const ctx = augmentCtx(canvas.getContext('2d'))
-            const ctx = canvas.getContext('2d')
-            canvas.cl = true
-            canvas.buffer = true
-            canvas.activeContext = ctx
 
-            mod = new Mod( extend({
-                name:       name,
-                canvasName: '',
-                canvas:     canvas,
-                ctx:        ctx,
-            }), st)
-            canvas.__ = mod
-            ctx.__    = mod
-        } else {
-            mod = new Mod(name)
+        let canvas   = this.canvas,
+            ctx      = this.ctx,
+            glCanvas = this.glCanvas,
+            gl       = this.gl
+
+        if (modConfig.buffered2d || modConfig.buffered || name.endsWith('-2d') || name.endsWith('-buf')) {
+            _scene.log.sys(`creating a buffered 2D canvas for ${name}`)
+            canvas = document.createElement('canvas')
+            canvas.id = 'canvas-' + canvasList.reduce((acc, e) => e.capi? acc + 1 : acc, 1)
+            canvas.buffer = true
+            ctx = get2DContext(canvas)
+            defaultCanvasSetup(canvas)
+            canvasList.push(canvas)
         }
+        if (modConfig.bufferedGL || modConfig.buffered || name.endsWith('-gl') || name.endsWith('-buf')) {
+            _scene.log.sys(`creating a buffered WebGL canvas for ${name}`)
+            glCanvas = document.createElement('canvas')
+            glCanvas.id = 'gl-canvas-' + canvasList.reduce((acc, e) => e.wapi? acc + 1 : acc, 1)
+            glCanvas.buffer = true
+            gl = getWebGLContext(glCanvas)
+            defaultCanvasSetup(glCanvas)
+            canvasList.push(glCanvas)
+        }
+
+        mod = new Mod( extend({
+            name:     name,
+            canvas:   canvas,
+            ctx:      ctx,
+            glCanvas: glCanvas,
+            gl:       gl,
+        }), st)
         mod._$  = _scene         // reference to the root mod
-        mod.__$ = this.getMod()  // reference to the parent mod
         Object.defineProperty(this, '_$',  { enumerable: false })
+        mod.__$ = this.getMod()  // reference to the parent mod
         Object.defineProperty(this, '__$', { enumerable: false })
+
+        canvas.__   = mod
+        ctx.__      = mod
+        glCanvas.__ = mod
+        gl.__       = mod
+
         return mod
     })
     this.attach(mod)
@@ -3958,12 +3973,10 @@ Mod.prototype.populateAlt = function() {
 Mod.prototype.init = function() {
     // clone the rendering context from the parent mod if not set explicitly
     if (!this.ctx) {
-        this.canvasName   = this.__$.canvasName
         this.canvas       = this.__$.canvas
         this.ctx          = this.__$.ctx
     }
     if (!this.gl) {
-        this.glCanvasName = this.__$.glCanvasName
         this.glCanvas     = this.__$.glCanvas
         this.gl           = this.__$.gl
     }
@@ -4046,7 +4059,6 @@ Mod.prototype._runTests = function() {
 
         } else if (fn.name.startsWith('trial')) {
             const mod = constructScene()
-            mod.canvasName = _scene.canvasName
             mod.canvas     = _scene.canvas
             mod.ctx        = _scene.ctx
             mod.populateAlt()
@@ -4129,7 +4141,6 @@ Mod.prototype._runTests = function() {
             const test = this.test[name]
 
             const mod = constructScene()
-            mod.canvasName = _scene.canvasName
             mod.canvas     = _scene.canvas
             mod.ctx        = _scene.ctx
             mod.populateAlt()
@@ -5360,7 +5371,7 @@ function reconstructScene() {
     Mod.call(_scene)
     constructScene(_scene)
     // TODO we are taking it again? what if it is webgl? where is canvas coming from?
-    _scene.ctx = canvas.getContext('2d')
+    //_scene.ctx = canvas.getContext('2d')
     //_scene.ctx = augmentCtx(canvas.getContext("2d"), _scene)
     _scene.defineDrawContext()
     _scene.populateAlt()
@@ -5458,13 +5469,13 @@ function bindRenderingSurface() {
     return renderingSurface
 }
 
-function getWebGLContext(glCanvas) {
+function getWebGLContext(glCanvas, st) {
+    // TODO provide canvas-gradual webgl config to customize things like depth buffer
     const gl = glCanvas.getContext('webgl2', {
         depth:     true,
         antialias: false,
     })
     if (gl) {
-        glCanvas.gl = true
         glCanvas.version = 2
         glCanvas.contextId = 'webgl2'
     } else {
@@ -5474,20 +5485,18 @@ function getWebGLContext(glCanvas) {
             depth: false,
         })
         if (gl) {
-            glCanvas.gl = true
             glCanvas.version = 1
             glCanvas.contextId = 'webgl'
         } else {
             // TODO is that even practial? We don't have mechanism to switch between different shaders!
             gl = glCanvas.getContext('experimental-webgl')
             if (gl) {
-                glCanvas.gl = true
                 glCanvas.version = 0
                 glCanvas.contextId = 'experimental-webgl'
             } else {
                 // TODO no WebGL support, should we remove it from DOM completely?
                 glCanvas.disabled = true
-                glCanvas.gl = false
+                glCanvas.wapi = false
                 glCanvas.version = -1
                 _scene.log.err('No WebGL support!')
             }
@@ -5498,58 +5507,56 @@ function getWebGLContext(glCanvas) {
         gl.__ = glCanvas.__
         glCanvas.gl = gl
         glCanvas.activeContext = gl
+        glCanvas.wapi = true
     }
     return gl
 }
 
-function bindCanvas3D() {
+function bindOrCreateCanvas3D() {
     // place WebGL context
     let glCanvas = document.getElementById(glCanvasName)
     if (glCanvas == null) {
         // precreated canvas is not found, so create one
         glCanvas = document.createElement('canvas')
         glCanvas.id = glCanvasName
-        glCanvas.style.zIndex   = 5
+        glCanvas.style.zIndex = 5
         defaultCanvasSetup(glCanvas)
         augment(glCanvas, adjustableCanvasTrait)
 
         renderingSurface.appendChild(glCanvas)
-        canvasList.push(glCanvas)
         
         defaultBodySetup()
-    } else {
-        canvasList.push(glCanvas)
     }
 
     glCanvas.__ = _scene
     glCanvas.buffer = false
     _scene.glCanvas = glCanvas
     _scene.gl = getWebGLContext(glCanvas)
+    canvasList.push(glCanvas)
 }
 
 function get2DContext(canvas) {
     const ctx = canvas.getContext('2d')
     ctx.__ = canvas.__
-    canvas.cl = true
+    canvas.capi = true
     canvas.contextId = '2d'
     canvas.ctx = ctx
     canvas.activeContext = ctx
     return ctx
 }
 
-function bindCanvas2D() {
+function bindOrCreateCanvas2D() {
     // binding to the graphical canvas/context by convention
     let canvas = document.getElementById(canvasName)
     if (canvas == null) {
         // precreated canvas is not found, so create one
         canvas = document.createElement('canvas')
         canvas.id = canvasName
-        canvas.style.zIndex   = 7
+        canvas.style.zIndex = 7
         defaultCanvasSetup(canvas)
         augment(canvas, adjustableCanvasTrait)
 
         renderingSurface.appendChild(canvas)
-        canvasList.push(canvas)
 
         defaultBodySetup()
     }
@@ -5560,6 +5567,7 @@ function bindCanvas2D() {
     //_scene.ctx = augmentCtx(canvas.getContext('2d'), _scene)
     _scene.ctx = get2DContext(canvas)
     _scene.defineDrawContext()
+    canvasList.push(canvas)
 }
 
 function bootstrap() {
@@ -5567,8 +5575,8 @@ function bootstrap() {
 
     renderingSurface = bindRenderingSurface()
 
-    bindCanvas3D()
-    bindCanvas2D()
+    bindOrCreateCanvas3D()
+    bindOrCreateCanvas2D()
     _scene.defineDrawContext()
     _scene.populateAlt()
 
