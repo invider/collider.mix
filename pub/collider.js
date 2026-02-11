@@ -32,7 +32,6 @@ const canvasName           = 'canvas'
 const glCanvasName         = 'gl-canvas'
 
 // TODO place them inside the mix or env?
-let   renderingSurface
 const canvasList = []
 
 const GAMEPADS = 4
@@ -5297,6 +5296,7 @@ function constructScene(target) {
     mod.sys.attach(reconstructScene)
 
     mod.sys.attach(adjustableCanvasTrait)
+    mod.sys.attach(attachCanvasToRenderingSurface)
     mod.sys.attach(expandView)
     mod.sys.attach(evalLoadedContent)
     mod.sys.attach(doBox)
@@ -5469,6 +5469,11 @@ function bindRenderingSurface() {
     return renderingSurface
 }
 
+function attachCanvasToRenderingSurface(canvas, zIndex) {
+    if (zIndex != null) canvas.style.zIndex = zIndex
+    _scene._renderingSurface.appendChild(canvas)
+}
+
 function getWebGLContext(glCanvas, st) {
     // TODO provide canvas-gradual webgl config to customize things like depth buffer
     const gl = glCanvas.getContext('webgl2', {
@@ -5519,11 +5524,10 @@ function bindOrCreateCanvas3D() {
         // precreated canvas is not found, so create one
         glCanvas = document.createElement('canvas')
         glCanvas.id = glCanvasName
-        glCanvas.style.zIndex = 5
         defaultCanvasSetup(glCanvas)
         augment(glCanvas, adjustableCanvasTrait)
 
-        renderingSurface.appendChild(glCanvas)
+        attachCanvasToRenderingSurface(glCanvas, 5)
         
         defaultBodySetup()
     }
@@ -5552,11 +5556,10 @@ function bindOrCreateCanvas2D() {
         // precreated canvas is not found, so create one
         canvas = document.createElement('canvas')
         canvas.id = canvasName
-        canvas.style.zIndex = 7
         defaultCanvasSetup(canvas)
         augment(canvas, adjustableCanvasTrait)
 
-        renderingSurface.appendChild(canvas)
+        attachCanvasToRenderingSurface(canvas, 7)
 
         defaultBodySetup()
     }
@@ -5573,7 +5576,7 @@ function bindOrCreateCanvas2D() {
 function bootstrap() {
     _scene.log.raw('===== BOOTING UP =====')
 
-    renderingSurface = bindRenderingSurface()
+    _scene._renderingSurface = bindRenderingSurface()
 
     bindOrCreateCanvas3D()
     bindOrCreateCanvas2D()
