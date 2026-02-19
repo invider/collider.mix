@@ -327,8 +327,8 @@ SlideCamera.prototype.evo = function(dt) {
 // draw entities in the viewport
 SlideCamera.prototype.draw = function(dt) {
     ctx.save()
-	const sw = env.width,
-          sh = env.height,
+	const sw = ctx.width,
+          sh = ctx.height,
           vp = this.viewport(),
           vx1 = vp.x,
           vy1 = vp.y,
