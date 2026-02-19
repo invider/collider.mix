@@ -5137,6 +5137,7 @@ function constructLog() {
 }
 
 const adjustableCanvasTrait = {
+    name: 'adjustableCanvasTrait',
 
     adjust: function() {
         const _    = this,
@@ -5470,8 +5471,12 @@ function bindRenderingSurface() {
 }
 
 function attachCanvasToRenderingSurface(canvas, zIndex) {
+    if (!canvas) throw new Error('a canvas object is expected!')
+    if (canvas instanceof OffscreenCanvas) throw new Error(`can't attach an OffscreenCanvas to the rendering surface!`)
+
     if (zIndex != null) canvas.style.zIndex = zIndex
     _scene._renderingSurface.appendChild(canvas)
+    canvas.buffered = false
 }
 
 function getWebGLContext(glCanvas, st) {
@@ -5525,7 +5530,7 @@ function bindOrCreateCanvas3D() {
         glCanvas = document.createElement('canvas')
         glCanvas.id = glCanvasName
         defaultCanvasSetup(glCanvas)
-        augment(glCanvas, adjustableCanvasTrait)
+        mixin(glCanvas, adjustableCanvasTrait)
 
         attachCanvasToRenderingSurface(glCanvas, 5)
         
