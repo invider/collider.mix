@@ -97,6 +97,306 @@
 // Use gx, gy, gxy to get screen coordinates from camera-ones.
 //
 // Use lx, ly, lxy to get camera-world coordinates form the screen-ones.
+
+class FovDrivenView {
+}
+
+class ZoomDrivenView {
+
+    constructor(st) {
+
+        augment({
+            x:     0,
+            y:     0,
+            zoom:  1,
+            flipY: false,
+        }, st)
+
+    }
+
+    adjust() {}
+
+    getFOV() {
+    }
+
+    setFOV() {
+    }
+
+    getFocusDistance() {
+    }
+
+    setFocusDistance() {
+    }
+
+    getZoom() {
+        return this.zoom
+    }
+
+    setZoom(zoom) {
+        this.zoom = zoom
+    }
+
+    getRect() {
+        const __ = this.__
+
+        return {
+            x: __.lx(0),
+            y: __.ly(0),
+            w: __.w / this.zoom,
+            h: __.h / this.zoom,
+        }
+    }
+
+    getEdges() {
+        const __ = this.__
+
+        return [
+            __.lx(0),
+            __.ly(0),
+            __.lx(__.w),
+            __.ly(__.h),
+        ]
+    }
+}
+
+class SlideCameraNG extends sys.LabFrame {
+
+    constructor(st) {
+        super( augment({
+            name: 'port',
+
+            x:    0,
+            y:    0,
+            view: new ZoomDrivenView(),
+
+            target: null,
+
+        }, st) )
+        this.view.__ = this
+        if (!isFun(this.adjustViewport) && !this.w && !this.h) {
+            this.fullscreen = true
+        } else {
+            this.fullscreen = false
+        }
+    }
+
+    bindContext() {
+        this.ctx = this.getMod().ctx
+    }
+
+    init() {
+        this.bindContext()
+        this.adjust()
+    }
+
+    adjustViewportToFullscreen() {
+        // fullscreen viewport
+        this.x = 0
+        this.y = 0
+        this.w = this.ctx.width
+        this.h = this.ctx.height
+    }
+
+    adjust() {
+        if (this.fullscreen) {
+            this.adjustViewportToFullscreen()
+        } else if (isFun(this.adjustViewport)) {
+            this.adjustViewport()
+        }
+        this.view.adjust()
+    }
+
+    // translate local x to the parent coordinate space
+    //
+    // @param {number} lx
+    // @returns {number} - upper x
+    ux(lx) {
+        return (lx - this.view.x)*this.view.zoom + .5 * this.w
+    }
+
+    // translate local y to the parent coordinate space
+    //
+    // @param {number} ly
+    // @returns {number} - upper y
+    uy(ly) {
+        return (ly - this.y)*this.view.zoom + .5 * this.h
+    }
+
+    // translate local x and y to the parent coordinate space
+    //
+    // @param {number} lx
+    // @param {number} ly
+    // @returns {object/vec2o} - upper coordinates
+    uxy(lx, ly) {
+        return {
+            x: (lx - this.view.x)*this.view.zoom + .5 * this.w,
+            y: (ly - this.view.y)*this.view.zoom + .5 * this.h,
+        }
+    }
+
+    // translate parent coordinates x to the local coordinate space
+    //
+    // @param {number} ux
+    // @returns {number} - local x
+    lx(ux) {
+        return (ux - .5 * this.w)/this.view.zoom + this.view.x
+    }
+
+    // translate parent coordinates y to the local coordinate space
+    //
+    // @param {number} uy
+    // @returns {number} - local y
+    ly(uy) {
+        return (uy - .5 * this.h)/this.view.zoom + this.view.y
+    }
+
+    // translate parent x and y to the local coordinate space
+    //
+    // @param {number} x
+    // @param {number} y
+    // @returns {object/2d-vector} - object with local x and y
+    lxy(ux, uy) {
+        return {
+            x: (ux - .5 * this.w)/this.view.zoom + this.view.x,
+            y: (uy - .5 * this.h)/this.view.zoom + this.view.y,
+        }
+    }
+
+    lookAt(x, y, zoom) {
+        this.view.x = x
+        this.view.y = y
+        if (zoom) this.view.zoom = zoom
+    }
+
+    // returns the list of nodes to be displayed by the draw() function
+    //
+    // Camera child nodes are returned by default.
+    // Redefine this method to customize the rendering target,
+    // e.g. to achieve the following layout:
+    //     lab
+    //      |-cam
+    //      |-world
+    // You can return world._ls list to render instead of the cam children.
+    // This approach can be more preferable in some scenarios,
+    // like multiple camera.
+    // If you keep all entities under a camera it would be
+    // cumbersome to keep them visible when you switch to another camera -
+    // the entities have to be either moved into the new camera
+    // or linked somehow, since its going to render only the included entities
+    // by default.
+    // And it gets even harder when you need to display the output
+    // of two camera at the same time - sometimes we need to have
+    // multiple viewports into the same world on the screen,
+    // e.g. the main view and a minimap in a realtime strategy
+    // or a security camera in a stealth platformer.
+    //
+    // Redefining _getDisplayList()_ allows you 
+    // 
+    // to move them out all world entities each time you switch
+    // between the cameras. And will be really tricky (but still possible)
+    // if you have multiple cameras
+    getDisplayList() {
+        return this._ls
+    }
+
+    getContext() {
+        return this.ctx
+    }
+
+    drawList(list, edges) {
+        const ctx = this.getContext()
+
+        list.forEach( e => e.draw() )
+        /*
+        list.forEach( e => {
+            if (e.draw && !e.dead && !e.hidden) {
+                // culling
+                if (e._rectangular) {
+                    if ((e._centered
+                                && e.x+e.w/2 >= vx1
+                                && e.x-e.w/2 <= vx2
+                                && e.y+e.h/2 >= vy1
+                                && e.y-e.h/2 <= vy2)
+                            || (e.x+e.w >= vx1
+                                && e.x  <= vx2
+                                && e.y+e.h >= vy1
+                                && e.y  <= vy2)) {
+                        e.draw()
+                    }
+                } else if (e._circular) {
+                    if (e.x+e.r >= vx1
+                            && e.x-e.r <= vx2
+                            && e.y+e.r >= vy1
+                            && e.y-e.r <= vy2) {
+                        e.draw()
+                    }
+
+                } else {
+                    e.draw()
+                }
+            }
+        })
+        */
+    }
+
+    draw(dt) {
+        const { x, y, w, h } = this
+        const ctx = this.getContext()
+        const ls  = this.getDisplayList()
+
+        /*
+        // hint the viewport
+        alpha(.3)
+        lineWidth(8)
+        stroke(.15, .4, .5)
+        rect(this.x, this.y, this.w, this.h)
+        alpha(1)
+        */
+
+        ctx.save()
+        if (!this.fullscreen) {
+            // clip to the viewport
+            ctx.beginPath()
+            ctx.moveTo(x,     y    )
+            ctx.lineTo(x + w, y    )
+            ctx.lineTo(x + w, y + h)
+            ctx.lineTo(x,     y + h)
+            ctx.closePath()
+            ctx.clip()
+        }
+        ctx.translate(.5 * this.w + this.x, .5 * this.h + this.y) // half-screen shift if needed
+        ctx.scale(this.view.zoom, this.view.zoom)
+        ctx.translate(-this.view.x, -this.view.y)
+
+        // draw the view field
+        // ctx.strokeStyle = '#ff0000'
+        // ctx.strokeRect(vx1, vpy2, vp.w, vp.h)
+        const edges = this.view.getEdges()
+
+
+        this.drawList(ls, edges)
+
+        /*
+        // hint the edge
+        save()
+        lineWidth(1)
+        stroke(this.edgeColor)
+        ctx.beginPath()
+        ctx.moveTo(edges[0], edges[1])
+        ctx.lineTo(edges[2], edges[1])
+        ctx.lineTo(edges[2], edges[3])
+        ctx.lineTo(edges[0], edges[3])
+        ctx.closePath()
+        ctx.stroke()
+        restore()
+        */
+
+        ctx.restore()
+    }
+
+}
+
+/*
 const SlideCamera = function(st) {
     this.name = 'cam'
     this.x = 0
@@ -118,55 +418,6 @@ const SlideCamera = function(st) {
 
 SlideCamera.prototype = new sys.LabFrame()
 
-// translate local x to global coordinates
-// @param {number} x
-// @returns {number} - global x
-SlideCamera.prototype.gx = function(x) {
-    return (x - this.x)*this.scale + ctx.width/2
-}
-
-// translate local y to global coordinates
-// @param {number} y
-// @returns {number} - global y
-SlideCamera.prototype.gy = function(y) {
-    return (y - this.y)*this.scale + ctx.height/2
-}
-
-// translate local x and y to global coordinates
-// @param {number} x
-// @param {number} y
-// @returns {object/2d-vector} - object with global x and y
-SlideCamera.prototype.gxy = function(x, y) {
-    return {
-        x: (x - this.x)*this.scale + ctx.width/2,
-        y: (y - this.y)*this.scale + ctx.height/2,
-    }
-}
-
-// translate global x to local coordinates
-// @param {number} x
-// @returns {number} - local x
-SlideCamera.prototype.lx = function(x) {
-    return (x-ctx.width/2)/this.scale + this.x
-}
-
-// translate global y to local coordinates
-// @param {number} y
-// @returns {number} - local y
-SlideCamera.prototype.ly = function(y) {
-    return (y-ctx.height/2)/this.scale + this.y
-}
-
-// translate global x and y to local coordinates
-// @param {number} x
-// @param {number} y
-// @returns {object/2d-vector} - object with local x and y
-SlideCamera.prototype.lxy = function(x, y) {
-    return {
-        x: (x-ctx.width/2)/this.scale + this.x,
-        y: (y-ctx.height/2)/this.scale + this.y,
-    }
-}
 
 // get camera viewport
 // @returns {object/viewport-rectangle} - viewport x, y, w and h
@@ -190,25 +441,6 @@ SlideCamera.prototype.inView = function(x, y) {
     let sy = this.gy(y)
     return (sx >= 0 && sx <= ctx.width && sy >= 0 && sy <= ctx.height)
 }
-
-/*
-SlideCamera.prototype.pick = function(screenX, screenY) {
-    let wx = this.worldX(screenX)
-    let wy = this.worldY(screenY)
-
-    let res = []
-    this._ls.forEach( e => {
-        if (e.draw && !e.dead && !e.hidden && e._positional && e._rectangular
-                && e.x <= wx
-                && e.x + e.w >= wx
-                && e.y <= wy
-                && e.y + e.h >= wy) {
-            res.push(e)
-        }
-    })
-    return res
-}
-*/
 
 // create traps for Plus/Minus keys to control camera zoom in/out
 // called automatically, when (camera.zoomOnPlusMinus === true)
@@ -346,56 +578,4 @@ SlideCamera.prototype.evo = function(dt) {
         }
     }
 }
-
-// draw entities in the viewport
-SlideCamera.prototype.draw = function(dt) {
-    ctx.save()
-	const sw = ctx.width,
-          sh = ctx.height,
-          vp = this.viewport(),
-          vx1 = vp.x,
-          vy1 = vp.y,
-          vx2 = vp.x + vp.w,
-          vy2 = vp.y + vp.h
-    
-    ctx.translate(sw/2, sh/2) // half-screen shift
-	ctx.scale(this.scale, this.scale);
-	ctx.translate(-this.x, -this.y)
-
-    /*
-    // draw viewport
-    ctx.strokeStyle = '#ff0000'
-    ctx.strokeRect(vx1, vpy2, vp.w, vp.h)
-    */
-	    
-    this._ls.forEach( e => {
-        if (e.draw && !e.dead && !e.hidden) {
-            // culling
-            if (e._rectangular) {
-                if ((e._centered
-                            && e.x+e.w/2 >= vx1
-                            && e.x-e.w/2 <= vx2
-                            && e.y+e.h/2 >= vy1
-                            && e.y-e.h/2 <= vy2)
-                        || (e.x+e.w >= vx1
-                            && e.x  <= vx2
-                            && e.y+e.h >= vy1
-                            && e.y  <= vy2)) {
-                    e.draw()
-                }
-            } else if (e._circular) {
-                if (e.x+e.r >= vx1
-                        && e.x-e.r <= vx2
-                        && e.y+e.r >= vy1
-                        && e.y-e.r <= vy2) {
-                    e.draw()
-                }
-
-            } else {
-                e.draw()
-            }
-        }
-    })
-
-    ctx.restore()
-}
+*/
