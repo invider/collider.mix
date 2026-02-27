@@ -1362,8 +1362,19 @@ Frame.prototype.selectOne = function(predicate) {
 Frame.prototype.orderZ = function() {
     this._ls.sort((a, b) => {
         if (!isNum(a.Z) && !isNum(b.Z)) return 0;
-        if (!isNum(a.Z) && isNum(b.Z)) return 1;
-        if (isNum(a.Z) && !isNum(b.Z)) return -1;
+        if (!isNum(a.Z) && isNum(b.Z)) {
+            if (b.Z < 0) return -1
+            else return 1;
+        }
+        if (isNum(a.Z) && !isNum(b.Z)) {
+            if (a.Z < 0) return 1
+            else return -1;
+        }
+
+        // handle negative/positive cases
+        if (a.Z < 0 && b.Z >= 0) return 1
+        if (a.Z >= 0 && b.Z < 0) return -1
+
         if (a.Z > b.Z) return 1;
         if (a.Z < b.Z) return -1;
         return 0;
