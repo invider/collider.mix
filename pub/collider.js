@@ -3592,10 +3592,10 @@ Mod.prototype.defineDrawContext = function() {
         },
         clip: function(x, y, w, h) {
             ctx.beginPath()
-            ctx.moveTo(x, y)
-            ctx.lineTo(x + w, y)
+            ctx.moveTo(x,     y    )
+            ctx.lineTo(x + w, y    )
             ctx.lineTo(x + w, y + h)
-            ctx.lineTo(x, y + h)
+            ctx.lineTo(x,     y + h)
             ctx.closePath()
             ctx.clip()
             return alt

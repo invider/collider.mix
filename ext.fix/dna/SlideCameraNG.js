@@ -98,10 +98,7 @@
 //
 // Use lx, ly, lxy to get camera-world coordinates form the screen-ones.
 
-class FovDrivenView {
-}
-
-class ZoomDrivenView {
+class SlideView {
 
     constructor(st) {
 
@@ -117,15 +114,15 @@ class ZoomDrivenView {
     adjust() {}
 
     getFOV() {
-    }
-
-    setFOV() {
+        return HALF_PI
     }
 
     getFocusDistance() {
+        return (this.__.w / this.zoom) / (2 * tan(QUARTER_PI))
     }
 
-    setFocusDistance() {
+    setFocusDistance(fd) {
+        this.zoom = this.__.w / (2 * fd * tan(QUARTER_PI))
     }
 
     getZoom() {
@@ -159,21 +156,123 @@ class ZoomDrivenView {
     }
 }
 
+const MOVE_UP    = 1,
+      MOVE_LEFT  = 2,
+      MOVE_DOWN  = 3,
+      MOVE_RIGHT = 4,
+      ZOOM_IN    = 5,
+      ZOOM_OUT   = 6
+
+class KeyboardControlPod {
+
+    constructor(st) {
+        augment(this, {
+            name:    'keyboardControlPod',
+
+            bind: {
+                moveUp:    'ArrowUp',
+                moveLeft:  'ArrowLeft',
+                moveDown:  'ArrowDown',
+                moveRight: 'ArrowRight',
+                zoomIn:    'Equal',
+                zoomOut:   'Minus',
+            },
+
+            actions:    [],
+            zoomSpeed:  2,
+            slideSpeed: 600,
+        }, st)
+    }
+
+    init() {
+        this.bindZoom()
+    }
+
+    bindZoom() {
+        const _ = this
+
+        trap.on('keyDown', function(e) {
+            if (e.repeat) return
+
+            const bind = _.bind
+            switch(e.code) {
+                case bind.moveUp:    _.actuate(MOVE_UP);    break;
+                case bind.moveLeft:  _.actuate(MOVE_LEFT);  break;
+                case bind.moveDown:  _.actuate(MOVE_DOWN);  break;
+                case bind.moveRight: _.actuate(MOVE_RIGHT); break;
+                case bind.zoomIn:    _.actuate(ZOOM_IN);    break;
+                case bind.zoomOut:   _.actuate(ZOOM_OUT);   break;
+            }
+        })
+
+        trap.on('keyUp', function(e) {
+            const bind = _.bind
+            switch(e.code) {
+                case bind.moveUp:    _.cutOff(MOVE_UP);    break;
+                case bind.moveLeft:  _.cutOff(MOVE_LEFT);  break;
+                case bind.moveDown:  _.cutOff(MOVE_DOWN);  break;
+                case bind.moveRight: _.cutOff(MOVE_RIGHT); break;
+                case bind.zoomIn:    _.cutOff(ZOOM_IN);    break;
+                case bind.zoomOut:   _.cutOff(ZOOM_OUT);   break;
+            }
+        })
+    }
+
+    actuate(action) {
+        this.actions[action] = true
+    }
+
+    cutOff(action) {
+        this.actions[action] = false
+    }
+
+    act(action, dt) {
+        const view = this.__.view
+        switch(action) {
+            case MOVE_UP:
+                view.y = view.y - (this.slideSpeed / view.zoom) * dt
+                break
+            case MOVE_LEFT:
+                view.x = view.x - (this.slideSpeed / view.zoom) * dt
+                break
+            case MOVE_DOWN:
+                view.y = view.y + (this.slideSpeed / view.zoom) * dt
+                break
+            case MOVE_RIGHT:
+                view.x = view.x + (this.slideSpeed / view.zoom) * dt
+                break
+            case ZOOM_IN:
+                view.setZoom( view.getZoom() * (1 + this.zoomSpeed * dt))
+                break
+            case ZOOM_OUT:
+                view.setZoom( view.getZoom() * (1 - this.zoomSpeed * dt))
+                break
+        }
+    }
+
+    evo(dt) {
+        for (let i = 1; i < this.actions.length; i++) {
+            if (this.actions[i]) this.act(i, dt)
+        }
+    }
+}
+
 class SlideCameraNG extends sys.LabFrame {
 
     constructor(st) {
         super( augment({
             name: 'port',
 
-            x:    0,
-            y:    0,
-            view: new ZoomDrivenView(),
+            x:     0,
+            y:     0,
+            w:     0,
+            h:     0,
+            view:  new SlideView(),
 
             target: null,
-
         }, st) )
         this.view.__ = this
-        if (!isFun(this.adjustViewport) && !this.w && !this.h) {
+        if (!isFun(this.adjustViewport) && !st.w && !st.h) {
             this.fullscreen = true
         } else {
             this.fullscreen = false
@@ -396,6 +495,9 @@ class SlideCameraNG extends sys.LabFrame {
 
 }
 
+SlideCameraNG.SlideView = SlideView
+SlideCameraNG.KeyboardControlPod = KeyboardControlPod
+
 /*
 const SlideCamera = function(st) {
     this.name = 'cam'
@@ -414,22 +516,6 @@ const SlideCamera = function(st) {
     this.keys = []
 
     sys.Frame.call(this, st)
-}
-
-SlideCamera.prototype = new sys.LabFrame()
-
-
-// get camera viewport
-// @returns {object/viewport-rectangle} - viewport x, y, w and h
-SlideCamera.prototype.viewport = function() {
-    const x = this.lx(0)
-    const y = this.ly(0)
-    return {
-        x: x,
-        y: y,
-        w: this.lx(ctx.width) - x,
-        h: this.ly(ctx.height) - y,
-    }
 }
 
 // check if local coordinates are in the viewport
