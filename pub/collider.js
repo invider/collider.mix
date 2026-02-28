@@ -1735,10 +1735,10 @@ LabFrame.prototype.pick = function(x, y, list, opt) {
                 || (node._centered && node._circular
                     && distance(lx, ly, node.x, node.y) <= node.r)
                 || (node._centered
-                    && lx >= node.x - node.w/2
-                    && lx <= node.x + node.w/2
-                    && ly >= node.y - node.h/2
-                    && ly <= node.y + node.h/2)
+                    && lx >= node.x - .5 * node.w
+                    && lx <= node.x + .5 * node.w
+                    && ly >= node.y - .5 * node.h
+                    && ly <= node.y + .5 * node.h)
                 || (node._rectangular
                     && !node._centered
                     && lx >= node.x
@@ -3753,7 +3753,7 @@ Mod.prototype.defineDrawContext = function() {
         },
 
         plot: function(x, y) {
-            ctx.fillRect(x-ctx.lineWidth/2, y-ctx.lineWidth/2, ctx.lineWidth, ctx.lineWidth)
+            ctx.fillRect(x-.5*ctx.lineWidth, y-.5*ctx.lineWidth, ctx.lineWidth, ctx.lineWidth)
             return alt
         },
         triangle: function(x1, y1, x2, y2, x3, y3) {
@@ -5753,8 +5753,8 @@ function adjustCanvas(name, baseX, baseY, baseWidth, baseHeight) {
             // viewport is higher
             targetHeight = Math.round(targetWidth / aspect)
         }
-        const hborder = Math.round((viewportWidth - targetWidth)/2)
-        const vborder = Math.round((viewportHeight - targetHeight)/2)
+        const hborder = Math.round(.5 * (viewportWidth - targetWidth))
+        const vborder = Math.round(.5 * (viewportHeight - targetHeight))
 
         canvas.width = ctx.width = targetWidth
         canvas.height = ctx.height = targetHeight
@@ -5780,8 +5780,8 @@ function adjustCanvas(name, baseX, baseY, baseWidth, baseHeight) {
         let scale = hscale
         if (hscale > vscale) scale = vscale
 
-        const hborder = Math.round((viewportWidth - (targetWidth*scale))/2)
-        const vborder = Math.round((viewportHeight - (targetHeight*scale))/2)
+        const hborder = Math.round((viewportWidth - .5 * (targetWidth*scale)))
+        const vborder = Math.round((viewportHeight - .5 * (targetHeight*scale)))
 
         canvas.width = ctx.width = targetWidth
         canvas.height = ctx.height = targetHeight
