@@ -133,6 +133,14 @@ class SlideView {
         this.zoom = zoom
     }
 
+    getWidth() {
+        return this.__.w / this.zoom
+    }
+
+    getHeight() {
+        return this.__.h / this.zoom
+    }
+
     getRect() {
         const __ = this.__
 
@@ -154,6 +162,50 @@ class SlideView {
             __.ly(__.h),
         ]
     }
+
+    within(x, y, r) {
+        r = r ?? 0
+        
+        const x1 = __.lx(0),
+              y1 = __.ly(0),
+              x2 = __.lx(__.w),
+              y2 = __.ly(__.h)
+
+        return (
+            x + r >= x1
+            && x - r <= x2
+            && y + r >= y1
+            && y - r <= y2
+        )
+    }
+
+    isVisible(e) {
+        const x1 = __.lx(0),
+              y1 = __.ly(0),
+              x2 = __.lx(__.w),
+              y2 = __.ly(__.h)
+
+        if (e.r !== undefined) {
+            return (
+                e.x + e.r >= x1
+                && e.x - e.r <= x2
+                && e.y + e.r >= y1
+                && e.y - e.r <= y2
+            )
+        } else if (e.w !== undefined && e.h !== undefined) {
+            // expect rectangular
+            return ((e._centered
+                        && e.x + .5 * e.w >= x1
+                        && e.x - .5 * e.w <= x2
+                        && e.y + .5 * e.h >= y1
+                        && e.y - .5 * e.h <= y2)
+                    || (e.x + e.w >= x1
+                        && e.x <= x2
+                        && e.y + e.h >= y1
+                        && e.y <= y2))
+        }
+    }
+
 }
 
 const MOVE_UP    = 1,
@@ -230,15 +282,19 @@ class KeyboardControlPod {
         const view = this.__.view
         switch(action) {
             case MOVE_UP:
+                if (view.verticalLock) return
                 view.y = view.y - (this.slideSpeed / view.zoom) * dt
                 break
             case MOVE_LEFT:
+                if (view.horizontalLock) return
                 view.x = view.x - (this.slideSpeed / view.zoom) * dt
                 break
             case MOVE_DOWN:
+                if (view.verticalLock) return
                 view.y = view.y + (this.slideSpeed / view.zoom) * dt
                 break
             case MOVE_RIGHT:
+                if (view.horizontalLock) return
                 view.x = view.x + (this.slideSpeed / view.zoom) * dt
                 break
             case ZOOM_IN:
@@ -253,6 +309,145 @@ class KeyboardControlPod {
     evo(dt) {
         for (let i = 1; i < this.actions.length; i++) {
             if (this.actions[i]) this.act(i, dt)
+        }
+    }
+}
+
+class ZoomConstraints {
+
+    constructor(st) {
+        augment(this, {
+            Z:    -17,
+            name: 'zoomConstraints',
+
+            min: 0.1,
+            max: 10,
+        }, st)
+    }
+
+    evo(dt) {
+        const _ = this.__.view
+        _.zoom = clamp(_.zoom, this.min, this.max)
+    }
+
+}
+
+class ZoneConstraints {
+
+    constructor(st) {
+        augment(this, {
+            Z:    -11,
+            name: 'zoneConstraints',
+
+            x1:    0,
+            x2:    0,
+            y1:    0,
+            y2:    0,
+        }, st)
+    }
+
+    evo(dt) {
+        const { x1, y1, x2, y2 } = this
+        const view = this.__.view
+        const edges = view.getEdges()
+
+        view.horizontalLock = false
+        view.verticalLock = false
+
+        if (edges[0] <= x1) {
+            if (edges[2] >= x2) {
+                // outside of bounds - center the view
+                view.x = edges[0] + .5 * (edges[2] - edges[0])
+                view.horizontalLock = true
+            } else {
+                // stick to the left
+                view.x = x1 + .5 * view.getWidth()
+            }
+        } else if (edges[2] >= x2) {
+            // stick to the right
+            view.x = x2 - .5 * view.getWidth()
+        }
+
+        if (edges[1] <= y1) {
+            if (edges[3] >= y2) {
+                // outside of bounds - center the view
+                view.y = edges[1] + .5 * (edges[3] - edges[1])
+                view.verticalLock = true
+            } else {
+                // stick to the left
+                view.y = y1 + .5 * view.getHeight()
+            }
+        } else if (edges[3] >= y2) {
+            // stick to the right
+            view.y = y2 - .5 * view.getHeight()
+        }
+    }
+}
+
+class ElasticZoneConstraints {
+
+    constructor(st) {
+        augment(this, {
+            Z:    -11,
+            name: 'ElasticZoneConstraints',
+
+            x1:    0,
+            x2:    0,
+            y1:    0,
+            y2:    0,
+
+            correctionSpeed: 100,
+        }, st)
+    }
+
+    evo(dt) {
+        const { x1, y1, x2, y2 } = this
+        const view = this.__.view
+        const edges = view.getEdges()
+
+        view.horizontalLock = false
+        view.verticalLock = false
+
+        if (edges[0] <= x1) {
+            if (edges[2] >= x2) {
+                // outside of bounds - center the view
+                this.targetX = x1 + .5 * (x2 - x1)
+            } else {
+                // stick to the left
+                this.targetX = x1 + .5 * view.getWidth()
+            }
+        } else if (edges[2] >= x2) {
+            // stick to the right
+            this.targetX = x2 - .5 * view.getWidth()
+        } else {
+            this.targetX = view.x
+        }
+
+        if (edges[1] <= y1) {
+            if (edges[3] >= y2) {
+                // outside of bounds - center the view
+                this.targetY = y1 + .5 * (y2 - y1)
+            } else {
+                // stick to the left
+                this.targetY = y1 + .5 * view.getHeight()
+            }
+        } else if (edges[3] >= y2) {
+            // stick to the right
+            this.targetY = y2 - .5 * view.getHeight()
+        } else {
+            this.targetY = view.y
+        }
+
+        if (this.targetX < view.x) {
+            view.x = max(view.x - (this.correctionSpeed * dt) / view.zoom, this.targetX)
+        } else if (this.targetX > view.x) {
+            view.x = min(view.x + (this.correctionSpeed * dt) / view.zoom, this.targetX)
+        }
+
+        if (this.targetY < view.y) {
+            view.y = max(view.y - (this.correctionSpeed * dt) / view.zoom, this.targetY)
+        } else if (this.targetY > view.y) {
+            view.y = min(view.y + (this.correctionSpeed * dt) / view.zoom, this.targetY)
         }
     }
 }
@@ -310,7 +505,7 @@ class SlideCameraNG extends sys.LabFrame {
     // @param {number} lx
     // @returns {number} - upper x
     ux(lx) {
-        return (lx - this.view.x)*this.view.zoom + .5 * this.w
+        return (lx - this.view.x)*this.view.zoom + .5 * this.w + this.x
     }
 
     // translate local y to the parent coordinate space
@@ -318,19 +513,16 @@ class SlideCameraNG extends sys.LabFrame {
     // @param {number} ly
     // @returns {number} - upper y
     uy(ly) {
-        return (ly - this.y)*this.view.zoom + .5 * this.h
+        return (ly - this.view.y)*this.view.zoom + .5 * this.h + this.y
     }
 
-    // translate local x and y to the parent coordinate space
+    // translate local 2D vector to the parent coordinate space
     //
-    // @param {number} lx
-    // @param {number} ly
-    // @returns {object/vec2o} - upper coordinates
-    uxy(lx, ly) {
-        return {
-            x: (lx - this.view.x)*this.view.zoom + .5 * this.w,
-            y: (ly - this.view.y)*this.view.zoom + .5 * this.h,
-        }
+    // @param {array/vec2} v
+    // @returns {array/vec2} - transformed vector
+    upos(v) {
+        v[0] = (lx - this.view.x)*this.view.zoom + .5 * this.w + this.x,
+        v[1] = (ly - this.view.y)*this.view.zoom + .5 * this.h + this.y
     }
 
     // translate parent coordinates x to the local coordinate space
@@ -338,7 +530,7 @@ class SlideCameraNG extends sys.LabFrame {
     // @param {number} ux
     // @returns {number} - local x
     lx(ux) {
-        return (ux - .5 * this.w)/this.view.zoom + this.view.x
+        return (ux - this.x - .5 * this.w)/this.view.zoom + this.view.x
     }
 
     // translate parent coordinates y to the local coordinate space
@@ -346,25 +538,92 @@ class SlideCameraNG extends sys.LabFrame {
     // @param {number} uy
     // @returns {number} - local y
     ly(uy) {
-        return (uy - .5 * this.h)/this.view.zoom + this.view.y
+        return (uy - this.y - .5 * this.h)/this.view.zoom + this.view.y
     }
 
     // translate parent x and y to the local coordinate space
     //
-    // @param {number} x
-    // @param {number} y
-    // @returns {object/2d-vector} - object with local x and y
-    lxy(ux, uy) {
-        return {
-            x: (ux - .5 * this.w)/this.view.zoom + this.view.x,
-            y: (uy - .5 * this.h)/this.view.zoom + this.view.y,
-        }
+    // @param {array/vec2} v
+    // @returns {array/vec2} - object with local x and y
+    lpos(v) {
+        v[0] = (v[0] - this.x - .5 * this.w)/this.view.zoom + this.view.x
+        v[1] = (v[1] - this.y - .5 * this.h)/this.view.zoom + this.view.y
     }
 
     lookAt(x, y, zoom) {
         this.view.x = x
         this.view.y = y
         if (zoom) this.view.zoom = zoom
+    }
+
+    pick(x, y, list, opt) {
+        // test coordinates against viewport
+        if (x < this.x || x > this.x + this.w || y < this.y || y > this.y + this.h) return
+
+        let lx
+        let ly
+        if (this.lx) {
+            lx = this.lx(x)
+            ly = this.ly(y)
+        } else {
+            const lpos = this.lpos([x, y])
+            lx = lpos[0]
+            ly = lpos[1]
+        }
+        const ls = isArr(list)? list : null
+        const fn = isFun(opt)? opt : (isFun(list)? list : null)
+
+        let last
+        function pickFromList(sourceList) {
+            for (let i = 0; i < sourceList.length; i++) {
+                const node = sourceList[i]
+
+                // probe by-convention picking procedures
+                // TODO maybe have some option to allow or skip this step? Like _pickable or something...
+                if (!node.hidden &&
+                          ((node.within && node.within(lx, ly))
+                        || (node._centered && node._circular
+                            && distance(lx, ly, node.x, node.y) <= node.r)
+                        || (node._centered
+                            && lx >= node.x - node.w/2
+                            && lx <= node.x + node.w/2
+                            && ly >= node.y - node.h/2
+                            && ly <= node.y + node.h/2)
+                        || (node._rectangular
+                            && !node._centered
+                            && lx >= node.x
+                            && lx <= node.x + node.w
+                            && ly >= node.y
+                            && ly <= node.y + node.h)
+                )) {
+                    if (fn) {
+                        if (fn(node)) {
+                            if (ls) ls.push(node)
+                            last = node
+                        }
+                    } else {
+                        if (ls) ls.push(node)
+                        last = node
+                    }
+                }
+
+                // try custom picking routine
+                if (isFun(node.pick)) {
+                    let val
+                    if (fn) {
+                        if (fn(node)) val = node.pick(lx, ly, ls, opt)
+                    } else {
+                        val = node.pick(lx, ly, ls, opt)
+                    }
+                    if (val) last = val
+                }
+            }
+        }
+
+        const sourceList = this.getDisplayList()
+        pickFromList(sourceList)
+
+        return last
     }
 
     // returns the list of nodes to be displayed by the draw() function
@@ -497,6 +756,9 @@ class SlideCameraNG extends sys.LabFrame {
 
 SlideCameraNG.SlideView = SlideView
 SlideCameraNG.KeyboardControlPod = KeyboardControlPod
+SlideCameraNG.ZoomConstraints = ZoomConstraints
+SlideCameraNG.ZoneConstraints = ZoneConstraints
+SlideCameraNG.ElasticZoneConstraints = ElasticZoneConstraints
 
 /*
 const SlideCamera = function(st) {
@@ -526,38 +788,6 @@ SlideCamera.prototype.inView = function(x, y) {
     let sx = this.gx(x)
     let sy = this.gy(y)
     return (sx >= 0 && sx <= ctx.width && sy >= 0 && sy <= ctx.height)
-}
-
-// create traps for Plus/Minus keys to control camera zoom in/out
-// called automatically, when (camera.zoomOnPlusMinus === true)
-SlideCamera.prototype.bindZoom = function() {
-    let cam = this
-    trap.on('equalDown', function() {
-        cam.startMoving(0)
-    })
-    trap.on('equalUp', function() {
-        cam.stopMoving(0)
-    })
-
-    trap.on('minusDown', function() {
-        cam.startMoving(1)
-    })
-    trap.on('minusUp', function() {
-        cam.stopMoving(1)
-    })
-}
-
-// complete necessary bindings
-SlideCamera.prototype.init = function() {
-    if (this.zoomOnPlusMinus) this.bindZoom()
-}
-
-// move camera at specified coordinates
-// @param {number} x
-// @param {number} y
-SlideCamera.prototype.lookAt = function(x, y) {
-    this.x = x
-    this.y = y
 }
 
 // follow the target
@@ -591,18 +821,6 @@ SlideCamera.prototype.zoomAt = function(scale) {
     this.scaleTarget = scale
 }
 
-// activate a movement
-// @params {number} dir - movement time (0 - zoom out, 1 - zoom in)
-SlideCamera.prototype.startMoving = function(dir) {
-    this.keys[dir] = true
-}
-
-// stop a movement
-// @params {number} dir - movement time (0 - zoom out, 1 - zoom in)
-SlideCamera.prototype.stopMoving = function(dir) {
-    this.keys[dir] = false
-}
-
 // follow a target if one is defined
 // Shouldn't be called manually.
 // It is called automatically as a part of evo(dt) process
@@ -634,18 +852,7 @@ SlideCamera.prototype.evoFollow = function(dt) {
 // evolve the camera and all included entities
 // @param {number} dt - delta time in seconds
 SlideCamera.prototype.evo = function(dt) {
-    this._ls.forEach( e => {
-        if (e.evo && !e.dead && !e.paused) e.evo(dt)
-    })
-
     if (this.target) this.evoFollow(dt)
-
-    if (this.keys[0]) {
-        this.scale *= 1 + this.zoomSpeed * dt
-    }
-    if (this.keys[1]) {
-        this.scale *= 1 - this.zoomSpeed * dt
-    }
 
     if (this.scaleTarget) {
         if (this.scale < this.scaleTarget) {
