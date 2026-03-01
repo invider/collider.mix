@@ -219,7 +219,7 @@ class KeyboardControlPod {
 
     constructor(st) {
         augment(this, {
-            name:    'keyboardControlPod',
+            name:    'keyboardControl',
 
             bind: {
                 moveUp:    'ArrowUp',
@@ -237,10 +237,10 @@ class KeyboardControlPod {
     }
 
     init() {
-        this.bindZoom()
+        this.bindTraps()
     }
 
-    bindZoom() {
+    bindTraps() {
         const _ = this
 
         trap.on('keyDown', function(e) {
@@ -323,6 +323,85 @@ class KeyboardControlPod {
     onDisable() {
         this.cutOffAll()
     }
+}
+
+class MouseControlPod {
+
+    constructor(st) {
+        augment(this, {
+            name: 'mouseControl',
+
+            accumulatedZoom: 0,
+
+            zoomSpeed:       2,
+            zoomSensitivity: 0.0005,
+            slideEdge:       0.025,
+            slideSpeed:      400,
+        }, st)
+    }
+
+    init() {
+        this.bindTraps()
+    }
+
+    bindTraps() {
+        const _ = this
+
+        trap.on('mouseWheel', (e) => {
+            if (_.__.disabled) return
+            const view = _.__.view
+
+            if (e.deltaY !== 0) {
+                if (e.deltaY < 0 && this.accumulatedZoom > 0) this.accumulatedZoom = 0
+                else if (e.deltaY > 0 && this.accumulatedZoom < 0) this.accumulatedZoom = 0
+                this.accumulatedZoom += e.deltaY * _.zoomSensitivity
+            }
+        })
+    }
+
+    evo(dt) {
+        const __ = this.__
+        const view = __.view
+
+        if (this.accumulatedZoom < 0) {
+            view.setZoom( view.getZoom() * (1 + this.zoomSpeed * dt))
+
+            this.accumulatedZoom += dt
+            if (this.accumulatedZoom >= 0) this.accumulatedZoom = 0
+        } else if (this.accumulatedZoom > 0) {
+            view.setZoom( view.getZoom() * (1 - this.zoomSpeed * dt))
+
+            this.accumulatedZoom -= dt
+            if (this.accumulatedZoom <= 0) this.accumulatedZoom = 0
+        }
+
+        const mx = mouse.x - __.x,
+              my = mouse.y - __.y
+        if (mx >= 0 && mx < __.w
+                && my >= 0 && my < __.h) {
+
+            if (!view.horizontalLock) {
+                if (mx < this.slideEdge * __.w) {
+                    view.x = view.x - (this.slideSpeed / view.zoom) * dt
+                } else if (mx > __.w - this.slideEdge * __.w) {
+                    view.x = view.x + (this.slideSpeed / view.zoom) * dt
+                }
+            }
+
+            if (!view.verticalLock) {
+                if (my < this.slideEdge * __.h) {
+                    view.y = view.y - (this.slideSpeed / view.zoom) * dt
+                } else if (my > __.h - this.slideEdge * __.h) {
+                    view.y = view.y + (this.slideSpeed / view.zoom) * dt
+                }
+            }
+        }
+    }
+
+    onDisable() {
+        this.accumulatedZoom = 0
+    }
+
 }
 
 class ZoomConstraints {
@@ -763,6 +842,16 @@ class SlideCameraNG extends sys.LabFrame {
         ctx.restore()
     }
 
+    enable() {
+        super.enable()
+
+        const ls = this._ls
+        for (let i = ls.length - 1; i >= 0; i--) {
+            const e = ls[i]
+            if (isFun(e.onEnable)) e.onEnable()
+        }
+    }
+
     disable() {
         super.disable()
 
@@ -777,6 +866,7 @@ class SlideCameraNG extends sys.LabFrame {
 
 SlideCameraNG.SlideView = SlideView
 SlideCameraNG.KeyboardControlPod = KeyboardControlPod
+SlideCameraNG.MouseControlPod = MouseControlPod
 SlideCameraNG.ZoomConstraints = ZoomConstraints
 SlideCameraNG.ZoneConstraints = ZoneConstraints
 SlideCameraNG.ElasticZoneConstraints = ElasticZoneConstraints
