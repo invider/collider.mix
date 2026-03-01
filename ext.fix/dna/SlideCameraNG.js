@@ -271,11 +271,9 @@ class KeyboardControlPod {
     }
 
     actuate(action) {
-        this.actions[action] = true
-    }
+        if (this.__.disabled) return // ignore the action while the camera is disabled
 
-    cutOff(action) {
-        this.actions[action] = false
+        this.actions[action] = true
     }
 
     act(action, dt) {
@@ -306,10 +304,24 @@ class KeyboardControlPod {
         }
     }
 
+    cutOff(action) {
+        this.actions[action] = false
+    }
+
+    cutOffAll() {
+        for (let i = this.actions.length - 1; i >= 0; i--) {
+            this.actions[i] = false
+        }
+    }
+
     evo(dt) {
         for (let i = 1; i < this.actions.length; i++) {
             if (this.actions[i]) this.act(i, dt)
         }
+    }
+
+    onDisable() {
+        this.cutOffAll()
     }
 }
 
@@ -731,7 +743,6 @@ class SlideCameraNG extends sys.LabFrame {
         // ctx.strokeRect(vx1, vpy2, vp.w, vp.h)
         const edges = this.view.getEdges()
 
-
         this.drawList(ls, edges)
 
         /*
@@ -750,6 +761,16 @@ class SlideCameraNG extends sys.LabFrame {
         */
 
         ctx.restore()
+    }
+
+    disable() {
+        super.disable()
+
+        const ls = this._ls
+        for (let i = ls.length - 1; i >= 0; i--) {
+            const e = ls[i]
+            if (isFun(e.onDisable)) e.onDisable()
+        }
     }
 
 }
