@@ -514,6 +514,16 @@ const math = {
     },
 
     createRandomGenerator: createRandomGenerator,
+
+    test: {
+        intersection: {
+            rectCircle: function(rx, ry, rw, rh, cx, cy, cr) {
+                const dx = cx - max(rx, min(cx, rx + rw))
+                const dy = cy - max(ry, min(cy, ry + rh))
+                return (dx * dx + dy * dy) <= (cr* cr)
+            }
+        }
+    }
 }
 
 const generator = createRandomGenerator()
