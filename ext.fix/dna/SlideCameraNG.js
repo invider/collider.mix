@@ -377,7 +377,8 @@ class MouseControlPod {
 
         const mx = mouse.x - __.x,
               my = mouse.y - __.y
-        if (mx >= 0 && mx < __.w
+        if (!mouse.out
+                && mx >= 0 && mx < __.w
                 && my >= 0 && my < __.h) {
 
             if (!view.horizontalLock) {

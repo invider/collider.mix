@@ -1798,18 +1798,18 @@ LabFrame.prototype.pickArea = function(x, y, w, h, list, predicate) {
         if (!node.hidden &&
                   ((node.within && node.within(lx, ly))
                 || (node._centered && node._circular
-                    && math.test.intersection.rectCircle(lx, ly, lw, lh, node.x, node.y, node.r))
+                    && _scene.lib.math.test.intersection.rectCircle(lx, ly, lw, lh, node.x, node.y, node.r))
                 || (node._centered
                     && lx + lw >= node.x - .5 * node.w
-                    && lx - lw <= node.x + .5 * node.w
+                    && lx <= node.x + .5 * node.w
                     && ly + lh >= node.y - .5 * node.h
-                    && ly - lh <= node.y + .5 * node.h)
+                    && ly <= node.y + .5 * node.h)
                 || (node._rectangular
                     && !node._centered
-                    && lx >= node.x
-                    && lx - lw <= node.x + node.w
-                    && ly >= node.y
-                    && ly -lh <= node.y + node.h)
+                    && lx + lw >= node.x
+                    && lx <= node.x + node.w
+                    && ly + lh >= node.y
+                    && ly <= node.y + node.h)
         )) {
             if (fn) {
                 if (fn(node)) {
