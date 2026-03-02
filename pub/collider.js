@@ -1771,6 +1771,71 @@ LabFrame.prototype.pick = function(x, y, list, opt) {
     return last
 }
 
+LabFrame.prototype.pickArea = function(x, y, w, h, list, predicate) {
+    let lx, ly, lw, lh
+    if (this.lx) {
+        lx = this.lx(x)
+        ly = this.ly(y)
+        lw = this.lx(w)
+        lh = this.ly(h)
+    } else {
+        const lpos = this.lpos([x, y])
+        lx = lpos[0]
+        ly = lpos[1]
+        const ldim = this.lpos([w, h])
+        lw = ldim[0]
+        lh = ldim[1]
+    }
+    const ls = isArr(list)? list : null
+    const fn = isFun(predicate)? predicate : (isFun(list)? list : null)
+
+    let last
+    for (let i = 0; i < this._ls.length; i++) {
+        const node = this._ls[i]
+
+        // probe by-convention picking procedures
+        // TODO maybe have some option to allow or skip this step? Like _pickable or something...
+        if (!node.hidden &&
+                  ((node.within && node.within(lx, ly))
+                || (node._centered && node._circular
+                    && math.test.intersection.rectCircle(lx, ly, lw, lh, node.x, node.y, node.r))
+                || (node._centered
+                    && lx + lw >= node.x - .5 * node.w
+                    && lx - lw <= node.x + .5 * node.w
+                    && ly + lh >= node.y - .5 * node.h
+                    && ly - lh <= node.y + .5 * node.h)
+                || (node._rectangular
+                    && !node._centered
+                    && lx >= node.x
+                    && lx - lw <= node.x + node.w
+                    && ly >= node.y
+                    && ly -lh <= node.y + node.h)
+        )) {
+            if (fn) {
+                if (fn(node)) {
+                    if (ls) ls.push(node)
+                    last = node
+                }
+            } else {
+                if (ls) ls.push(node)
+                last = node
+            }
+        }
+
+        // try custom picking routine
+        if (isFun(node.pickArea)) {
+            let val
+            if (fn) {
+                if (fn(node)) val = node.pickArea(lx, ly, lw, lh, ls, predicate)
+            } else {
+                val = node.pickArea(lx, ly, lw, lh, ls, predicate)
+            }
+            if (val) last = val
+        }
+    }
+    return last
+}
+
 const CueFrame = function(st, extra) {
     Frame.call(this, st, extra)
 }
@@ -3386,7 +3451,7 @@ const Mod = function(st) {
 
     this.attach(new CueFrame(), 'cue')
 
-    this.attach(new Frame(), 'job')
+    this.attach(new LabFrame(), 'job')
 
     // container for mods
     // TODO what to do with this autoloading?
@@ -3785,8 +3850,8 @@ Mod.prototype.defineDrawContext = function() {
         circle: function(x, y, r) {
             ctx.beginPath()
             ctx.arc(x, y, r, 0, TAU)
-            if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
+            if (mode < 2) ctx.stroke()
             return alt
         },
         ellipse: function(x, y, hr, vr, r) {
@@ -3796,22 +3861,22 @@ Mod.prototype.defineDrawContext = function() {
             } else {
                 ctx.ellipse(x, y, hr, vr, 0, 0, TAU)
             }
-            if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
+            if (mode < 2) ctx.stroke()
             return alt
         },
         arc: function(x, y, r, sa, fa) {
             ctx.beginPath()
             ctx.arc(x, y, r, sa, fa)
-            if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
+            if (mode < 2) ctx.stroke()
             return alt
         },
         earc: function(x, y, xr, yr, ra, sa, fa) {
             ctx.beginPath()
             ctx.ellipse(x, y, xr, yr, ra, sa, fa)
-            if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
+            if (mode < 2) ctx.stroke()
             return alt
         },
         polygon: function() {
@@ -3821,8 +3886,8 @@ Mod.prototype.defineDrawContext = function() {
                 ctx.lineTo(arguments[i++], arguments[i])
             }
             ctx.closePath()
-            if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
+            if (mode < 2) ctx.stroke()
             return alt
         }, 
 
@@ -3856,8 +3921,8 @@ Mod.prototype.defineDrawContext = function() {
         },
         shape: function() {
             if (!shape) return
-            if (mode < 2) ctx.stroke()
             if (mode > 0) ctx.fill()
+            if (mode < 2) ctx.stroke()
             shape = false
             return alt
         },
@@ -3928,8 +3993,8 @@ Mod.prototype.defineDrawContext = function() {
             return alt
         },
         text: function(text, x, y) {
-            if (mode < 2) ctx.strokeText(text, x, y)
             if (mode > 0) ctx.fillText(text, x, y)
+            if (mode < 2) ctx.strokeText(text, x, y)
             return alt
         },
         textWidth: function(txt) {
@@ -4315,8 +4380,9 @@ Mod.prototype.evo = function(dt) {
 
     // update local time
     this.env.time += dt
-    // evolve all entities in the lab
+    // evolve all entities in cue, job and lab
     if (!this.cue.paused) this.cue.evo(dt)
+    if (!this.job.paused) this.job.evo(dt)
     if (!this.lab.paused) this.lab.evo(dt)
 
     // evolve all mods
