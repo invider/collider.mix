@@ -370,8 +370,10 @@ Container.prototype.onMouseMove = function(x, y, e) {
                 }
                 g.onMouseMove(lx, ly, e)
             } else {
-                g._hover = false
-                // TODO onMouseExit()?
+                if (g._hover) {
+                    g._hover = false
+                    if (sys.isFun(g.onMouseExit)) g.onMouseExit(e)
+                }
             }
         }
     }
