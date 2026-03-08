@@ -754,7 +754,12 @@ class SlideCameraNG extends sys.LabFrame {
     drawList(list, edges) {
         const ctx = this.getContext()
 
-        list.forEach( e => e.draw() )
+        const N = list.length
+        for (let i = 0; i < N; i++) {
+            const e = list[i]
+            if (e.draw && !e.dead && !e.hidden) e.draw()
+        }
+        //list.forEach( e => e.draw() )
         /*
         list.forEach( e => {
             if (e.draw && !e.dead && !e.hidden) {
