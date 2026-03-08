@@ -256,6 +256,7 @@ Container.prototype.onMouseDown = function(x, y, b, e) {
                 g.onMouseDown(lx, ly, b, e)
             }
             if (sys.isFun(g.onMouseDrag)) {
+                // TODO should be captured even with simple mouseDown()?
                 this.captureMouse(g)
             }
             if (sys.isFun(g.onFocus)) {

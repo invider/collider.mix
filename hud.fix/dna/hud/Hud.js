@@ -316,6 +316,7 @@ Hud.prototype.captureMouse = function(gadget) {
 Hud.prototype.releaseMouse = function() {
     this.captured.forEach(g => {
         g._captured = false
+        if (isFun(g.onMouseRelease)) g.onMouseRelease()
     })
     this.captured = []
 }
