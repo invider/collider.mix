@@ -101,14 +101,12 @@
 class SlideView {
 
     constructor(st) {
-
-        augment({
+        augment(this, {
             x:     0,
             y:     0,
             zoom:  1,
             flipY: false,
         }, st)
-
     }
 
     adjust() {}
