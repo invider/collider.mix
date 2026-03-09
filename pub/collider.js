@@ -1529,6 +1529,8 @@ LabFrame.prototype.promoteNode = function(node) {
 LabFrame.prototype.attach = function(node, name) {
     Frame.prototype.attach.call(this, node, name)
     this.promoteNode(node)
+    // TODO find a more efficient way to sort the pre-ordered set
+    this.orderZ()
     return node
 }
 
@@ -1559,13 +1561,15 @@ LabFrame.prototype.evo = function(dt) {
         if (e.evo && !e.dead && !e.paused) {
             e.evo(dt)
         }
+        /*
         if (e.Z) {
+            // TODO do the sorting on inserts!
             if (e.Z < Z) dirtyZ = true
             Z = e.Z
         }
+        */
     }
-
-    if (dirtyZ) this.orderZ()
+    // if (dirtyZ) this.orderZ()
 }
 
 LabFrame.prototype.draw = function() {

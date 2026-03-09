@@ -3,6 +3,9 @@
 //
 // top-level UI container that handles all the events
 //
+// TODO mouse events MUST be processed through full .lx() chain and not just the local one
+//      it might be wrong if HUD is not under /lab !!!!
+//
 // @depends(/dna/hud/Container)
 let id = 0
 let Hud = function(st) {
@@ -297,6 +300,7 @@ Hud.prototype.onKeyUp = function(e) {
 }
 
 // a service call to expand the hud to the whole screen
+// TODO must take from __.w/__.h + lab MUST have w&h defined from the ctx.width/ctx.height
 Hud.prototype.expand = function() { // calculate operating area
     this.x = 0
     this.y = 0
