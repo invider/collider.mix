@@ -704,12 +704,17 @@ Frame.prototype.path._meta = {
 }
 
 Frame.prototype.getMod = function() {
-    return this.__.getMod()
+    function upMod(baseNode) {
+        if (!baseNode.__) return _scene
+        if (baseNode.__.getMod) return baseNode.__.getMod()
+        return upMod(baseNode.__)
+    }
+    return upMod(this)
 }
 
 Frame.prototype.touch = touchFun((name, __, st) => {
     if (st && st.DNA) {
-        return __.getMod().sys.construct(st.DNA, st) 
+        return this.getMod().sys.construct(st.DNA, st) 
     } else {
         return new Frame(name, st)
     }
