@@ -234,7 +234,7 @@ function expect(tar, title, up, upTitle) {
         elementsNearlyMatch: function(vals, epsilon) {
             if (!testAnyArray(tar)) throw new Error(`${tag} is expected to be an array`)
             if (!testAnyArray(vals)) throw new Error(`${vals} is expected to be an array`)
-            if (vals.length !== tar.length) throw new Error(`${tag}.length is expected to be [${vals.length}], but [${vals.length}] found!`)
+            if (vals.length !== tar.length) throw new Error(`${tag}.length is expected to be [${vals.length}], but [${tar.length}] found!`)
 
             epsilon = epsilon || this.EPSILON
             for (let i = 0; i < tar.length; i++) {
@@ -242,6 +242,14 @@ function expect(tar, title, up, upTitle) {
                 const v = vals[i]
                 if (Math.abs(e - v) > epsilon) throw new Error(`${tag}[#${i}] is expected to be near [${v}] (precision: ${epsilon}), but [${e}] found!`)
             }
+
+            return this
+        },
+
+        hasLength: function(v) {
+            this.isAnyObject()
+            if (!isNum(tar.length)) throw new Error(`${tag} is expected to have [.length] property`)
+            if (tar.length !== v) throw new Error(`${tag}.length is expected to be [${v}], but [${tar.length} found!]`)
 
             return this
         },
