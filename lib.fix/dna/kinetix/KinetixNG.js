@@ -11,6 +11,7 @@ class KinetixNG {
     }
 
     key(mapFn, easing) {
+        // TODO resurrect a zombie if possible
         const k = {
             at:     env.time,
             freq:   1,
@@ -48,6 +49,10 @@ class KinetixNG {
         return this
     }
 
+    get() {
+        return this.last
+    }
+
     evo(dt) {
         const keys = this.keys,
               N    = keys.length
@@ -56,6 +61,7 @@ class KinetixNG {
             if (!key.dead) {
                 const t = (env.time - key.at) * key.freq
                 if (t > key.times && !key.loop) {
+                    key.mapFn( key.easing(1), 1 )
                     key.dead = true
                     if (key.done) key.done()
                 } else {
