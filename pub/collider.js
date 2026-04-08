@@ -3107,7 +3107,12 @@ const Mod = function(st) {
         },
 
         remap: function(val, origStart, origStop, targetStart, targetStop) {
-            return targetStart + ((val - origStart) / (origStop - origStart)) * (targetStop - targetStart)
+            return (targetStart + ((val - origStart) / (origStop - origStart)) * (targetStop - targetStart))
+        },
+
+        cmap: function(val, origStart, origStop, targetStart, targetStop) {
+            const factor = (val - origStart) / (origStop - origStart)
+            return (targetStart + (factor > 1? 1 : (factor < 0? 0 : factor)) * (targetStop - targetStart))
         },
 
         hypot: Math.hypot,
