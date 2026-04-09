@@ -7,12 +7,29 @@ class KinetixNG {
         }, st)
     }
 
+    // TODO?
     hold() {
+        return this
     }
 
-    key(mapFn, easing) {
+    tween(mapFn, easing) {
         // TODO resurrect a zombie if possible
-        const k = {
+        let k
+        for (let i = this.keys.length - 1; i >= 0; i--) {
+            const key = this.keys[i]
+            if (key.dead) {
+                k = key  // found a zombie!
+                break
+            }
+        }
+        if (!k) {
+            // no zombies found, so create a new key
+            k = {}
+            this.keys.push(k)
+        }
+
+        // setup the key
+        extend(k, {
             // initial state
             at:     env.time,
 
@@ -24,7 +41,6 @@ class KinetixNG {
             // flags setup
             mirror: false,
             loop:   false,
-            dead:   false,
             // event handlers setup
             onStep: null,
             onKill: null,
@@ -32,9 +48,8 @@ class KinetixNG {
             // key state
             dead:   false,
             mark:   0,
-        }
+        })
 
-        this.keys.push(k)
         this.last = k
         return this
     }
