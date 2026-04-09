@@ -4,7 +4,20 @@ class KinetixNG {
         augment(this, {
             name: 'kinetix',
             keys: [],
+
+            // setup
+            MIN_CAPACITY:          128,
+            COMPACTION_THRESHOLD: .8,
         }, st)
+        this.refillToCapacity()
+    }
+
+    refillToCapacity() {
+        while(this.keys.length < this.MIN_CAPACITY) {
+            this.keys.push({
+                dead: true,
+            })
+        }
     }
 
     // TODO?
@@ -91,9 +104,14 @@ class KinetixNG {
     evo(dt) {
         const keys = this.keys,
               N    = keys.length
+        if (N === 0) return
+
+        let dead = 0
         for (let i = 0; i < N; i++) {
             const key = keys[i]
-            if (!key.dead) {
+            if (key.dead) {
+                dead ++
+            } else {
                 const t = (env.time - key.at) * key.freq,  // time in easing scale [0..1...]
                       T = t | 0  // full steps
 
@@ -125,5 +143,22 @@ class KinetixNG {
                 }
             }
         }
+        
+        const deadRate = (dead / N)
+        if (N > this.MIN_CAPACITY && deadRate >= this.COMPACTION_THRESHOLD) {
+            const ls = []
+
+            // copy alive
+            for (let i = 0; i < N; i++) {
+                const key = keys[i]
+                if (!key.dead) {
+                    ls.push(key)
+                }
+            }
+
+            this.keys = ls
+            this.refillToCapacity()
+        }
     }
 }
+
