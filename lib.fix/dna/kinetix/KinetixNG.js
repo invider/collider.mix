@@ -15,6 +15,7 @@ class KinetixNG {
     refillToCapacity() {
         while(this.keys.length < this.MIN_CAPACITY) {
             this.keys.push({
+                __:   this,
                 dead: true,
             })
         }
@@ -42,7 +43,9 @@ class KinetixNG {
         }
 
         // setup the key
+        // TODO avoid object allocation here for efficiency?
         extend(k, {
+            __:     this,
             // initial state
             at:     env.time,
 
@@ -116,12 +119,19 @@ class KinetixNG {
                       T = t | 0  // full steps
 
                 if (t - key.mark > 1) {
+                    // next step
                     key.mark = T
-                    if (key.onStep) key.onStep()
+                    if (key.onStep) key.onStep(T)
                     // TODO what to do with the exact 1, 2, 3 hits? should we map them?
+                    
+                    // close the value range
+                    if (key.mirror && key.mark % 2 > 0) {
+                        key.mapFn( key.easing(0), T )
+                    } else {
+                        key.mapFn( key.easing(1), T )
+                    }
 
                     if (!key.loop && T >= key.steps) {
-                        key.mapFn( key.easing(1), T )
                         key.dead = true
                         if (key.onKill) key.onKill()
                         continue
@@ -129,13 +139,13 @@ class KinetixNG {
                 }
 
                 if (key.mirror) {
-                    const tt = t % 2
-                    if (tt >= 1) {
-                        const ttt = 1 - (tt - 1)
-                        key.mapFn( key.easing(ttt), t )
+                    const t2 = t % 2
+                    if (t2 >= 1) {
+                        const tt = 1 - (t2 - 1)
+                        key.mapFn( key.easing(tt), t )
                     } else {
-                        const ttt = t % 1
-                        key.mapFn( key.easing(ttt), t )
+                        const tt = t % 1
+                        key.mapFn( key.easing(tt), t )
                     }
                 } else {
                     const tt = t % 1
