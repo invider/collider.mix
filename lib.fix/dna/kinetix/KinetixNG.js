@@ -100,6 +100,11 @@ class KinetixNG {
         return this
     }
 
+    key() {
+        return this.last
+    }
+
+    // TODO deprecate to key()
     get() {
         return this.last
     }
