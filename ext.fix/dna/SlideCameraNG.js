@@ -799,9 +799,9 @@ class SlideCameraNG extends sys.LabFrame {
 
         /*
         // hint the viewport
-        alpha(.3)
+        alpha(.7)
         lineWidth(8)
-        stroke(.15, .4, .5)
+        stroke(.25, .5, .5)
         rect(this.x, this.y, this.w, this.h)
         alpha(1)
         */
@@ -818,21 +818,31 @@ class SlideCameraNG extends sys.LabFrame {
             ctx.clip()
         }
         ctx.translate(.5 * this.w + this.x, .5 * this.h + this.y) // half-screen shift if needed
-        ctx.scale(this.view.zoom, this.view.zoom)
+        if (this.view.flipY) ctx.scale(this.view.zoom, -this.view.zoom)
+        else ctx.scale(this.view.zoom, this.view.zoom)
         ctx.translate(-this.view.x, -this.view.y)
 
         // draw the view field
         // ctx.strokeStyle = '#ff0000'
         // ctx.strokeRect(vx1, vpy2, vp.w, vp.h)
-        const edges = this.view.getEdges()
+        
+        /*
+        // TODO for convenience, include a crosshair marker in debug tools
+        stroke(.55, .5, .5)
+        lineWidth(3)
+        line(-50, 0, 50, 0)
+        line(0, -50, 0, 50)
+        */
 
+        const edges = this.view.getEdges()
         this.drawList(ls, edges)
 
         /*
         // hint the edge
         save()
-        lineWidth(1)
-        stroke(this.edgeColor)
+        lineWidth(8)
+        //stroke(this.edgeColor)
+        stroke(.8, .5, .5)
         ctx.beginPath()
         ctx.moveTo(edges[0], edges[1])
         ctx.lineTo(edges[2], edges[1])
