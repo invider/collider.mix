@@ -603,7 +603,11 @@ class SlideCameraNG extends sys.LabFrame {
     // @param {number} ly
     // @returns {number} - upper y
     uy(ly) {
-        return (ly - this.view.y)*this.view.zoom + .5 * this.h + this.y
+        if (this.view.flipY) {
+            return (-ly + this.view.y)*this.view.zoom + .5 * this.h + this.y
+        } else {
+            return (ly - this.view.y)*this.view.zoom + .5 * this.h + this.y
+        }
     }
 
     // translate local 2D vector to the parent coordinate space
@@ -611,8 +615,13 @@ class SlideCameraNG extends sys.LabFrame {
     // @param {array/vec2} v
     // @returns {array/vec2} - transformed vector
     upos(v) {
-        v[0] = (lx - this.view.x)*this.view.zoom + .5 * this.w + this.x,
-        v[1] = (ly - this.view.y)*this.view.zoom + .5 * this.h + this.y
+        v[0] = (v[0] - this.view.x)*this.view.zoom + .5 * this.w + this.x
+        if (this.view.flipY) {
+            v[1] = (-v[1] + this.view.y)*this.view.zoom + .5 * this.h + this.y
+
+        } else {
+            v[1] = (v[1] - this.view.y)*this.view.zoom + .5 * this.h + this.y
+        }
     }
 
     // translate parent coordinates x to the local coordinate space
@@ -628,7 +637,11 @@ class SlideCameraNG extends sys.LabFrame {
     // @param {number} uy
     // @returns {number} - local y
     ly(uy) {
-        return (uy - this.y - .5 * this.h)/this.view.zoom + this.view.y
+        if (this.view.flipY) {
+            return -((uy - this.y - .5 * this.h)/this.view.zoom - this.view.y)
+        } else {
+            return (uy - this.y - .5 * this.h)/this.view.zoom + this.view.y
+        }
     }
 
     // translate parent x and y to the local coordinate space
@@ -637,7 +650,11 @@ class SlideCameraNG extends sys.LabFrame {
     // @returns {array/vec2} - object with local x and y
     lpos(v) {
         v[0] = (v[0] - this.x - .5 * this.w)/this.view.zoom + this.view.x
-        v[1] = (v[1] - this.y - .5 * this.h)/this.view.zoom + this.view.y
+        if (this.view.flipY) {
+            v[1] = -((v[1] - this.y - .5 * this.h)/this.view.zoom - this.view.y)
+        } else {
+            v[1] = (v[1] - this.y - .5 * this.h)/this.view.zoom + this.view.y
+        }
     }
 
     lookAt(x, y, zoom) {
