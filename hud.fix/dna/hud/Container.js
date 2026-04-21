@@ -317,7 +317,7 @@ Container.prototype.onMouseUp = function(x, y, b, e) {
                     ly = y - g.y
                 }
 
-                g.onMouseUp(lx, ly, e)
+                g.onMouseUp(lx, ly, b, e)
             }
         }
     }
@@ -619,5 +619,4 @@ Container.prototype.draw = function() {
 
     ctx.restore()
 }
-
 module.exports = Container

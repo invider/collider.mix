@@ -65,6 +65,7 @@ Hud.prototype.injectTraps = function() {
 
         const x = hud.lx(e.pageX)
         const y = hud.ly(e.pageY)
+        // TODO provide the button instad of buttons?
         hud.onMouseDown(x, y, e.buttons, e)
     })
 
@@ -73,7 +74,7 @@ Hud.prototype.injectTraps = function() {
 
         const x = hud.lx(e.pageX)
         const y = hud.ly(e.pageY)
-        hud.onMouseUp(x, y, e.buttons, e)
+        hud.onMouseUp(x, y, e.button, e)
     })
 
     localTrap.on('mouseMove', function(e) {
