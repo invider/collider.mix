@@ -1755,25 +1755,15 @@ LabFrame.prototype.pick = function(x, y, list, opt) {
                     && ly >= node.y
                     && ly <= node.y + node.h)
         )) {
-            if (fn) {
-                if (fn(node)) {
-                    if (ls) ls.push(node)
-                    last = node
-                }
-            } else {
+            if (!fn || fn(node)) {
                 if (ls) ls.push(node)
                 last = node
             }
         }
 
-        // try custom picking routine
+        // pick deeper if possible
         if (isFun(node.pick)) {
-            let val
-            if (fn) {
-                if (fn(node)) val = node.pick(lx, ly, ls, opt)
-            } else {
-                val = node.pick(lx, ly, ls, opt)
-            }
+            let val = node.pick(lx, ly, ls, opt)
             if (val) last = val
         }
     }
@@ -1820,25 +1810,15 @@ LabFrame.prototype.pickArea = function(x, y, w, h, list, predicate) {
                     && ly + lh >= node.y
                     && ly <= node.y + node.h)
         )) {
-            if (fn) {
-                if (fn(node)) {
-                    if (ls) ls.push(node)
-                    last = node
-                }
-            } else {
+            if (!fn || fn(node)) {
                 if (ls) ls.push(node)
                 last = node
             }
         }
 
-        // try custom picking routine
+        // pick deeper if possible
         if (isFun(node.pickArea)) {
-            let val
-            if (fn) {
-                if (fn(node)) val = node.pickArea(lx, ly, lw, lh, ls, predicate)
-            } else {
-                val = node.pickArea(lx, ly, lw, lh, ls, predicate)
-            }
+            let val = node.pickArea(lx, ly, lw, lh, ls, predicate)
             if (val) last = val
         }
     }
@@ -4345,6 +4325,9 @@ Mod.prototype.start = function() {
                 setupNode.call(__)
             }
         }
+        // TODO skip setup/.. subfolders for custom on-demand setups
+        //      (e.g. levels, stages, other states and things we don't need to setup at the start
+        //       or need to setup multiple times)
         handleSetup(_.setup, _)
 
         _.status = 'started'

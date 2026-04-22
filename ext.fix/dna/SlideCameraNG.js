@@ -703,12 +703,7 @@ class SlideCameraNG extends sys.LabFrame {
                             && ly >= node.y
                             && ly <= node.y + node.h)
                 )) {
-                    if (fn) {
-                        if (fn(node)) {
-                            if (ls) ls.push(node)
-                            last = node
-                        }
-                    } else {
+                    if (!fn || fn(node)) {
                         if (ls) ls.push(node)
                         last = node
                     }
@@ -716,12 +711,7 @@ class SlideCameraNG extends sys.LabFrame {
 
                 // try custom picking routine
                 if (isFun(node.pick)) {
-                    let val
-                    if (fn) {
-                        if (fn(node)) val = node.pick(lx, ly, ls, opt)
-                    } else {
-                        val = node.pick(lx, ly, ls, opt)
-                    }
+                    let val = node.pick(lx, ly, ls, opt)
                     if (val) last = val
                 }
             }
