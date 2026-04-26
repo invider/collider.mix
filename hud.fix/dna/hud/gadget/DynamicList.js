@@ -20,6 +20,7 @@ const DynamicList = function(dat) {
 
     this.pos = 0
     this.selected = -1
+    this.highlighted = -1
     this.span = 0
     this.step = this.span/2
     this.max = 0
@@ -31,6 +32,7 @@ const DynamicList = function(dat) {
     this.color = {
         text: '#C0C0C8',
         selected: '#A9D000',
+        highlighted: '#BEBE20',
     }
     dna.hud.Container.call(this, dat)
 
@@ -77,12 +79,32 @@ DynamicList.prototype.items = function() {
     return []
 }
 
+DynamicList.prototype.itemAt = function(x, y) {
+    const i = this.pos + Math.floor(y/this.itemHeight())
+    if (x > this.slider.w + this.itemsPadding) return i
+    return -1
+}
+
+DynamicList.prototype.select = function(i) {
+    this.selected = i
+    this.onItemClick(i)
+}
+
+DynamicList.prototype.onMouseMove = function(x, y, e) {
+    const i = this.itemAt(x, y)
+    if (i >= 0) {
+        this.onItemHighlight(i)
+    }
+
+    Container.prototype.onMouseMove.call(this, x, y, e)
+}
+
 DynamicList.prototype.onDblClick = function(x, y, b, e) {
     if (!this.focus) return
 
-    const i = this.pos + Math.floor(y/this.itemHeight())
-    if (x > this.slider.w + this.itemsPadding) {
-        this.onItemClick(i)
+    const i = this.itemAt(x, y)
+    if (i >= 0) {
+        this.select(i)
         this.onItemAction(i, 0)
     }
 
@@ -93,16 +115,20 @@ DynamicList.prototype.onClick = function(x, y, b, e) {
     // determine the item # if any
     if (!this.focus) return
 
-    const i = this.pos + Math.floor(y/this.itemHeight())
-    if (x > this.slider.w + this.itemsPadding) {
-        this.onItemClick(i)
+    const i = this.itemAt(x, y)
+    if (i >= 0) {
+        this.select(i)
     }
 
     Container.prototype.onClick.call(this, x, y, b, e)
 }
 
-DynamicList.prototype.onItemClick = function(i) {
-    this.selected = i
+DynamicList.prototype.onItemHighlight = function(i) {
+    this.highlighted = i
+}
+
+DynamicList.prototype.onItemClick = function(i, a) {
+    log.out('on click [' + a + '] for #' + i + ' - redefine onItemAction() to specify')
 } 
 
 DynamicList.prototype.onItemAction = function(i, a) {
@@ -169,11 +195,12 @@ DynamicList.prototype.drawItem = function(item, i, iy) {
     let x = this.slider.w + this.itemsPadding
 
     if (i === this.selected) fill(this.color.selected)
+    else if (i === this.highlighted) fill(this.color.highlighted)
     else fill(this.color.text)
 
     font(this.font)
     alignLeft()
-    baseMiddle()
+    baseTop()
     text(item, x, iy)
     return this.itemHeight()
 }
@@ -206,7 +233,7 @@ DynamicList.prototype.drawForeground = function() {
     }
 
     let i = this.pos
-    let iy = 0
+    let iy = this.itemsPadding
 
     while (i <= this.max && iy < this.h) {
         iy += this.drawItem(this.item? this.item(i) : items[i], i, iy)
