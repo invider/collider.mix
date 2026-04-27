@@ -392,12 +392,16 @@ function kill(e, st) {
     if (!isContainer(e)) return
 
     e.dead = true
-    defer(() => {
-        // notify the entity it's about to be killed
-        if (isFun(e.onKill)) e.onKill(st)
+    // notify that the entity is scheduled for kill
+    if (isFun(e.onKill)) e.onKill(st)
 
+    // we MUST defer the actual kill to avoid alterations
+    // to the list we might be iterating over while calling for kill()
+    defer(() => {
         if (isFun(e.kill)) {
             e.kill(st)  // killing with a special procedure
+        } else if (isFun(e.respawn)) {
+            // leave for respawn
         } else if (e.__) {
             e.__.detach(e) // just detaching the node from the parent
         } else {
