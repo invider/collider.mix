@@ -230,7 +230,7 @@ class KeyboardControlPod {
 
             actions:    [],
             zoomSpeed:  2,
-            slideSpeed: 600,
+            slideSpeed: 1000,
         }, st)
     }
 
@@ -275,11 +275,17 @@ class KeyboardControlPod {
     }
 
     act(action, dt) {
-        const view = this.__.view
+        const cam = this.__
+        const view = cam.view
+
         switch(action) {
             case MOVE_UP:
                 if (view.verticalLock) return
-                view.y = view.y - (this.slideSpeed / view.zoom) * dt
+                if (view.flipY) {
+                    view.y = view.y + (this.slideSpeed / view.zoom) * dt
+                } else {
+                    view.y = view.y - (this.slideSpeed / view.zoom) * dt
+                }
                 break
             case MOVE_LEFT:
                 if (view.horizontalLock) return
@@ -287,7 +293,11 @@ class KeyboardControlPod {
                 break
             case MOVE_DOWN:
                 if (view.verticalLock) return
-                view.y = view.y + (this.slideSpeed / view.zoom) * dt
+                if (view.flipY) {
+                    view.y = view.y - (this.slideSpeed / view.zoom) * dt
+                } else {
+                    view.y = view.y + (this.slideSpeed / view.zoom) * dt
+                }
                 break
             case MOVE_RIGHT:
                 if (view.horizontalLock) return
@@ -333,7 +343,7 @@ class MouseControlPod {
 
             zoomSpeed:       2,
             zoomSensitivity: 0.0005,
-            slideEdge:       0.025,
+            slideEdge:       0.05,
             slideSpeed:      400,
         }, st)
     }
@@ -389,9 +399,17 @@ class MouseControlPod {
 
             if (!view.verticalLock) {
                 if (my < this.slideEdge * __.h) {
-                    view.y = view.y - (this.slideSpeed / view.zoom) * dt
+                    if (view.flipY) {
+                        view.y = view.y + (this.slideSpeed / view.zoom) * dt
+                    } else {
+                        view.y = view.y - (this.slideSpeed / view.zoom) * dt
+                    }
                 } else if (my > __.h - this.slideEdge * __.h) {
-                    view.y = view.y + (this.slideSpeed / view.zoom) * dt
+                    if (view.flipY) {
+                        view.y = view.y - (this.slideSpeed / view.zoom) * dt
+                    } else {
+                        view.y = view.y + (this.slideSpeed / view.zoom) * dt
+                    }
                 }
             }
         }
