@@ -344,7 +344,8 @@ class MouseControlPod {
             zoomSpeed:       2,
             zoomSensitivity: 0.0005,
             slideEdge:       0.05,
-            slideSpeed:      400,
+            slideSpeed:      1000,
+            buttonMask:      1,
         }, st)
     }
 
@@ -385,7 +386,9 @@ class MouseControlPod {
 
         const mx = mouse.x - __.x,
               my = mouse.y - __.y
-        if (!mouse.out
+
+        if (mouse.buttons & this.buttonMask
+                && !mouse.out
                 && mx >= 0 && mx < __.w
                 && my >= 0 && my < __.h) {
 
@@ -512,36 +515,37 @@ class ElasticZoneConstraints {
         const { x1, y1, x2, y2 } = this
         const view = this.__.view
         const edges = view.getEdges()
+        const flipY = view.flipY
 
         view.horizontalLock = false
         view.verticalLock = false
 
         if (edges[0] <= x1) {
             if (edges[2] >= x2) {
-                // outside of bounds - center the view
+                // outside of bounds - center the view horizontally
                 this.targetX = x1 + .5 * (x2 - x1)
             } else {
-                // stick to the left
+                // stick to the left of the constrained area
                 this.targetX = x1 + .5 * view.getWidth()
             }
         } else if (edges[2] >= x2) {
-            // stick to the right
+            // stick to the right of the constrained area
             this.targetX = x2 - .5 * view.getWidth()
         } else {
             this.targetX = view.x
         }
 
-        if (edges[1] <= y1) {
-            if (edges[3] >= y2) {
-                // outside of bounds - center the view
-                this.targetY = y1 + .5 * (y2 - y1)
+        if (flipY? edges[1] >= y1 : edges[1] <= y1) {
+            if (flipY? edges[3] <= y2 : edges[3] >= y2) {
+                // outside of bounds - center the view vertically
+                this.targetY = flipY? y1 - .5 * abs(y2 - y1) : y1 + .5 * (y2 - y1)
             } else {
-                // stick to the left
-                this.targetY = y1 + .5 * view.getHeight()
+                // stick to the top of the constrained area
+                this.targetY = flipY? y1 - .5 * view.getHeight() : y1 + .5 * view.getHeight()
             }
-        } else if (edges[3] >= y2) {
-            // stick to the right
-            this.targetY = y2 - .5 * view.getHeight()
+        } else if (flipY? edges[3] <= y2 : edges[3] >= y2) {
+            // stick to the bottom of the constrained area
+            this.targetY = flipY? y2 + .5 * view.getHeight() : y2 - .5 * view.getHeight()
         } else {
             this.targetY = view.y
         }
