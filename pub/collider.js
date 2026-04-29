@@ -4259,6 +4259,7 @@ Mod.prototype._runTests = function() {
 Mod.prototype.start = function() {
     if (this.env._started) return
 
+    if (!this.__$) expandView()  // no need to run multiple times for each mod
     this.trap.signal('preSetup')
     this.env._started = true
     this.inherit()
@@ -5880,6 +5881,14 @@ function adjustCanvas(name, baseX, baseY, baseWidth, baseHeight) {
     */
 }
 
+function expandLab(mod) {
+    const lctx = mod.ctx
+    mod.lab.w = lctx.width
+    mod.lab.h = lctx.height
+
+    mod.mod._ls.forEach(m => expandLab(m))
+}
+
 function expandView() {
     // TODO differenciate canvases as free and pinned to the window, resize only pinned
     for (let i = 0; i < canvasList.length; i++) {
@@ -5888,6 +5897,7 @@ function expandView() {
             canvas.adjust()
         }
     }
+    expandLab(_scene)
     _scene.signal('resize')
 }
 
