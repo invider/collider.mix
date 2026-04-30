@@ -3187,6 +3187,32 @@ const Mod = function(st) {
         },
 
         dir: console.dir,
+        dir: function(node) {
+            // title or name
+            if (isFun(node.title)) {
+                console.log(`=== ${node.title()} ===`)
+            } else if (isStr(node.title)) {
+                console.log(`=== ${node.title} ===`)
+            } else if (isStr(node.name)) {
+                console.log(`=== ${node.name} ===`)
+            }
+
+            // custom dump
+            if (isFun(node.dump)) {
+                const d = node.dump()
+                if (isArray(d)) {
+                    console.table(d)
+                    if (d.dump) console.log(d.dump)
+                } else if (isObj(d)) {
+                    console.dir(d)
+                } else {
+                    console.log(d)
+                }
+            } 
+
+            // regular dump
+            console.dir(node)
+        },
     }
     if (!this._drawScope) {
         // TODO define a new one?
@@ -3637,6 +3663,18 @@ Mod.prototype.defineDrawContext = function() {
         },
         ry: function(y) {
             return ctx.height * y
+        },
+        rb: function(b) {
+            return ctx.base * b
+        },
+        px:function(x) {
+            return ctx.px * x
+        },
+        py: function(y) {
+            return ctx.py * y
+        },
+        pb: function(b) {
+            return ctx.pb * b
         },
 
         save: function() {
@@ -5192,7 +5230,7 @@ function constructLog() {
         'raw')
     log.attach(
         console.dir.bind(window.console),
-        'dump')
+        'dir')
     log.attach(
         console.table.bind(window.console),
         'tab')
@@ -5210,7 +5248,37 @@ function constructLog() {
                 console.log(e)
             }
         },
-        'list')
+        'list'
+    )
+    log.attach(
+        (e) => {
+            // title or name
+            if (isFun(e.title)) {
+                console.log(`=== ${e.title()} ===`)
+            } else if (isStr(e.title)) {
+                console.log(`=== ${e.title} ===`)
+            } else if (isStr(e.name)) {
+                console.log(`=== ${e.name} ===`)
+            }
+
+            // custom dump
+            if (isFun(e.dump)) {
+                const d = e.dump()
+                if (isArray(d)) {
+                    console.table(d)
+                    if (d.dump) console.log(d.dump)
+                } else if (isObj(d)) {
+                    console.dir(d)
+                } else {
+                    console.log(d)
+                }
+            } 
+
+            // regular dump
+            console.dir(e)
+        },
+        'dump'
+    )
 
     return log
 }
