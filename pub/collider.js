@@ -5881,12 +5881,47 @@ function adjustCanvas(name, baseX, baseY, baseWidth, baseHeight) {
     */
 }
 
-function expandLab(mod) {
-    const lctx = mod.ctx
-    mod.lab.w = lctx.width
-    mod.lab.h = lctx.height
+function complementContext(actx) {
+    actx.w       = actx.width
+    actx.h       = actx.height
+    actx.aspect  = actx.w / actx.h
+    actx.vaspect = actx.h / actx.w
+    if (actx.aspect > 1) {
+        actx.landscape = true
+        actx.portrait  = false
+        actx.base      = actx.width
+    } else {
+        actx.landscape = false
+        actx.portrait  = true
+        actx.base      = actx.height
+    }
+    actx.rx = 1 / actx.w
+    actx.ry = 1 / actx.h
+    actx.rb = 1 / actx.base
+    actx.px = actx.width  / 100
+    actx.py = actx.height / 100
+    actx.pb = actx.base   / 100
+}
 
-    mod.mod._ls.forEach(m => expandLab(m))
+function complementLab(mod) {
+    const lab  = mod.lab,
+          lctx = mod.ctx
+
+    lab.width  = lctx.width
+    lab.height = lctx.height
+
+    lab.x = 0
+    lab.y = 0
+    lab.w = lctx.w
+    lab.h = lctx.h
+    lab.rx = lctx.rx
+    lab.ry = lctx.ry
+    lab.rb = lctx.rb
+    lab.px = lctx.px
+    lab.py = lctx.py
+    lab.pb = lctx.pb
+
+    mod.mod._ls.forEach(m => complementLab(m))
 }
 
 function expandView() {
@@ -5895,9 +5930,10 @@ function expandView() {
         const canvas = canvasList[i]
         if (canvas.adjust) {
             canvas.adjust()
+            complementContext(canvas.activeContext)
         }
     }
-    expandLab(_scene)
+    complementLab(_scene)
     _scene.signal('resize')
 }
 
