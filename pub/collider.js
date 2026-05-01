@@ -3548,6 +3548,16 @@ const Mod = function(st) {
                 fn(st)
                 processed = true
                 if (fn.halt || (st && st.halt)) return processed
+            } else {
+                // no dedicated trap found for the signal, try default handlers
+                if (isFrame(this.default)) {
+                    this.default._ls.forEach(def => {
+                        if (isFun(def)) {
+                            def(name, st)
+                            if (def.halt || (st && st.halt)) return false
+                        }
+                    })
+                }
             }
 
             // propagate the signal to subtraps
@@ -3557,6 +3567,17 @@ const Mod = function(st) {
                 if (isFun(sfn)) {
                     sfn(st)
                     processed = true
+                    if (fn.halt || (st && st.halt)) return processed
+                } else {
+                    // no dedicated trap found for the signal, try default handlers
+                    if (isFrame(this.default)) {
+                        this.default._ls.forEach(def => {
+                            if (isFun(def)) {
+                                def(name, st)
+                                if (def.halt || (st && st.halt)) return false
+                            }
+                        })
+                    }
                 }
             }
         }
@@ -5974,7 +5995,6 @@ function complementLab(mod) {
 }
 
 function expandView() {
-    // TODO differenciate canvases as free and pinned to the window, resize only pinned
     for (let i = 0; i < canvasList.length; i++) {
         const canvas = canvasList[i]
         if (canvas.adjust) {
