@@ -585,8 +585,8 @@ const chain = function(fn1, fn2) {
         fn1.apply(this, arguments)
         fn2.apply(this, arguments)
     }
-    fn.first = fn1
-    fn.second = fn2
+    fn.head = fn1
+    fn.next = fn2
     return fn
 }
 
@@ -1626,7 +1626,14 @@ LabFrame.prototype.deactivate = function() {
     this.disable()
 }
 
-LabFrame.prototype.on = function(name, st) {
+LabFrame.prototype.on = function(action, fn) {
+    if (!isFun(fn)) throw new Error(`An [${action}] event handling function is expected`)
+
+    const handler = 'on' + action.substring(0, 1).toUpperCase() + action.substring(1)
+    this[handler] = chain(this[handler], fn)
+}
+
+LabFrame.prototype.emit = function(name, st) {
     const handler = 'on' + name.substring(0, 1).toUpperCase() + name.substring(1)
 
     let applied = false
@@ -3135,15 +3142,15 @@ const Mod = function(st) {
             return new Promise(resolve => setTimeout(resolve, (s * 1000) | 0))
         },
 
-        on: function(name, st, target) {
+        emit: function(name, st, target) {
             if (!target) {
                 target = _.lab
             } else if (isStr(target)) {
                 target = _.lab.selectOne(target)
             }
-            if (!target || !isFun(target.on)) return false 
+            if (!target || !isFun(target.emit)) return false 
 
-            return target.on(name)
+            return target.emit(name, st)
         },
 
         gtrap: function(name, st) {
@@ -3187,32 +3194,6 @@ const Mod = function(st) {
         },
 
         dir: console.dir,
-        dir: function(node) {
-            // title or name
-            if (isFun(node.title)) {
-                console.log(`=== ${node.title()} ===`)
-            } else if (isStr(node.title)) {
-                console.log(`=== ${node.title} ===`)
-            } else if (isStr(node.name)) {
-                console.log(`=== ${node.name} ===`)
-            }
-
-            // custom dump
-            if (isFun(node.dump)) {
-                const d = node.dump()
-                if (isArray(d)) {
-                    console.table(d)
-                    if (d.dump) console.log(d.dump)
-                } else if (isObj(d)) {
-                    console.dir(d)
-                } else {
-                    console.log(d)
-                }
-            } 
-
-            // regular dump
-            console.dir(node)
-        },
     }
     if (!this._drawScope) {
         // TODO define a new one?
