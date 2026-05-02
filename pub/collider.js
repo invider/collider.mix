@@ -1721,11 +1721,7 @@ LabFrame.prototype.poke = function(x, y, opt) {
     for (let i = 0; i < this._ls.length; i++) {
         const node = this._ls[i]
         if (isFun(node.poke)) {
-            if (fn) {
-                if (fn(node)) node.poke(lx, ly, opt)
-            } else {
-                node.poke(lx, ly, opt)
-            }
+            if (!fn || fn(node)) node.poke(lx, ly, opt)
         }
     }
 }
@@ -1748,34 +1744,34 @@ LabFrame.prototype.pick = function(x, y, list, opt) {
     for (let i = 0; i < this._ls.length; i++) {
         const node = this._ls[i]
 
-        // probe by-convention picking procedures
-        // TODO maybe have some option to allow or skip this step? Like _pickable or something...
-        if (!node.hidden &&
-                  ((node.within && node.within(lx, ly))
-                || (node._centered && node._circular
-                    && distance(lx, ly, node.x, node.y) <= node.r)
-                || (node._centered
-                    && lx >= node.x - .5 * node.w
-                    && lx <= node.x + .5 * node.w
-                    && ly >= node.y - .5 * node.h
-                    && ly <= node.y + .5 * node.h)
-                || (node._rectangular
-                    && !node._centered
-                    && lx >= node.x
-                    && lx <= node.x + node.w
-                    && ly >= node.y
-                    && ly <= node.y + node.h)
-        )) {
-            if (!fn || fn(node)) {
-                if (ls) ls.push(node)
-                last = node
-            }
-        }
-
-        // pick deeper if possible
         if (isFun(node.pick)) {
+            // custom pick procedure
             let val = node.pick(lx, ly, ls, opt)
             if (val) last = val
+        } else {
+            // probe by-convention picking procedures
+            // TODO maybe have some option to allow or skip this step? Like _non_pickable or something...
+            if (!node.hidden &&
+                      ((node.within && node.within(lx, ly))
+                    || (node._centered && node._circular
+                        && distance(lx, ly, node.x, node.y) <= node.r)
+                    || (node._centered
+                        && lx >= node.x - .5 * node.w
+                        && lx <= node.x + .5 * node.w
+                        && ly >= node.y - .5 * node.h
+                        && ly <= node.y + .5 * node.h)
+                    || (node._rectangular
+                        && !node._centered
+                        && lx >= node.x
+                        && lx <= node.x + node.w
+                        && ly >= node.y
+                        && ly <= node.y + node.h)
+            )) {
+                if (!fn || fn(node)) {
+                    if (ls) ls.push(node)
+                    last = node
+                }
+            }
         }
     }
     return last
@@ -1803,35 +1799,36 @@ LabFrame.prototype.pickArea = function(x, y, w, h, list, predicate) {
     for (let i = 0; i < this._ls.length; i++) {
         const node = this._ls[i]
 
-        // probe by-convention picking procedures
-        // TODO maybe have some option to allow or skip this step? Like _pickable or something...
-        if (!node.hidden &&
-                  ((node.within && node.within(lx, ly))
-                || (node._centered && node._circular
-                    && _scene.lib.math.test.intersection.rectCircle(lx, ly, lw, lh, node.x, node.y, node.r))
-                || (node._centered
-                    && lx + lw >= node.x - .5 * node.w
-                    && lx <= node.x + .5 * node.w
-                    && ly + lh >= node.y - .5 * node.h
-                    && ly <= node.y + .5 * node.h)
-                || (node._rectangular
-                    && !node._centered
-                    && lx + lw >= node.x
-                    && lx <= node.x + node.w
-                    && ly + lh >= node.y
-                    && ly <= node.y + node.h)
-        )) {
-            if (!fn || fn(node)) {
-                if (ls) ls.push(node)
-                last = node
+        if (isFun(node.pickArea)) {
+            // custom pick procedure
+            let val = node.pickArea(lx, ly, lw, lh, ls, predicate)
+            if (val) last = val
+        } else {
+            // probe by-convention picking procedures
+            // TODO maybe have some option to allow or skip this step? Like _non-pickable or something...
+            if (!node.hidden &&
+                      ((node.within && node.within(lx, ly))
+                    || (node._centered && node._circular
+                        && _scene.lib.math.test.intersection.rectCircle(lx, ly, lw, lh, node.x, node.y, node.r))
+                    || (node._centered
+                        && lx + lw >= node.x - .5 * node.w
+                        && lx <= node.x + .5 * node.w
+                        && ly + lh >= node.y - .5 * node.h
+                        && ly <= node.y + .5 * node.h)
+                    || (node._rectangular
+                        && !node._centered
+                        && lx + lw >= node.x
+                        && lx <= node.x + node.w
+                        && ly + lh >= node.y
+                        && ly <= node.y + node.h)
+            )) {
+                if (!fn || fn(node)) {
+                    if (ls) ls.push(node)
+                    last = node
+                }
             }
         }
 
-        // pick deeper if possible
-        if (isFun(node.pickArea)) {
-            let val = node.pickArea(lx, ly, lw, lh, ls, predicate)
-            if (val) last = val
-        }
     }
     return last
 }
@@ -3570,9 +3567,8 @@ const Mod = function(st) {
                 // when mask is defined, pass through only the masked signals
                 if (subtrap.mask && !subtrap.mask[name]) continue
 
-                const sfn = subtrap[name]
-                if (isFun(sfn)) {
-                    sfn(st)
+                if (isFun(subtrap[name])) {
+                    subtrap[name](st)
                     processed = true
                     if (fn.halt || (st && st.halt)) return processed
                 } else {
