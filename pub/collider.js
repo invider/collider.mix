@@ -3538,9 +3538,9 @@ const Mod = function(st) {
     trap.echo = function echo(name, st, local) {
         let processed = false
         // filter out ignored signals
-        if (this.ignore[name]) return processed
-        // when mask is defined, pass only the masked signals
-        if (this.mask && !this.mask[name]) return processed
+        if (this.ignore[name]) return false
+        // when mask is defined, pass through only the masked signals
+        if (this.mask && !this.mask[name]) return false
 
         if ((!local && !_.disabled) || (local && !trap.disabled)) {
             const fn = trap.selectOne(name)
@@ -3563,6 +3563,13 @@ const Mod = function(st) {
             // propagate the signal to subtraps
             for (let i = 0; i < this.subtraps.length; i++) {
                 const subtrap = this.subtraps[i]
+
+                if ((!local && isContainer(subtrap.__) && subtrap.__.disabled) || (local && subtrap.disabled)) continue
+
+                if (isObj(subtrap.ignore) && subtrap.ignore[name]) continue
+                // when mask is defined, pass through only the masked signals
+                if (subtrap.mask && !subtrap.mask[name]) continue
+
                 const sfn = subtrap[name]
                 if (isFun(sfn)) {
                     sfn(st)
