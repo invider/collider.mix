@@ -4425,6 +4425,7 @@ Mod.prototype.evo = function(dt) {
 
     // update local time
     this.env.time += dt
+    this.env.realTime = _scene.env.realTime
     // evolve all entities in cue, job and lab
     if (!this.cue.paused) this.cue.evo(dt)
     if (!this.job.paused) this.job.evo(dt)
@@ -5794,16 +5795,10 @@ function bootstrap() {
 function startCycle() {
     expandView()
     focus()
-    setInterval(focus, 100)
+    setInterval(focus, 100)  // make sure the window focus is actually applied
 
     // initiate the game loop
     _scene.log.raw('===== STARTING MAIN EVO-DRAW CYCLE =====')
-    // moved env initializers to new Mod() - probably don't need them here at all
-    // _scene.env.startedTime = Date.now()
-    // _scene.env.lastFrame = performance.now()
-    // _scene.env.time = 0
-    // _scene.env.realTime = 0
-    // _scene.env._keyAction = {}
     window.requestAnimFrame(cycle)
     /*
         // old-fasioned way to setup animation
