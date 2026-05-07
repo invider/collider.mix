@@ -48,19 +48,21 @@ module.exports = {
     TileSet: TileSet,
 
     // make a screenshot and download with specified filename
-    screenshot: function(filename) {
+    screenshot: function(filename, canvas) {
         if (!filename) filename = 'jam-screenshot'
+        canvas = canvas ?? ctx.canvas
         // open in a new tab
         // window.open(ctx.canvas.toDataURL('image/png'));
-        let dataURL = ctx.canvas.toDataURL('image/png');
+        let dataURL = canvas.toDataURL('image/png');
 
         this.downloadDataURL(dataURL, filename)
     },
 
     // make a screenshot of a screen area
-    screenshotArea: function(filename, x, y, w, h) {
+    screenshotArea: function(filename, x, y, w, h, context) {
         if (!filename) filename = 'jam-screenshot'
-        const idata = ctx.getImageData(x, y, w, h)
+        context = context ?? ctx
+        const idata = context.getImageData(x, y, w, h)
         const dataURL= this.imgToDataURL(idata)
 
         this.downloadDataURL(dataURL, filename)
