@@ -3888,6 +3888,11 @@ Mod.prototype.defineDrawContext = function() {
             if (mode < 2) ctx.strokeRect(x, y, w, h)
             return alt
         },
+        block: function(x, y, w, h) {
+            if (mode > 0) ctx.fillRect(x - .5*w, y - .5*h, w, h)
+            if (mode < 2) ctx.strokeRect(x - .5*w, y - .5*h, w, h)
+            return alt
+        },
         circle: function(x, y, r) {
             ctx.beginPath()
             ctx.arc(x, y, r, 0, TAU)
@@ -5257,7 +5262,7 @@ function constructLog() {
         'list'
     )
     log.attach(
-        (e) => {
+        function(e) {
             // title or name
             if (isFun(e.title)) {
                 console.log(`=== ${e.title()} ===`)
@@ -5282,6 +5287,8 @@ function constructLog() {
 
             // regular dump
             console.dir(e)
+
+            return this
         },
         'dump'
     )
