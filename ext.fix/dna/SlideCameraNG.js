@@ -1,9 +1,8 @@
 //
-// full-screen target-following sliding and zooming camera 
+// horizontally sliding and zooming 2D camera 
 //
 // Ideal for top-down or side-view scene perspective management
-// similar to what one can find in platformers, jRPGs
-// and real-time strategy games.
+// you can find in platformers, jRPGs and real-time strategy games.
 //
 // SlideCamera supports automatic culling of objects
 // outside the viewport.
@@ -98,113 +97,20 @@
 //
 // Use lx, ly, lxy to get camera-world coordinates form the screen-ones.
 
+/*
 class SlideView {
 
     constructor(st) {
         augment(this, {
             x:     0,
             y:     0,
-            zoom:  1,
-            flipY: false,
         }, st)
     }
 
     adjust() {}
-
-    getFOV() {
-        return HALF_PI
-    }
-
-    getFocusDistance() {
-        return (this.__.w / this.zoom) / (2 * tan(QUARTER_PI))
-    }
-
-    setFocusDistance(fd) {
-        this.zoom = this.__.w / (2 * fd * tan(QUARTER_PI))
-    }
-
-    getZoom() {
-        return this.zoom
-    }
-
-    setZoom(zoom) {
-        this.zoom = zoom
-    }
-
-    getWidth() {
-        return this.__.w / this.zoom
-    }
-
-    getHeight() {
-        return this.__.h / this.zoom
-    }
-
-    getRect() {
-        const __ = this.__
-
-        return {
-            x: __.lx(0),
-            y: __.ly(0),
-            w: __.w / this.zoom,
-            h: __.h / this.zoom,
-        }
-    }
-
-    getEdges() {
-        const __ = this.__
-
-        return [
-            __.lx(0),
-            __.ly(0),
-            __.lx(__.w),
-            __.ly(__.h),
-        ]
-    }
-
-    within(x, y, r) {
-        r = r ?? 0
-        
-        const x1 = __.lx(0),
-              y1 = __.ly(0),
-              x2 = __.lx(__.w),
-              y2 = __.ly(__.h)
-
-        return (
-            x + r >= x1
-            && x - r <= x2
-            && y + r >= y1
-            && y - r <= y2
-        )
-    }
-
-    isVisible(e) {
-        const x1 = __.lx(0),
-              y1 = __.ly(0),
-              x2 = __.lx(__.w),
-              y2 = __.ly(__.h)
-
-        if (e.r !== undefined) {
-            return (
-                e.x + e.r >= x1
-                && e.x - e.r <= x2
-                && e.y + e.r >= y1
-                && e.y - e.r <= y2
-            )
-        } else if (e.w !== undefined && e.h !== undefined) {
-            // expect rectangular
-            return ((e._centered
-                        && e.x + .5 * e.w >= x1
-                        && e.x - .5 * e.w <= x2
-                        && e.y + .5 * e.h >= y1
-                        && e.y - .5 * e.h <= y2)
-                    || (e.x + e.w >= x1
-                        && e.x <= x2
-                        && e.y + e.h >= y1
-                        && e.y <= y2))
-        }
-    }
-
 }
+*/
+
 
 const MOVE_UP    = 1,
       MOVE_LEFT  = 2,
@@ -275,39 +181,39 @@ class KeyboardControlPod {
     }
 
     act(action, dt) {
-        const cam = this.__
-        const view = cam.view
+        const _    = this,
+              cam  = _.__
 
         switch(action) {
             case MOVE_UP:
-                if (view.verticalLock) return
-                if (view.flipY) {
-                    view.y = view.y + (this.slideSpeed / view.zoom) * dt
+                if (cam._verticalLock) return
+                if (cam.flipY) {
+                    cam.pos.y = cam.pos.y + (_.slideSpeed / cam.zoom) * dt
                 } else {
-                    view.y = view.y - (this.slideSpeed / view.zoom) * dt
+                    cam.pos.y = cam.pos.y - (_.slideSpeed / cam.zoom) * dt
                 }
                 break
             case MOVE_LEFT:
-                if (view.horizontalLock) return
-                view.x = view.x - (this.slideSpeed / view.zoom) * dt
+                if (cam._horizontalLock) return
+                cam.pos.x = cam.pos.x - (_.slideSpeed / cam.zoom) * dt
                 break
             case MOVE_DOWN:
-                if (view.verticalLock) return
-                if (view.flipY) {
-                    view.y = view.y - (this.slideSpeed / view.zoom) * dt
+                if (cam._verticalLock) return
+                if (cam.flipY) {
+                    cam.pos.y = cam.pos.y - (_.slideSpeed / cam.zoom) * dt
                 } else {
-                    view.y = view.y + (this.slideSpeed / view.zoom) * dt
+                    cam.pos.y = cam.pos.y + (_.slideSpeed / cam.zoom) * dt
                 }
                 break
             case MOVE_RIGHT:
-                if (view.horizontalLock) return
-                view.x = view.x + (this.slideSpeed / view.zoom) * dt
+                if (cam._horizontalLock) return
+                cam.pos.x = cam.pos.x + (_.slideSpeed / cam.zoom) * dt
                 break
             case ZOOM_IN:
-                view.setZoom( view.getZoom() * (1 + this.zoomSpeed * dt))
+                cam.setZoom( cam.getZoom() * (1 + _.zoomSpeed * dt))
                 break
             case ZOOM_OUT:
-                view.setZoom( view.getZoom() * (1 - this.zoomSpeed * dt))
+                cam.setZoom( cam.getZoom() * (1 - _.zoomSpeed * dt))
                 break
         }
     }
@@ -358,7 +264,6 @@ class MouseControlPod {
 
         trap.on('mouseWheel', (e) => {
             if (_.__.disabled) return
-            const view = _.__.view
 
             if (e.deltaY !== 0) {
                 if (e.deltaY < 0 && this.accumulatedZoom > 0) this.accumulatedZoom = 0
@@ -369,49 +274,50 @@ class MouseControlPod {
     }
 
     evo(dt) {
-        const __ = this.__
-        const view = __.view
+        const cam = this.__
 
         if (this.accumulatedZoom < 0) {
-            view.setZoom( view.getZoom() * (1 + this.zoomSpeed * dt))
+            cam.setZoom( cam.getZoom() * (1 + this.zoomSpeed * dt))
 
             this.accumulatedZoom += dt
             if (this.accumulatedZoom >= 0) this.accumulatedZoom = 0
         } else if (this.accumulatedZoom > 0) {
-            view.setZoom( view.getZoom() * (1 - this.zoomSpeed * dt))
+            cam.setZoom( cam.getZoom() * (1 - this.zoomSpeed * dt))
 
             this.accumulatedZoom -= dt
             if (this.accumulatedZoom <= 0) this.accumulatedZoom = 0
         }
 
-        const mx = mouse.x - __.x,
-              my = mouse.y - __.y
+        // TODO mouse coordinates MUST be translated to the viewport coordinates
+        // calculate viewport-space mouse coordinates
+        const mx = mouse.x - cam.viewport.x,
+              my = mouse.y - cam.viewport.y
 
         if (mouse.buttons & this.buttonMask
                 && !mouse.out
-                && mx >= 0 && mx < __.w
-                && my >= 0 && my < __.h) {
+                && mx >= 0 && mx < cam.viewport.w
+                && my >= 0 && my < cam.viewport.h) {
 
-            if (!view.horizontalLock) {
-                if (mx < this.slideEdge * __.w) {
-                    view.x = view.x - (this.slideSpeed / view.zoom) * dt
-                } else if (mx > __.w - this.slideEdge * __.w) {
-                    view.x = view.x + (this.slideSpeed / view.zoom) * dt
+            if (!cam._horizontalLock) {
+                if (mx < this.slideEdge * cam.viewport.w) {
+                    cam.pos.x = cam.pos.x - (this.slideSpeed / cam.zoom) * dt
+                } else if (mx > cam.viewport.w - this.slideEdge * cam.viewport.w) {
+                    cam.pos.x = cam.pos.x + (this.slideSpeed / cam.zoom) * dt
                 }
             }
 
-            if (!view.verticalLock) {
-                if (my < this.slideEdge * __.h) {
-                    if (view.flipY) {
-                        view.y = view.y + (this.slideSpeed / view.zoom) * dt
+            if (!cam._verticalLock) {
+                if (my < this.slideEdge * cam.viewport.h) {
+                    if (cam.flipY) {
+                        cam.pos.y = cam.pos.y + (this.slideSpeed / cam.zoom) * dt
                     } else {
-                        view.y = view.y - (this.slideSpeed / view.zoom) * dt
+                        cam.pos.y = cam.pos.y - (this.slideSpeed / cam.zoom) * dt
                     }
-                } else if (my > __.h - this.slideEdge * __.h) {
-                    if (view.flipY) {
-                        view.y = view.y - (this.slideSpeed / view.zoom) * dt
+                } else if (my > cam.viewport.h - this.slideEdge * cam.viewport.h) {
+                    if (cam.flipY) {
+                        cam.pos.y = cam.pos.y - (this.slideSpeed / cam.zoom) * dt
                     } else {
-                        view.y = view.y + (this.slideSpeed / view.zoom) * dt
+                        cam.pos.y = cam.pos.y + (this.slideSpeed / cam.zoom) * dt
                     }
                 }
             }
@@ -437,8 +343,8 @@ class ZoomConstraints {
     }
 
     evo(dt) {
-        const _ = this.__.view
-        _.zoom = clamp(_.zoom, this.min, this.max)
+        const cam = this.__
+        cam.zoom = clamp(cam.zoom, this.min, this.max)
     }
 
 }
@@ -458,39 +364,39 @@ class ZoneConstraints {
     }
 
     evo(dt) {
-        const { x1, y1, x2, y2 } = this
-        const view = this.__.view
-        const edges = view.getEdges()
+        const { x1, y1, x2, y2 } = this,
+              cam   = this.__,
+              edges = cam.getViewportEdges()
 
-        view.horizontalLock = false
-        view.verticalLock = false
+        cam._horizontalLock = false
+        cam._verticalLock = false
 
         if (edges[0] <= x1) {
             if (edges[2] >= x2) {
                 // outside of bounds - center the view
-                view.x = edges[0] + .5 * (edges[2] - edges[0])
-                view.horizontalLock = true
+                cam.pos.x = edges[0] + .5 * (edges[2] - edges[0])
+                cam._horizontalLock = true
             } else {
                 // stick to the left
-                view.x = x1 + .5 * view.getWidth()
+                cam.pos.x = x1 + .5 * cam.getViewportWidth()
             }
         } else if (edges[2] >= x2) {
             // stick to the right
-            view.x = x2 - .5 * view.getWidth()
+            cam.pos.x = x2 - .5 * cam.getViewportWidth()
         }
 
         if (edges[1] <= y1) {
             if (edges[3] >= y2) {
                 // outside of bounds - center the view
-                view.y = edges[1] + .5 * (edges[3] - edges[1])
-                view.verticalLock = true
+                cam.pos.y = edges[1] + .5 * (edges[3] - edges[1])
+                cam._verticalLock = true
             } else {
                 // stick to the left
-                view.y = y1 + .5 * view.getHeight()
+                cam.pos.y = y1 + .5 * cam.getVewiportHeight()
             }
         } else if (edges[3] >= y2) {
             // stick to the right
-            view.y = y2 - .5 * view.getHeight()
+            cam.pos.y = y2 - .5 * cam.getViewportHeight()
         }
     }
 }
@@ -512,13 +418,13 @@ class ElasticZoneConstraints {
     }
 
     evo(dt) {
-        const { x1, y1, x2, y2 } = this
-        const view = this.__.view
-        const edges = view.getEdges()
-        const flipY = view.flipY
+        const { x1, x2, y1, y2 } = this,
+              cam   = this.__,
+              edges = cam.getViewportEdges(),
+              flipY = cam.flipY
 
-        view.horizontalLock = false
-        view.verticalLock = false
+        cam._horizontalLock = false
+        cam._verticalLock = false
 
         if (edges[0] <= x1) {
             if (edges[2] >= x2) {
@@ -526,13 +432,13 @@ class ElasticZoneConstraints {
                 this.targetX = x1 + .5 * (x2 - x1)
             } else {
                 // stick to the left of the constrained area
-                this.targetX = x1 + .5 * view.getWidth()
+                this.targetX = x1 + .5 * cam.getViewportWidth()
             }
         } else if (edges[2] >= x2) {
             // stick to the right of the constrained area
-            this.targetX = x2 - .5 * view.getWidth()
+            this.targetX = x2 - .5 * cam.getViewportWidth()
         } else {
-            this.targetX = view.x
+            this.targetX = cam.pos.x
         }
 
         if (flipY? edges[1] >= y1 : edges[1] <= y1) {
@@ -541,25 +447,25 @@ class ElasticZoneConstraints {
                 this.targetY = flipY? y1 - .5 * abs(y2 - y1) : y1 + .5 * (y2 - y1)
             } else {
                 // stick to the top of the constrained area
-                this.targetY = flipY? y1 - .5 * view.getHeight() : y1 + .5 * view.getHeight()
+                this.targetY = flipY? y1 - .5 * cam.getViewportHeight() : y1 + .5 * cam.getViewportHeight()
             }
         } else if (flipY? edges[3] <= y2 : edges[3] >= y2) {
             // stick to the bottom of the constrained area
-            this.targetY = flipY? y2 + .5 * view.getHeight() : y2 - .5 * view.getHeight()
+            this.targetY = flipY? y2 + .5 * cam.getViewportHeight() : y2 - .5 * cam.getViewportHeight()
         } else {
-            this.targetY = view.y
+            this.targetY = cam.pos.y
         }
 
-        if (this.targetX < view.x) {
-            view.x = max(view.x - (this.correctionSpeed * dt) / view.zoom, this.targetX)
-        } else if (this.targetX > view.x) {
-            view.x = min(view.x + (this.correctionSpeed * dt) / view.zoom, this.targetX)
+        if (this.targetX < cam.pos.x) {
+            cam.pos.x = max(cam.pos.x - (this.correctionSpeed * dt) / cam.zoom, this.targetX)
+        } else if (this.targetX > cam.pos.x) {
+            cam.pos.x = min(cam.pos.x + (this.correctionSpeed * dt) / cam.zoom, this.targetX)
         }
 
-        if (this.targetY < view.y) {
-            view.y = max(view.y - (this.correctionSpeed * dt) / view.zoom, this.targetY)
-        } else if (this.targetY > view.y) {
-            view.y = min(view.y + (this.correctionSpeed * dt) / view.zoom, this.targetY)
+        if (this.targetY < cam.pos.y) {
+            cam.pos.y = max(cam.pos.y - (this.correctionSpeed * dt) / cam.zoom, this.targetY)
+        } else if (this.targetY > cam.pos.y) {
+            cam.pos.y = min(cam.pos.y + (this.correctionSpeed * dt) / cam.zoom, this.targetY)
         }
     }
 }
@@ -570,46 +476,66 @@ class SlideCameraNG extends sys.LabFrame {
         super( augment({
             name: 'port',
 
+            // potential viewport
             x:     0,
             y:     0,
             w:     0,
             h:     0,
-            view:  new SlideView(),
 
-            target: null,
+            pos: {
+                x: 0,
+                y: 0,
+            },
+            zoom:  1,
+            flipY: false,
+
+            viewport: null,
+            scene:    null,
         }, st) )
-        this.view.__ = this
+
+        /*
         if (!isFun(this.adjustViewport) && !st.w && !st.h) {
             this.fullscreen = true
         } else {
             this.fullscreen = false
         }
+        */
     }
 
     bindContext() {
         this.ctx = this.getMod().ctx
     }
 
+    bindViewport() {
+        function isViewport(vp) {
+            return (isContainer(vp) && isNum(vp.x) && isNum(vp.y) && isNum(vp.w) && isNum(vp.h) && vp.w && vp.h)
+        }
+
+        function locateViewport(vp) {
+            if (!isContainer(vp)) return
+            if (isViewport(vp)) return vp
+            return locateViewport(vp.__)
+        }
+        this.viewport = locateViewport(this)
+        if (!this.viewport) throw new Error(`Can't find a viewport for [${this.name}] - the camera must be under a node with [x,y,w,h] defined`)
+    }
+
     init() {
         this.bindContext()
+        this.bindViewport()
         this.adjust()
     }
 
-    adjustViewportToFullscreen() {
-        // fullscreen viewport
-        this.x = 0
-        this.y = 0
-        this.w = this.ctx.width
-        this.h = this.ctx.height
+    setFullscreenFlag() {
+        if (this.viewport === lab) {
+            this._fullscreen = true
+        } else {
+            this._fullscreen = false
+        }
     }
 
     adjust() {
-        if (this.fullscreen) {
-            this.adjustViewportToFullscreen()
-        } else if (isFun(this.adjustViewport)) {
-            this.adjustViewport()
-        }
-        this.view.adjust()
+        this.setFullscreenFlag()
     }
 
     // translate local x to the parent coordinate space
@@ -617,7 +543,7 @@ class SlideCameraNG extends sys.LabFrame {
     // @param {number} lx
     // @returns {number} - upper x
     ux(lx) {
-        return (lx - this.view.x)*this.view.zoom + .5 * this.w + this.x
+        return (lx - this.pos.x)*this.zoom + .5 * this.viewport.w + this.viewport.x
     }
 
     // translate local y to the parent coordinate space
@@ -625,10 +551,10 @@ class SlideCameraNG extends sys.LabFrame {
     // @param {number} ly
     // @returns {number} - upper y
     uy(ly) {
-        if (this.view.flipY) {
-            return (-ly + this.view.y)*this.view.zoom + .5 * this.h + this.y
+        if (this.flipY) {
+            return (-ly + this.pos.y)*this.zoom + .5 * this.viewport.h + this.viewport.y
         } else {
-            return (ly - this.view.y)*this.view.zoom + .5 * this.h + this.y
+            return (ly - this.pos.y)*this.zoom + .5 * this.viewport.h + this.viewport.y
         }
     }
 
@@ -637,12 +563,11 @@ class SlideCameraNG extends sys.LabFrame {
     // @param {array/vec2} v
     // @returns {array/vec2} - transformed vector
     upos(v) {
-        v[0] = (v[0] - this.view.x)*this.view.zoom + .5 * this.w + this.x
-        if (this.view.flipY) {
-            v[1] = (-v[1] + this.view.y)*this.view.zoom + .5 * this.h + this.y
-
+        v[0] = (v[0] - this.pos.x)*this.zoom + .5 * this.viewport.w + this.viewport.x
+        if (this.flipY) {
+            v[1] = (-v[1] + this.pos.y)*this.zoom + .5 * this.viewport.h + this.viewport.y
         } else {
-            v[1] = (v[1] - this.view.y)*this.view.zoom + .5 * this.h + this.y
+            v[1] = (v[1] - this.pos.y)*this.zoom + .5 * this.viewport.h + this.viewport.y
         }
     }
 
@@ -651,7 +576,7 @@ class SlideCameraNG extends sys.LabFrame {
     // @param {number} ux
     // @returns {number} - local x
     lx(ux) {
-        return (ux - this.x - .5 * this.w)/this.view.zoom + this.view.x
+        return (ux - this.viewport.x - .5 * this.viewport.w)/this.zoom + this.pos.x
     }
 
     // translate parent coordinates y to the local coordinate space
@@ -659,10 +584,10 @@ class SlideCameraNG extends sys.LabFrame {
     // @param {number} uy
     // @returns {number} - local y
     ly(uy) {
-        if (this.view.flipY) {
-            return -((uy - this.y - .5 * this.h)/this.view.zoom - this.view.y)
+        if (this.flipY) {
+            return -((uy - this.viewport.y - .5 * this.viewport.h)/this.zoom - this.pos.y)
         } else {
-            return (uy - this.y - .5 * this.h)/this.view.zoom + this.view.y
+            return (uy - this.viewport.y - .5 * this.viewport.h)/this.zoom + this.pos.y
         }
     }
 
@@ -671,23 +596,24 @@ class SlideCameraNG extends sys.LabFrame {
     // @param {array/vec2} v
     // @returns {array/vec2} - object with local x and y
     lpos(v) {
-        v[0] = (v[0] - this.x - .5 * this.w)/this.view.zoom + this.view.x
-        if (this.view.flipY) {
-            v[1] = -((v[1] - this.y - .5 * this.h)/this.view.zoom - this.view.y)
+        v[0] = (v[0] - this.viewport.x - .5 * this.viewport.w)/this.zoom + this.pos.x
+        if (this.flipY) {
+            v[1] = -((v[1] - this.viewport.y - .5 * this.viewport.h)/this.zoom - this.pos.y)
         } else {
-            v[1] = (v[1] - this.y - .5 * this.h)/this.view.zoom + this.view.y
+            v[1] = (v[1] - this.viewport.y - .5 * this.viewport.h)/this.zoom + this.pos.y
         }
     }
 
     lookAt(x, y, zoom) {
-        this.view.x = x
-        this.view.y = y
-        if (zoom) this.view.zoom = zoom
+        this.pos.x = x
+        this.pos.y = y
+        if (zoom) this.zoom = zoom
     }
 
     pick(x, y, list, opt) {
-        // test coordinates against viewport
-        if (x < this.x || x > this.x + this.w || y < this.y || y > this.y + this.h) return
+        // test coordinates against the viewport
+        const vp = this.viewport
+        if (x < vp.x || x > vp.x + vp.w || y < vp.y || y > vp.y + vp.h) return
 
         let lx
         let ly
@@ -745,17 +671,115 @@ class SlideCameraNG extends sys.LabFrame {
         return last
     }
 
-    // returns the list of nodes to be displayed by the draw() function
+    getFOV() {
+        return HALF_PI
+    }
+
+    getFocusDistance() {
+        return (this.viewport.w / this.zoom) / (2 * tan(QUARTER_PI))
+    }
+
+    setFocusDistance(fd) {
+        this.zoom = this.viewport.w / (2 * fd * tan(QUARTER_PI))
+    }
+
+    getZoom() {
+        return this.zoom
+    }
+
+    setZoom(zoom) {
+        this.zoom = zoom
+    }
+
+    // camera-space viewport width (how many horizontal scene units are visible)
+    getViewportWidth() {
+        return this.viewport.w / this.zoom
+    }
+
+    // camera-space viewport height (how many vertical scene units are visible)
+    getViewportHeight() {
+        return this.viewport.h / this.zoom
+    }
+
+    getRect() {
+        return {
+            x: this.lx(0),
+            y: this.ly(0),
+            w: this.getViewportWidth(),
+            h: this.getViewportHeight(),
+        }
+    }
+
+    // viewport top-left and bottom-right edges [x1, y1, x2, y2] in the camera space
+    getViewportEdges() {
+        return [
+            this.lx(0),
+            this.ly(0),
+            this.lx(this.viewport.w),
+            this.ly(this.viewport.h)
+        ]
+    }
+
+    within(x, y, r) {
+        r = r ?? 0
+        
+        const x1 = __.lx(0),
+              y1 = __.ly(0),
+              x2 = __.lx(__.w),
+              y2 = __.ly(__.h)
+
+        return (
+            x + r >= x1
+            && x - r <= x2
+            && y + r >= y1
+            && y - r <= y2
+        )
+    }
+
+    isVisible(e) {
+        const x1 = __.lx(0),
+              y1 = __.ly(0),
+              x2 = __.lx(__.w),
+              y2 = __.ly(__.h)
+
+        if (e.r !== undefined) {
+            return (
+                e.x + e.r >= x1
+                && e.x - e.r <= x2
+                && e.y + e.r >= y1
+                && e.y - e.r <= y2
+            )
+        } else if (e.w !== undefined && e.h !== undefined) {
+            // expect rectangular
+            return ((e._centered
+                        && e.x + .5 * e.w >= x1
+                        && e.x - .5 * e.w <= x2
+                        && e.y + .5 * e.h >= y1
+                        && e.y - .5 * e.h <= y2)
+                    || (e.x + e.w >= x1
+                        && e.x <= x2
+                        && e.y + e.h >= y1
+                        && e.y <= y2))
+        }
+    }
+
+    // the list of nodes to be displayed by the draw() function
     //
-    // Camera child nodes are returned by default.
+    // The camera child nodes are returned by default.
+    //
     // Redefine this method to customize the rendering target,
     // e.g. to achieve the following layout:
-    //     lab
+    //    lab
     //      |-cam
-    //      |-world
-    // You can return world._ls list to render instead of the cam children.
+    //      |-scene
+    // You can return scene._ls list to render instead of the camera children nodes.
     // This approach can be more preferable in some scenarios,
-    // like multiple camera.
+    // like multiple camera, e.g.:
+    //    lab
+    //      |-cam1
+    //      |-cam2
+    //      |-cam3
+    //      |-scene
     // If you keep all entities under a camera it would be
     // cumbersome to keep them visible when you switch to another camera -
     // the entities have to be either moved into the new camera
@@ -763,17 +787,16 @@ class SlideCameraNG extends sys.LabFrame {
     // by default.
     // And it gets even harder when you need to display the output
     // of two camera at the same time - sometimes we need to have
-    // multiple viewports into the same world on the screen,
+    // multiple perspectives of the same scene on the screen,
     // e.g. the main view and a minimap in a realtime strategy
     // or a security camera in a stealth platformer.
     //
     // Redefining _getDisplayList()_ allows you 
-    // 
-    // to move them out all world entities each time you switch
+    // to move them out all the scene entities each time you switch
     // between the cameras. And will be really tricky (but still possible)
     // if you have multiple cameras
     getDisplayList() {
-        return this._ls
+        return (this.scene || this._ls)
     }
 
     getContext() {
@@ -822,7 +845,7 @@ class SlideCameraNG extends sys.LabFrame {
     }
 
     draw(dt) {
-        const { x, y, w, h } = this
+        const { x, y, w, h } = this.viewport
         const ctx = this.getContext()
         const ls  = this.getDisplayList()
 
@@ -836,20 +859,25 @@ class SlideCameraNG extends sys.LabFrame {
         */
 
         ctx.save()
-        if (!this.fullscreen) {
+        // return (ux - this.viewport.x - .5 * this.viewport.w)/this.zoom + this.pos.x
+        if (this.viewport === this) {
+            // the camera defines it's own viewport, so move
+            ctx.translate(this.viewport.x, this.viewport.y)
+        }
+        if (!this._fullscreen) {
             // clip to the viewport
             ctx.beginPath()
-            ctx.moveTo(x,     y    )
-            ctx.lineTo(x + w, y    )
-            ctx.lineTo(x + w, y + h)
-            ctx.lineTo(x,     y + h)
+            ctx.moveTo( 0, 0 )
+            ctx.lineTo( w, 0 )
+            ctx.lineTo( w, h )
+            ctx.lineTo( 0, h )
             ctx.closePath()
             ctx.clip()
         }
-        ctx.translate(.5 * this.w + this.x, .5 * this.h + this.y) // half-screen shift if needed
-        if (this.view.flipY) ctx.scale(this.view.zoom, -this.view.zoom)
-        else ctx.scale(this.view.zoom, this.view.zoom)
-        ctx.translate(-this.view.x, -this.view.y)
+        ctx.translate(.5 * this.viewport.w, .5 * this.viewport.h)
+        if (this.flipY) ctx.scale(this.zoom, -this.zoom)
+        else ctx.scale(this.zoom, this.zoom)
+        ctx.translate(-this.pos.x, -this.pos.y)
 
         // draw the view field
         // ctx.strokeStyle = '#ff0000'
@@ -863,7 +891,7 @@ class SlideCameraNG extends sys.LabFrame {
         line(0, -50, 0, 50)
         */
 
-        const edges = this.view.getEdges()
+        const edges = this.getViewportEdges()
         this.drawList(ls, edges)
 
         /*
@@ -907,7 +935,6 @@ class SlideCameraNG extends sys.LabFrame {
 
 }
 
-SlideCameraNG.SlideView = SlideView
 SlideCameraNG.KeyboardControlPod = KeyboardControlPod
 SlideCameraNG.MouseControlPod = MouseControlPod
 SlideCameraNG.ZoomConstraints = ZoomConstraints
@@ -915,25 +942,6 @@ SlideCameraNG.ZoneConstraints = ZoneConstraints
 SlideCameraNG.ElasticZoneConstraints = ElasticZoneConstraints
 
 /*
-const SlideCamera = function(st) {
-    this.name = 'cam'
-    this.x = 0
-    this.y = 0
-    this.scale = 1
-    this.scaleTarget = 0
-    this.zoomSpeed = 0.5
-    this.zoomStep = .2
-    this.target = null
-    this.pinOnTarget = false
-    this.keepFollowing = false
-    this.targetingPrecision = 1
-    this.speed = 100
-    this.zoomOnPlusMinus = false
-    this.keys = []
-
-    sys.Frame.call(this, st)
-}
-
 // check if local coordinates are in the viewport
 // @param {number} x - local x
 // @param {number} y - local y
@@ -957,24 +965,7 @@ SlideCamera.prototype.inView = function(x, y) {
 // @param {object/xy} target - a positional target for the camera to follow
 // @param {boolean} keepFollowing - keep following after the camera reached the position.
 //
-SlideCamera.prototype.follow = function(target, keepFollowing) {
-    this.target = target
-    this.keepFollowing = !!keepFollowing
-}
-
-// set relative zoom target
-// accepts values relative to the current scale, where current scale is considered 1
-// @param {number} z - relative value, e.g. 1.2 to zoom 20% in, 0.8 to zoom 20% out
-SlideCamera.prototype.zoom = function(z) {
-    this.scaleTarget = this.scale * z
-}
-
-// set absolute zoom target
-// @param {number} scale
-SlideCamera.prototype.zoomAt = function(scale) {
-    this.scaleTarget = scale
-}
-
+//
 // follow a target if one is defined
 // Shouldn't be called manually.
 // It is called automatically as a part of evo(dt) process
@@ -1007,22 +998,5 @@ SlideCamera.prototype.evoFollow = function(dt) {
 // @param {number} dt - delta time in seconds
 SlideCamera.prototype.evo = function(dt) {
     if (this.target) this.evoFollow(dt)
-
-    if (this.scaleTarget) {
-        if (this.scale < this.scaleTarget) {
-            this.scale *= 1 + this.zoomSpeed * dt
-            if (this.scale > this.scaleTarget) {
-                this.scale = this.scaleTarget
-                this.scaleTarget = 0
-            }
-
-        } else if (this.scale > this.scaleTarget) {
-            this.scale *= 1 - this.zoomSpeed * dt
-            if (this.scale < this.scaleTarget) {
-                this.scale = this.scaleTarget
-                this.scaleTarget = 0
-            }
-        }
-    }
 }
 */
