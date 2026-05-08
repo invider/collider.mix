@@ -1,3 +1,35 @@
+/*
+ * KinetixNG is a tweening/animation controller.
+ *
+ * It is placed in /job by convention and manages
+ * the lifecycle of multiple animations.
+ *
+ *
+ *
+ * Kinetix has an automatic object pool optimize memory allocations,
+ * since hundreds of keys can be active at the same time.
+ *
+ * The pooling is controlled by the following properties:
+ *
+ *    MIN_CAPACITY:          128,
+ *    COMPACTION_THRESHOLD: .8,
+ *    MAX_GRAVEYARD:         4096,
+ *
+ * The most efficient strategy is to set MIN_CAPACITY
+ * to the expected maximum of simultineously active keys
+ * during a typical play session. Kinetix will preallocate
+ * that capacity and will preserve it during compaction cycles.
+ *
+ * A compaction is triggered when the number of dead keys
+ * exceeds the provided COMPACTION_THRESHOLD.
+ * After a sudden peak, we might end up with a lot of
+ * dead keys way above MIN_CAPACITY.
+ * It is inefficient to iterate over a lot of dead keys
+ * all the time, so compaction is necessary to bring
+ * dead/alive ratio back down.
+ *
+ *
+ */
 class KinetixNG {
 
     constructor(st) {
@@ -8,6 +40,7 @@ class KinetixNG {
             // setup
             MIN_CAPACITY:          128,
             COMPACTION_THRESHOLD: .8,
+            MAX_GRAVEYARD:         4096,
         }, st)
         this.refillToCapacity()
     }
@@ -109,6 +142,21 @@ class KinetixNG {
         return this.last
     }
 
+    compact() {
+        const ls = []
+
+        // copy alive
+        for (let i = 0; i < N; i++) {
+            const key = keys[i]
+            if (!key.dead) {
+                ls.push(key)
+            }
+        }
+
+        this.keys = ls
+        this.refillToCapacity()
+    }
+
     evo(dt) {
         const keys = this.keys,
               N    = keys.length
@@ -161,18 +209,7 @@ class KinetixNG {
         
         const deadRate = (dead / N)
         if (N > this.MIN_CAPACITY && deadRate >= this.COMPACTION_THRESHOLD) {
-            const ls = []
-
-            // copy alive
-            for (let i = 0; i < N; i++) {
-                const key = keys[i]
-                if (!key.dead) {
-                    ls.push(key)
-                }
-            }
-
-            this.keys = ls
-            this.refillToCapacity()
+            this.compact()
         }
     }
 }
