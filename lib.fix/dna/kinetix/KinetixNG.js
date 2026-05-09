@@ -30,12 +30,19 @@
  *
  *
  */
+
+const IDLE   = 0
+const ACTIVE = 1
+const WAIT   = 2
+const DEAD   = 4
+
 class KinetixNG {
 
     constructor(st) {
         augment(this, {
             name: 'kinetix',
             keys: [],
+            graveyard: [],
 
             // setup
             MIN_CAPACITY:          128,
@@ -47,10 +54,13 @@ class KinetixNG {
 
     refillToCapacity() {
         while(this.keys.length < this.MIN_CAPACITY) {
+            this.keys.push( new Tween() )
+            /*
             this.keys.push({
                 __:   this,
                 dead: true,
             })
+            */
         }
     }
 
@@ -59,45 +69,33 @@ class KinetixNG {
         return this
     }
 
-    tween(mapFn, easing) {
-        // TODO resurrect a zombie if possible
+    tween(core, easing, opt) {
+        let fn, st
+        if (isFun(core)) {
+            fn = core
+            st = opt
+        } else {
+            st = core
+        }
+        
         let k
         for (let i = this.keys.length - 1; i >= 0; i--) {
             const key = this.keys[i]
-            if (key.dead) {
+            if (key.state === DEAD) {
                 k = key  // found a zombie!
                 break
             }
         }
+
         if (!k) {
             // no zombies found, so create a new key
-            k = {}
+            k = new Tween(st)
             this.keys.push(k)
+        } else {
+            k.respawn(st)
         }
-
-        // setup the key
-        // TODO avoid object allocation here for efficiency?
-        extend(k, {
-            __:     this,
-            // initial state
-            at:     env.time,
-
-            // === key setup ===
-            easing: easing,
-            mapFn:  mapFn,
-            freq:   1,
-            steps:  1,
-            // flags setup
-            mirror: false,
-            loop:   false,
-            // event handlers setup
-            onStep: null,
-            onKill: null,
-
-            // key state
-            dead:   false,
-            mark:   0,
-        })
+        if (fn) k.mapFn = fn
+        if (easing) k.easing = easing
 
         this.last = k
         return this
@@ -106,6 +104,10 @@ class KinetixNG {
     freq(fq) {
         this.last.freq = fq
         return this
+    }
+
+    time(t) {
+        this.last.freq = 1 / t
     }
 
     steps(n) {
@@ -148,7 +150,7 @@ class KinetixNG {
         // copy alive
         for (let i = 0; i < N; i++) {
             const key = keys[i]
-            if (!key.dead) {
+            if (key.state !== DEAD) {
                 ls.push(key)
             }
         }
@@ -165,9 +167,9 @@ class KinetixNG {
         let dead = 0
         for (let i = 0; i < N; i++) {
             const key = keys[i]
-            if (key.dead) {
+            if (key.state === DEAD) {
                 dead ++
-            } else {
+            } else if (key.state === ACTIVE) {
                 const t = (env.time - key.at) * key.freq,  // time in easing scale [0..1...]
                       T = t | 0  // full steps
 
@@ -185,8 +187,8 @@ class KinetixNG {
                     }
 
                     if (!key.loop && T >= key.steps) {
-                        key.dead = true
-                        if (key.onKill) key.onKill()
+                        key.kill()
+                        // if (key.onKill) key.onKill()
                         continue
                     }
                 }
@@ -214,3 +216,64 @@ class KinetixNG {
     }
 }
 
+class Tween {
+
+    constructor(st) {
+        this.__ = null
+
+        this.respawn(st)
+        this.kill()
+    }
+
+    reset() {
+        this.easing = null
+        this.mapFn  = null
+        this.freq   = 1
+        this.steps  = 1
+        // flags
+        this.loop   = false
+        this.mirror = false
+        // event handlers
+        this.onStep = null
+        this.onKill = null
+        // target
+        this.target    = null
+        this.subTarget = null
+
+        this.state = ACTIVE
+    }
+
+    respawn(st) {
+        this.at   = env.time
+        this.mark = 0
+        if (!st) return this.reset()
+
+        this.easing = st.easing ?? null
+        this.mapFn  = st.mapFn  ?? null
+        this.steps  = st.steps  ?? 1
+        this.loop   = st.loop   ?? false
+        this.mirror = st.mirror ?? false
+
+        // setup key frequency
+        if (st.time) this.freq = 1 / st.time
+        else this.freq = st.freq ?? null
+        // setup event handlers
+        this.onStep = st.onStep ?? null
+        this.onKill = st.onKill ?? null
+
+        // setup target
+        this.target    = st.target    ?? null
+        this.subTarget = st.subTarget ?? null
+
+        this.state = ACTIVE
+    }
+
+    wait() {
+        this.state = WAIT
+    }
+
+    kill() {
+        if (this.onKill) this.onKill()
+        this.state = DEAD
+    }
+}
