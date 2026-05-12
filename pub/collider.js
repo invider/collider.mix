@@ -587,6 +587,37 @@ const chain = function(fn1, fn2) {
     }
     fn.head = fn1
     fn.next = fn2
+    fn.list = function() {
+        if (isFun(this.head.list) && isFun(this.next.list)) {
+            return [ ...this.head.list(), ...this.next.list() ]
+        } 
+        if (isFun(this.head.list)) {
+            return [ ...this.head.list(), this.next ]
+        }
+        if (isFun(this.next.list)) {
+            return [ this.head, ...this.next.list() ]
+        } else {
+            return [ this.head, this.next ]
+        }
+    }
+    fn.dechain = function(fn) {
+        if (this.head === fn) return this.next // drop the head function
+        if (this.next === fn) return this.head // drop the tail function
+
+        let newHead = this.head,
+            newNext = this.next
+        if (isFun(this.head.dechain)) {
+            newHead = this.head.dechain(fn)
+        }
+        if (isFun(this.next.dechain)) {
+            newNext = this.next.dechain(fn)
+        }
+        if (this.head !== newHead || this.next !== newNext) {
+            return chain(newHead, newNext)
+        }
+
+        return this
+    }
     return fn
 }
 
@@ -1633,18 +1664,40 @@ LabFrame.prototype.on = function(action, fn) {
     this[handler] = chain(this[handler], fn)
 }
 
+LabFrame.prototype.off = function(action, fn) {
+    if (!isStr(action)) throw new Error('action name is expected')
+    // TODO introduce str.capitalize or something similar
+    const name = 'on' + action.substring(0, 1).toUpperCase() + action.substring(1)
+
+    const handler = this[name]
+    if (!handler) {
+        return false
+    } else if (!fn) {
+        delete this[name]
+        return true
+    } else if (!isFun(handler)) {
+        return false
+    } else if (isFun(handler.dechain)) {
+        this[name] = handler.dechain(fn)
+        return true
+    } else if (handler === fn) {
+        delete this[name]
+        return true
+    }
+}
+
 LabFrame.prototype.emit = function(name, st) {
     const handler = 'on' + name.substring(0, 1).toUpperCase() + name.substring(1)
 
     let applied = false
 
-    if (isFun(this[handler])) {
+    if (isFun(this[handler]) && !this.disabled && !this.dead) {
         this[handler](st)
         applied = true
     }
 
     this.applyAll( node => {
-        if (isFun(node[handler])) {
+        if (isFun(node[handler]) && !this.disabled && !this.dead) {
             node[handler](st)
             applied = true
         }
