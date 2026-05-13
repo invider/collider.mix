@@ -4809,6 +4809,7 @@ function attachFont(_, name, url, base, path, ext, classifier, format, mimeType,
     fontFile.load().then(
         () => {
             _.log.sys(`[font-loader]`, `loaded ${name}:[${url}]`)
+            _.patch(base, path, fontFile)
             onLoad(script)
         },
         (err) => {
@@ -4871,7 +4872,7 @@ function patchImg(_, batch, url, base, path, classifier, onLoad) {
             path: path,
             ext: 'fun',
             fun: function() {
-                _.patch(this.base, path, img)
+                _.patch(base, path, img)
             }
         })
     }
