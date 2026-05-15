@@ -3752,6 +3752,9 @@ Mod.prototype.defineDrawContext = function() {
             }
             return alt
         },
+        flipY: function() {
+            ctx.flipY = !ctx.flipY
+        },
         rotate: function(a) {
             ctx.rotate(a)
             return alt
@@ -4092,8 +4095,17 @@ Mod.prototype.defineDrawContext = function() {
             return alt
         },
         text: function(text, x, y) {
-            if (mode > 0) ctx.fillText(text, x, y)
-            if (mode < 2) ctx.strokeText(text, x, y)
+            if (ctx.flipY) {
+                ctx.save()
+                ctx.translate(x, y)
+                ctx.scale(1, -1)
+                    if (mode > 0) ctx.fillText(text, 0, 0)
+                    if (mode < 2) ctx.strokeText(text, 0, 0)
+                ctx.restore()
+            } else {
+                if (mode > 0) ctx.fillText(text, x, y)
+                if (mode < 2) ctx.strokeText(text, x, y)
+            }
             return alt
         },
         textWidth: function(txt) {

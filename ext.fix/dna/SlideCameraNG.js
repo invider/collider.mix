@@ -701,7 +701,7 @@ class SlideCameraNG extends sys.LabFrame {
         return this.viewport.h / this.zoom
     }
 
-    getRect() {
+    getViewportRect() {
         return {
             x: this.lx(0),
             y: this.ly(0),
@@ -875,7 +875,10 @@ class SlideCameraNG extends sys.LabFrame {
             ctx.clip()
         }
         ctx.translate(.5 * this.viewport.w, .5 * this.viewport.h)
-        if (this.flipY) ctx.scale(this.zoom, -this.zoom)
+        if (this.flipY) {
+            ctx.scale(this.zoom, -this.zoom)
+            ctx.draw.flipY()
+        }
         else ctx.scale(this.zoom, this.zoom)
         ctx.translate(-this.pos.x, -this.pos.y)
 
@@ -910,6 +913,9 @@ class SlideCameraNG extends sys.LabFrame {
         restore()
         */
 
+        if (this.flipY) {
+            ctx.draw.flipY()
+        }
         ctx.restore()
     }
 
