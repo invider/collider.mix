@@ -910,6 +910,7 @@ Frame.prototype.detach = function(node) {
     }
 }
 
+/*
 Frame.prototype.detachAll = function(source) {
     if (!source) return
 
@@ -933,6 +934,7 @@ Frame.prototype.detachAll = function(source) {
         this.detach(ls[i])
     }
 }
+*/
 
 Frame.prototype.onDetach = function(node, name, parent) {
     if (this.__ && isFun(this.__.onDetach)) this.__.onDetach(node, name, parent)
@@ -1397,6 +1399,25 @@ Frame.prototype.selectOne = function(predicate) {
 	let list = this.select(predicate)
 	if (list.length > 0) return list[0]
 	return undefined
+}
+
+Frame.prototype[Symbol.iterator] = function() {
+    const ls = this._ls
+
+    let i = 0
+    return {
+        next: () => {
+            if (i < ls.length) {
+                return {
+                    value: ls[i++],
+                    done:  false,
+                }
+            }
+            return  {
+                done: true,
+            }
+        }
+    }
 }
 
 Frame.prototype.orderZ = function() {
