@@ -1311,11 +1311,11 @@ Frame.prototype.select = function(predicate) {
                 return res
 
             } else if (predicate.startsWith('.')) {
-                // select deep by type
+                // select deep by DNA
                 const name = '&' + predicate.substring(1)
                 const mod = this.getMod()
-                let dna = this.getMod().dna.selectOne(name)
-                if (!dna) dna = this.getMod().getRoot().dna.selectOne(name)
+                let dna = this.getMod().dna.locate(name)
+                if (!dna) dna = this.getMod().getRoot().dna.locate(name)
 
                 const res = []
                 if (!dna) return res
@@ -1395,10 +1395,16 @@ Frame.prototype.select = function(predicate) {
 	} else return []
 }
 
+// @deprecated
+// TODO phase out
 Frame.prototype.selectOne = function(predicate) {
 	let list = this.select(predicate)
 	if (list.length > 0) return list[0]
-	return undefined
+}
+
+Frame.prototype.locate = function(predicate) {
+	let list = this.select(predicate)
+	if (list.length > 0) return list[0]
 }
 
 Frame.prototype[Symbol.iterator] = function() {
