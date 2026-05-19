@@ -3743,6 +3743,7 @@ Mod.prototype.defineDrawContext = function() {
 
     _._drawContext = {
 
+        // TODO deprecate rx series of functions
         rx:function(x) {
             return ctx.width * x
         },
@@ -3750,6 +3751,15 @@ Mod.prototype.defineDrawContext = function() {
             return ctx.height * y
         },
         rb: function(b) {
+            return ctx.base * b
+        },
+        nx:function(x) {
+            return ctx.width * x
+        },
+        ny: function(y) {
+            return ctx.height * y
+        },
+        nb: function(b) {
             return ctx.base * b
         },
         px:function(x) {
@@ -6144,7 +6154,15 @@ function cycle(now) {
 // events handling
 // TODO move to external system traps
 // TODO maybe move out events to a system fix?
-//
+
+// when user interacted with the page
+function handleContact(e) {
+    if (_scene.env._touched) return
+
+    _scene.env._touched = true
+    _scene.signal('contact', e)
+}
+
 function handleMouseMove(e) {
     e = e || window.event
 
@@ -6187,7 +6205,6 @@ function handlePointerLockError(e) {
 }
 
 function handleMouseDown(e) {
-    _scene.env._touched = true
     _scene.signal('mouseDown', e)
     _mouse.buttons = e.buttons
     e.preventDefault()
@@ -6236,7 +6253,6 @@ function handleMouseOver(e) {
 }
 
 function handleTouchStart(e) {
-    _scene.env._touched = true
     _scene.signal('touchStart', e)
     return false
 }
@@ -6268,7 +6284,6 @@ function handleKeyDown(e) {
         + e.code.substring(1)
     e.keyName = keyName
 
-    _scene.env._touched = true
     _key[keyName]       = true
     _key[e.key]         = true
     const action = _scene.env._keyAction[keyName]
@@ -6382,31 +6397,36 @@ function focus() {
 // TODO move to external system setup
 function bindHandlers(target, secondary) {
     if (!target) return
-    target.onresize = expandView
-    target.onload = preboot
-    target.onmousedown = handleMouseDown
-    target.onmouseup = handleMouseUp
-    target.onclick = handleMouseClick
-    target.onmouseout = handleMouseOut
-    target.onmouseover = handleMouseOver
-    target.ondblclick = handleMouseDoubleClick
-    target.oncontextmenu = handleContextMenu
-    target.onmousemove = handleMouseMove
-    target.onkeydown = handleKeyDown
-    target.onkeyup = handleKeyUp
-    target.onhashchange = handleHashChange
+    target.addEventListener('load', preboot)
+    target.addEventListener('resize', expandView)
+    target.addEventListener('blur', handleGameBlur)
+    target.addEventListener('focus', handleGameFocus)
+    target.addEventListener('hashchange', handleHashChange)
 
+    target.addEventListener('click', handleMouseClick)
+    target.addEventListener('dblclick', handleMouseDoubleClick)
+    target.addEventListener('mousedown', handleMouseDown)
+    target.addEventListener('mouseup', handleMouseUp)
     target.addEventListener('wheel', handleMouseWheel)
+    target.addEventListener('mousemove', handleMouseMove)
+    target.addEventListener('mouseout', handleMouseOut)
+    target.addEventListener('mouseover', handleMouseOver)
+    target.addEventListener('contextmenu', handleContextMenu)
+    secondary.addEventListener('pointerlockchange', handlePointerLockChange)
+    secondary.addEventListener('pointerlockerror', handlePointerLockError)
+
     target.addEventListener('touchstart', handleTouchStart)
     target.addEventListener('touchend', handleTouchEnd)
     target.addEventListener('touchmove', handleTouchMove)
     target.addEventListener('touchcancel', handleTouchCancel)
 
-    target.addEventListener('blur', handleGameBlur)
-    target.addEventListener('focus', handleGameFocus)
+    target.addEventListener('keydown', handleKeyDown)
+    target.addEventListener('keyup', handleKeyUp)
 
-    secondary.addEventListener('pointerlockchange', handlePointerLockChange)
-    secondary.addEventListener('pointerlockerror', handlePointerLockError)
+    // detect the first contact with the player
+    target.addEventListener('mousedown', handleContact, { once: true })
+    target.addEventListener('touchstart', handleContact, { once: true })
+    target.addEventListener('keydown', handleContact, {once: true })
 }
 bindHandlers(window, document)
 
