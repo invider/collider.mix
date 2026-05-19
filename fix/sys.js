@@ -414,10 +414,15 @@ const system = {
 
         if (isStr(src)) {
             // find by path in resources
-            src = $.res.selectOne(src)
+            const clip = $.res.selectOne(src)
+            if (!clip) throw new Error(`[sfx] unable to locate sound clip @[${src}]`)
+            sfx = clip
         }
 
-        if (src && (src instanceof Audio
+        if (src instanceof this.AudioClip) {
+            // TODO follow the AudioElement flow
+            src.play()
+        } else if ((src instanceof Audio
                     || src instanceof HTMLAudioElement)
                 && src.readyState >= 2) {
         

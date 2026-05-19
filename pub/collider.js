@@ -2006,6 +2006,87 @@ CueFrame.prototype.resume = function() {
     this.paused = false
 }
 
+class Aux {
+
+    constructor() {
+        const ctx = this.ctx = new AudioContext()
+
+        const masterGain = this.masterGain = ctx.createGain()
+        masterGain.connect(ctx.destination)
+
+        // TODO find the default audio config
+        //      and a way to link with env.opt configuration
+        this.masterVolume = 1
+        this.syncMasterVolume()
+    }
+
+    fetchMasterVolume() {
+        return this.masterVolume
+    }
+
+    syncMasterVolume() {
+        this.masterGain.gain.value = this.fetchMasterVolume()
+    }
+
+    syncGains() {
+        this.syncMasterVolume()
+    }
+
+    play(clip, st) {
+        const ctx = this.ctx
+        if (ctx.state === "suspended") {
+            ctx.resume();
+        }
+
+        if (clip.buffer) {
+            // TODO create a buffer pool
+            // TODO include the panning gain node
+            const bufSource = ctx.createBufferSource()
+            bufSource.buffer = clip.buffer
+            bufSource.connect(this.masterGain)
+            if (st) {
+                if (st.loop) bufSource.loop = true
+                bufSource.start(st.when, st.offset, st.duration)
+            } else {
+                bufSource.start(0)
+            }
+            return bufSource
+        } else if (clip.source) {
+            if (st.loop) clip.loop = true
+            clip.source.connect(this.masterGain)
+            clip.audio.play()
+            source.start()
+            return source
+        }
+    }
+
+    suspend() {
+        this.ctx.suspend()
+    }
+}
+
+class AudioClip {
+
+    constructor(url) {
+        // TODO autoplay wav -> .auto.wav (with auto classifier)
+        const _ = this
+        const audio = _.audio = new Audio(url)
+        audio.preload  = true
+        audio.loop     = false
+        audio.autoplay = false
+        _.source = _scene.aux.ctx.createMediaElementSource(audio)
+
+        fetch(url)
+            .then( response => response.arrayBuffer() )
+            .then( data => _scene.aux.ctx.decodeAudioData(data) )
+            .then( buffer => { _.buffer = buffer })
+    }
+
+    play(st) {
+        _scene.aux.play(this, st)
+    }
+}
+
 
 
 // =============================================================
@@ -4878,12 +4959,7 @@ function attachFont(_, name, url, base, path, ext, classifier, format, mimeType,
 }
 
 function attachWAV(url) {
-    // TODO autoplay wav -> .auto.wav (with auto classifier)
-    const node = new Audio(url)
-    node.preload = true
-    node.loop = false
-    node.autoplay = false
-    return node
+    return new AudioClip(url)
 }
 
 function patchImg(_, batch, url, base, path, classifier, onLoad) {
@@ -5539,6 +5615,8 @@ function constructScene(target) {
     mod.sys.attach(Frame)
     mod.sys.attach(LabFrame)
     mod.sys.attach(CueFrame)
+    mod.sys.attach(Aux)
+    mod.sys.attach(AudioClip)
 
     mod.sys.attach(isBool)
     mod.sys.attach(isBoolean)
@@ -5841,15 +5919,34 @@ function bindOrCreateCanvas2D() {
     canvasList.push(canvas)
 }
 
-function bootstrap() {
-    _scene.log.raw('===== BOOTING UP =====')
-
+function setupGraphics() {
+    // graphics system setup
+    _scene.log.raw(' * Graphics')
     _scene._renderingSurface = bindRenderingSurface()
 
     bindOrCreateCanvas3D()
     bindOrCreateCanvas2D()
     _scene.defineDrawContext()
     _scene.populateAlt()
+}
+
+
+function setupAudio() {
+    // TODO create aux here!
+    _scene.log.raw(' * Audio')
+    _scene.aux = new Aux()
+}
+
+function setupSystems() {
+    _scene.log.raw('Setting up systems...')
+    setupGraphics()
+    setupAudio()
+}
+
+function bootstrap() {
+    _scene.log.raw('===== BOOTING UP =====')
+
+    setupSystems()
 
     _scene.loadUnits(_scene, _scene.env.syspath)
 
