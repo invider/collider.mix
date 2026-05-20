@@ -2790,7 +2790,9 @@ function evalJS(script, $, batch) {
         // determine if all requirements are satisfied
         let missing
         requirements.forEach(req => {
-            if (!$.selectOne(req)) missing = req
+            // if (!$.selectOne(req)) missing = req
+            // TODO need to be able to locate in both global and local scope or both
+            if (!__$.locate(req)) missing = req
         })
         if (missing) {
             if (script.retries > LOAD_RETRIES) {
