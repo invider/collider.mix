@@ -3690,7 +3690,7 @@ const Mod = function(st) {
         return trap.echo(name, st, false)
     }
     trap.mask     = null
-    trap.ignore   = []
+    trap.ignore   = {}
     trap.subtraps = []
 
     // signal processing implementation

@@ -170,6 +170,11 @@ Hud.prototype.lxy = function(x, y) {
     }
 }
 
+Hud.prototype.lpos = function(pos) {
+    pos[0] = pos[0] - this.x
+    pos[1] = pos[1] - this.y
+}
+
 // translate local x to global coordinates
 // @param {number} x - local x
 // @returns {number} - global x

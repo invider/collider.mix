@@ -605,6 +605,7 @@ Container.prototype.drawForeground = function() {}
 // and draws background, content and foreground.
 Container.prototype.draw = function() {
     if (this.hidden) return
+    // TODO use the right context!!!
     ctx.save()
     ctx.translate(this.x, this.y)
     if (this.clip) {
