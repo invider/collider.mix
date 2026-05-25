@@ -262,8 +262,8 @@ Hud.prototype.toLocalFor = function(g, x, y) {
         } else if (g.lpos) {
             const pos = [ x, y ]
             g.lpos(pos)
-            lx = pos[0]
-            ly = pos[1]
+            pos.x = pos[0]
+            pos.y = pos[1]
         } else {
             pos.x = pos.x - g.x
             pos.y = pos.y - g.y

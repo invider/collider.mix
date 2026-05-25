@@ -386,6 +386,17 @@ Container.prototype.onMouseMove = function(x, y, e) {
     }
 }
 
+Container.prototype.onMouseExit = function(e) {
+    for (let i = this._ls.length - 1; i >= 0; i--) {
+        const g = this._ls[i]
+
+        if (g && !g.disabled && g._hover) {
+            g._hover = false
+            if (sys.isFun(g.onMouseExit)) g.onMouseExit(e)
+        }
+    }
+}
+
 // a service call to handle mouse wheel scroll
 // @param {number} d - scroll delta
 // @param {number} x
