@@ -133,11 +133,13 @@ Container.prototype.onClick = function(x, y, e) {
             if (g.lx) {
                 lx = g.lx(x)
                 ly = g.ly(y)
-            } else if (g.lxy) {
-                const xy = g.lxy(x, y)
-                lx = xy.x
-                ly = xy.y
+            } else if (g.lpos) {
+                const pos = [ x, y ]
+                g.lpos(pos)
+                lx = pos[0]
+                ly = pos[1]
             } else {
+                // direct manual translation
                 lx = x - g.x
                 ly = y - g.y
             }
@@ -189,10 +191,11 @@ Container.prototype.onDblClick = function(x, y, e) {
             if (g.lx) {
                 lx = g.lx(x)
                 ly = g.ly(y)
-            } else if (g.lxy) {
-                const xy = g.lxy(x, y)
-                lx = xy.x
-                ly = xy.y
+            } else if (g.lpos) {
+                const pos = [ x, y ]
+                g.lpos(pos)
+                lx = pos[0]
+                ly = pos[1]
             } else {
                 lx = x - g.x
                 ly = y - g.y
@@ -243,10 +246,11 @@ Container.prototype.onMouseDown = function(x, y, b, e) {
             if (g.lx) {
                 lx = g.lx(x)
                 ly = g.ly(y)
-            } else if (g.lxy) {
-                const xy = g.lxy(x, y)
-                lx = xy.x
-                ly = xy.y
+            } else if (g.lpos) {
+                const pos = [ x, y ]
+                g.lpos(pos)
+                lx = pos[0]
+                ly = pos[1]
             } else {
                 lx = x - g.x
                 ly = y - g.y
@@ -308,10 +312,11 @@ Container.prototype.onMouseUp = function(x, y, b, e) {
                 if (g.lx) {
                     lx = g.lx(x)
                     ly = g.ly(y)
-                } else if (g.lxy) {
-                    const xy = g.lxy(x, y)
-                    lx = xy.x
-                    ly = xy.y
+                } else if (g.lpos) {
+                    const pos = [ x, y ]
+                    g.lpos(pos)
+                    lx = pos[0]
+                    ly = pos[1]
                 } else {
                     lx = x - g.x
                     ly = y - g.y
@@ -356,10 +361,11 @@ Container.prototype.onMouseMove = function(x, y, e) {
                 if (g.lx) {
                     lx = g.lx(x)
                     ly = g.ly(y)
-                } else if (g.lxy) {
-                    const xy = g.lxy(x, y)
-                    lx = xy.x
-                    ly = xy.y
+                } else if (g.lpos) {
+                    const pos = [ x, y ]
+                    g.lpos(pos)
+                    lx = pos[0]
+                    ly = pos[1]
                 } else {
                     lx = x - g.x
                     ly = y - g.y
@@ -415,10 +421,11 @@ Container.prototype.onMouseWheel = function(d, x, y, e) {
                 if (g.lx) {
                     lx = g.lx(x)
                     ly = g.ly(y)
-                } else if (g.lxy) {
-                    const xy = g.lxy(x, y)
-                    lx = xy.x
-                    ly = xy.y
+                } else if (g.lpos) {
+                    const pos = [ x, y ]
+                    g.lpos(pos)
+                    lx = pos[0]
+                    ly = pos[1]
                 } else {
                     lx = x - g.x
                     ly = y - g.y
@@ -464,10 +471,11 @@ Container.prototype.onTouchStart = function(x, y, e) {
             if (g.lx) {
                 lx = g.lx(x)
                 ly = g.ly(y)
-            } else if (g.lxy) {
-                const xy = g.lxy(x, y)
-                lx = xy.x
-                ly = xy.y
+            } else if (g.lpos) {
+                const pos = [ x, y ]
+                g.lpos(pos)
+                lx = pos[0]
+                ly = pos[1]
             } else {
                 lx = x - g.x
                 ly = y - g.y

@@ -159,6 +159,7 @@ Hud.prototype.ly = function(y) {
     return y - this.y
 }
 
+/*
 // translate x,y to local coordinate system
 // @param {number} x - global x
 // @param {number} y - global y
@@ -169,6 +170,7 @@ Hud.prototype.lxy = function(x, y) {
         y: y - this.y,
     }
 }
+*/
 
 Hud.prototype.lpos = function(pos) {
     pos[0] = pos[0] - this.x
@@ -257,10 +259,11 @@ Hud.prototype.toLocalFor = function(g, x, y) {
         if (g.lx) {
             pos.x = g.lx(pos.x)
             pos.y = g.ly(pos.y)
-        } else if (g.lxy) {
-            const xy = g.lxy(pos.x, pos.y)
-            pos.x = xy.x
-            pos.y = xy.y
+        } else if (g.lpos) {
+            const pos = [ x, y ]
+            g.lpos(pos)
+            lx = pos[0]
+            ly = pos[1]
         } else {
             pos.x = pos.x - g.x
             pos.y = pos.y - g.y
