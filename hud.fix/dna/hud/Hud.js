@@ -220,10 +220,11 @@ Hud.prototype.onMouseDown = function(x, y, b, e) {
 // @param {object} e - original mouse event
 // @returns {boolean} - true if focus is captured
 Hud.prototype.onMouseUp = function(x, y, b, e) {
-    this.captured.forEach(g => {
-        if (sys.isFun(g.onMouseUp)) g.onMouseUp(x, y, e)
-    })
     Container.prototype.onMouseUp.call(this, x, y, b, e)
+    e._captured = true
+    this.captured.forEach(g => {
+        if (sys.isFun(g.onMouseUp)) g.onMouseUp(x, y, b, e)
+    })
     this.releaseMouse()
 }
 
