@@ -633,34 +633,34 @@ class SlideCameraNG extends sys.LabFrame {
             for (let i = 0; i < sourceList.length; i++) {
                 const node = sourceList[i]
 
-                // probe by-convention picking procedures
-                // TODO maybe have some option to allow or skip this step? Like _pickable or something...
-                if (!node.hidden &&
-                          ((node.within && node.within(lx, ly))
-                        || (node._centered && node._circular
-                            && distance(lx, ly, node.x, node.y) <= node.r)
-                        || (node._centered
-                            && lx >= node.x - node.w/2
-                            && lx <= node.x + node.w/2
-                            && ly >= node.y - node.h/2
-                            && ly <= node.y + node.h/2)
-                        || (node._rectangular
-                            && !node._centered
-                            && lx >= node.x
-                            && lx <= node.x + node.w
-                            && ly >= node.y
-                            && ly <= node.y + node.h)
-                )) {
-                    if (!fn || fn(node)) {
-                        if (ls) ls.push(node)
-                        last = node
-                    }
-                }
-
                 // try custom picking routine
                 if (isFun(node.pick)) {
                     let val = node.pick(lx, ly, ls, opt)
                     if (val) last = val
+                } else {
+                    // probe by-convention picking procedures
+                    // TODO maybe have some option to allow or skip this step? Like _pickable or something...
+                    if (!node.hidden &&
+                              ((node.within && node.within(lx, ly))
+                            || (node._centered && node._circular
+                                && distance(lx, ly, node.x, node.y) <= node.r)
+                            || (node._centered
+                                && lx >= node.x - node.w/2
+                                && lx <= node.x + node.w/2
+                                && ly >= node.y - node.h/2
+                                && ly <= node.y + node.h/2)
+                            || (node._rectangular
+                                && !node._centered
+                                && lx >= node.x
+                                && lx <= node.x + node.w
+                                && ly >= node.y
+                                && ly <= node.y + node.h)
+                    )) {
+                        if (!fn || fn(node)) {
+                            if (ls) ls.push(node)
+                            last = node
+                        }
+                    }
                 }
             }
         }
