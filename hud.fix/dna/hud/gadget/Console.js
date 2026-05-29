@@ -162,10 +162,15 @@ Console.prototype.downHistory = function() {
     }
 }
 
+Console.prototype.resetHistory = function() {
+    this.ihistory = -1
+}
+
 Console.prototype.execute = function() {
-    this.echo(this.command)
-    this.onCommand(this.command)
-    this.book(this.command)
+    const cmd = this.command
+    this.echo(cmd)
+    this.onCommand(cmd)
+    this.book(cmd)
     this.command = ''
 }
 
