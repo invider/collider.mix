@@ -857,6 +857,8 @@ Frame.prototype.link = function(node, name) {
         }
         this._dir[name] = node
     }
+    // TODO notify the up-tree about the link (onLink)
+    // TODO notify the node about the link 
     this._ls.push(node)
     return node
 }
@@ -884,6 +886,8 @@ Frame.prototype.xlink = function(node, name) {
         }
         this._dir[name] = node
     }
+    // TODO notify the up-tree about the link (onLink)
+    // TODO notify the node about the link 
     this._ls.push(node)
     return node
 }
@@ -902,6 +906,7 @@ Frame.prototype.detach = function(node) {
         if (isFun(node.unplug)) node.unplug() // a symmetrical call to node.init()
         // notify the tree
         this.onDetach(node, node.name, this)
+        // TODO do we need deLink() here?
 
         let i = this._ls.indexOf(node)
         if (i >= 0) {
@@ -3618,6 +3623,8 @@ const Mod = function(st) {
 
     this.attach(new LabFrame(), 'job')
 
+    this.attach(new Frame(), 'pin')
+
     // container for mods
     // TODO what to do with this autoloading?
     //      doesn't make any sense to me
@@ -5657,9 +5664,6 @@ function constructScene(target) {
     mod.sys.url.attach(getParentPath)
     mod.sys.url.attach(getResourceName)
 
-    mod.attach(new Frame({
-        name: 'pin',
-    }))
     mod.attach(new Frame({
         name: 'pub',
     }))
