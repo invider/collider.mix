@@ -3763,7 +3763,7 @@ const Mod = function(st) {
         if (isFun(node)) {
             node = chain(this._dir[name], node)
         }
-        Frame.prototype.attach.call(this, node, name)
+        return Frame.prototype.attach.call(this, node, name)
     }
 
     // make sure all subFrames also have custom touch and attach
