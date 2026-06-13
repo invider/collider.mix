@@ -76,6 +76,7 @@ const isBool = function(v) {
 const isBoolean = function(v) {
     return v === true || v === false || toString.call(v) === '[object Boolean]'
 }
+// TODO normalize isNum and isNumber - should be the same!
 const isNum = function(s) {
     return toString.call(s) == "[object Number]"
     //return !isNaN(s) // this one returns true for "3"!
@@ -3018,10 +3019,14 @@ function evalLoadedContent(script, _, batch) {
         case 'fun': script.fun(); break;
         default: {
             // check out a custom parser for ext
-            if (isFrame(_.lib) && isFrame(_.lib.ext) && isFun(_.lib.ext._dir[script.ext])) {
+            // TODO turn it into a post-loading job, when everything is already there
+            const localExt  = _?.lib?.ext,
+                  globalExt = _scene?.lib?.ext,
+                  parserFn  = (localExt? localExt[script.ext] : null)
+                                || (globalExt? globaExt[script.ext] : null)
+            if (isFun(parserFn)) {
                 _.log.sys('using custom parser for *.' + script.ext)
-                const parsedVal = _.lib.ext[script.ext](script.src,
-                                    script.name, script.path, script.base)
+                const parsedVal = parserFn(script.src, script.name, script.path, script.base)
                 _.patch(script.base, script.path, parsedVal)
                 break
 
@@ -4816,6 +4821,7 @@ Mod.prototype.pause = function() {
 Mod.prototype.pauseLab = function() {
     this.lab.pause()
     this.cue.pause()
+    this.job.pause()
 }
 
 Mod.prototype.pauseAll = function() {
@@ -4830,6 +4836,7 @@ Mod.prototype.resume = function() {
 Mod.prototype.resumeLab = function() {
     this.lab.resume()
     this.cue.resume()
+    this.job.resume()
 }
 
 Mod.prototype.resumeAll = function() {
