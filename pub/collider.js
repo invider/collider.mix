@@ -3023,7 +3023,7 @@ function evalLoadedContent(script, _, batch) {
             const localExt  = _?.lib?.ext,
                   globalExt = _scene?.lib?.ext,
                   parserFn  = (localExt? localExt[script.ext] : null)
-                                || (globalExt? globaExt[script.ext] : null)
+                                || (globalExt? globalExt[script.ext] : null)
             if (isFun(parserFn)) {
                 _.log.sys('using custom parser for *.' + script.ext)
                 const parsedVal = parserFn(script.src, script.name, script.path, script.base)
