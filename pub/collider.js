@@ -4631,6 +4631,8 @@ Mod.prototype.evo = function(dt) {
     }
     if (this.paused) return
 
+    // adjust delta time
+    dt *= this.env._evoSpeed
     // update local time
     this.env.time += dt
     this.env.realTime = _scene.env.realTime
