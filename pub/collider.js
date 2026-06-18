@@ -3722,10 +3722,13 @@ const Mod = function(st) {
                 if (fn.halt || (st && st.halt)) return processed
             } else {
                 // no dedicated trap found for the signal, try default handlers
-                if (isFrame(this.default)) {
+                if (isFun(this.default)) {
+                    this.default(st, name)
+                    if (this.default.halt || (st && st.halt)) return false
+                } else if (isFrame(this.default)) {
                     this.default._ls.forEach(def => {
                         if (isFun(def)) {
-                            def(name, st)
+                            def(st, name)
                             if (def.halt || (st && st.halt)) return false
                         }
                     })
@@ -3748,10 +3751,13 @@ const Mod = function(st) {
                     if (fn.halt || (st && st.halt)) return processed
                 } else {
                     // no dedicated trap found for the signal, try default handlers
-                    if (isFrame(this.default)) {
-                        this.default._ls.forEach(def => {
+                    if (isFun(subtrap.default)) {
+                        subtrap.default(st, name)
+                        if (subtrap.default.halt || (st && st.halt)) return false
+                    } else if (isFrame(subtrap.default)) {
+                        subtrap.default._ls.forEach(def => {
                             if (isFun(def)) {
-                                def(name, st)
+                                def(st, name)
                                 if (def.halt || (st && st.halt)) return false
                             }
                         })
