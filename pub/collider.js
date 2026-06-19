@@ -1813,6 +1813,37 @@ LabFrame.prototype.poke = function(x, y, opt) {
 }
 
 LabFrame.prototype.pick = function(x, y, list, opt) {
+    const ls = isArr(list)? list : null
+    const fn = isFun(opt)? opt : (isFun(list)? list : null)
+    let last
+
+    // TODO introduce node <-> point and node <-> area classifiers on the LabFrame?
+    function within(node, lx, ly) {
+        return (((node.within && node.within(lx, ly))
+                || (node._centered && node._circular
+                    && distance(lx, ly, node.x, node.y) <= node.r)
+                || (node._centered
+                    && lx >= node.x - .5 * node.w
+                    && lx <= node.x + .5 * node.w
+                    && ly >= node.y - .5 * node.h
+                    && ly <= node.y + .5 * node.h)
+                || (node._rectangular
+                    && !node._centered
+                    && lx >= node.x
+                    && lx <= node.x + node.w
+                    && ly >= node.y
+                    && ly <= node.y + node.h)
+        )) 
+    }
+
+    // classify current node
+    if ( !this._slick && within(this, x, y) ) {
+        if (!fn || fn(this)) {
+            if (ls) ls.push(this)
+            last = this
+        }
+    }
+
     let lx
     let ly
     if (this.lx) {
@@ -1823,10 +1854,7 @@ LabFrame.prototype.pick = function(x, y, list, opt) {
         lx = lpos[0]
         ly = lpos[1]
     }
-    const ls = isArr(list)? list : null
-    const fn = isFun(opt)? opt : (isFun(list)? list : null)
 
-    let last
     for (let i = 0; i < this._ls.length; i++) {
         const node = this._ls[i]
 
@@ -1837,22 +1865,7 @@ LabFrame.prototype.pick = function(x, y, list, opt) {
         } else {
             // probe by-convention picking procedures
             // TODO maybe have some option to allow or skip this step? Like _non_pickable or something...
-            if (!node.hidden &&
-                      ((node.within && node.within(lx, ly))
-                    || (node._centered && node._circular
-                        && distance(lx, ly, node.x, node.y) <= node.r)
-                    || (node._centered
-                        && lx >= node.x - .5 * node.w
-                        && lx <= node.x + .5 * node.w
-                        && ly >= node.y - .5 * node.h
-                        && ly <= node.y + .5 * node.h)
-                    || (node._rectangular
-                        && !node._centered
-                        && lx >= node.x
-                        && lx <= node.x + node.w
-                        && ly >= node.y
-                        && ly <= node.y + node.h)
-            )) {
+            if ( within(node, lx, ly) ) {
                 if (!fn || fn(node)) {
                     if (ls) ls.push(node)
                     last = node
