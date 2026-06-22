@@ -3719,6 +3719,11 @@ const Mod = function(st) {
     trap.subtraps = []
 
     // signal processing implementation
+    //
+    // @param name
+    // @param st
+    // @param local {boolean} - true if called directly on trap and false when called globally
+    //
     // @returns {boolean} - true if halted along the propagation chain, false otherwise
     trap.echo = function echo(name, st, local) {
         let processed = false
@@ -3727,7 +3732,7 @@ const Mod = function(st) {
         // when mask is defined, pass through only the masked signals
         if (this.mask && !this.mask[name]) return false
 
-        if ((!local && !_.disabled) || (local && !trap.disabled)) {
+        if (!this.disabled && (local || !_.disabled)) {
             const fn = trap.selectOne(name)
             if (isFun(fn)) {
                 fn(st)
@@ -3749,11 +3754,12 @@ const Mod = function(st) {
             }
 
             // propagate the signal to subtraps
+            // TODO how to selectively enable subtraps with disabled top? Is that even needed? we can solve just by placing multiple subtraps
+            //      and individualy enabling/disabling them
             for (let i = 0; i < this.subtraps.length; i++) {
                 const subtrap = this.subtraps[i]
 
-                if ((!local && isContainer(subtrap.__) && subtrap.__.disabled) || (local && subtrap.disabled)) continue
-
+                if (subtrap.disabled) continue
                 if (isObj(subtrap.ignore) && subtrap.ignore[name]) continue
                 // when mask is defined, pass through only the masked signals
                 if (subtrap.mask && !subtrap.mask[name]) continue
