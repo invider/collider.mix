@@ -680,7 +680,11 @@ const touchFun = function(nodeFactory) {
                     return this.attach( nodeFactory(nextName, this, st) )
                 }
             } else {
-                if (!nextPath) return nextNode
+                if (!nextPath) {
+                    // we touched the path and it exists
+                    // now try to augment node if needed
+                    return augment(nextNode, st)
+                }
                 if (isFun(nextNode.touch)) {
                     return nextNode.touch(nextPath, st)
                 } else {
@@ -3119,7 +3123,7 @@ const extractPatches = function(batch) {
             const parentPath = e.parentPath.endsWith('/')? e.parentPath.slice(0, -1) : e.parentPath
             e.parentName = parentPath.substring(parentPath.lastIndexOf('/') + 1)
             if ('_' + e.parentName === e.name) {
-                // got a patch for a node!
+                // got a patch for a node! Mark to extend the parent
                 e.patch = true
                 patch[e.parentPath] = e
             }
