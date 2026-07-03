@@ -171,7 +171,7 @@ class KinetixNG {
                 dead ++
             } else if (key.state === ACTIVE) {
                 const t = (env.time - key.at) * key.freq,  // time in easing scale [0..1...]
-                      T = t | 0  // full steps
+                      T = t | 0  // full steps - 0, 1, 2...
 
                 if (t - key.mark > 1) {
                     // next step
@@ -180,10 +180,12 @@ class KinetixNG {
                     // TODO what to do with the exact 1, 2, 3 hits? should we map them?
                     
                     // close the value range
-                    if (key.mirror && key.mark % 2 > 0) {
-                        key.mapFn( key.easing(0), T )
+                    if (key.mirror && key.mark % 2 === 0) {
+                        key.mapFn( key.easing(0, t), T )
                     } else {
-                        key.mapFn( key.easing(1), T )
+                        // TODO creates undesired sudden jump in the end of mirrored 2-step run
+                        //      how to properly handle the edge conditions?
+                        key.mapFn( key.easing(1, t), T )
                     }
 
                     if (!key.loop && T >= key.steps) {
@@ -197,14 +199,14 @@ class KinetixNG {
                     const t2 = t % 2
                     if (t2 >= 1) {
                         const tt = 1 - (t2 - 1)
-                        key.mapFn( key.easing(tt), t )
+                        key.mapFn( key.easing(tt, t), t )
                     } else {
                         const tt = t % 1
-                        key.mapFn( key.easing(tt), t )
+                        key.mapFn( key.easing(tt, t), t )
                     }
                 } else {
                     const tt = t % 1
-                    key.mapFn( key.easing(tt), t )
+                    key.mapFn( key.easing(tt, t), t )
                 }
             }
         }
