@@ -2067,6 +2067,8 @@ class Aux {
             const bufSource = ctx.createBufferSource()
             bufSource.buffer = clip.buffer
             bufSource.connect(this.masterGain)
+            this.syncGains()
+
             if (st) {
                 if (st.loop) bufSource.loop = true
                 bufSource.start(st.when, st.offset, st.duration)

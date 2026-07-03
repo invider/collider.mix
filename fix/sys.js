@@ -421,11 +421,12 @@ const system = {
 
         if (src instanceof this.AudioClip) {
             // TODO follow the AudioElement flow
+            $.aux.masterVolume = vol
             src.play()
         } else if ((src instanceof Audio
                     || src instanceof HTMLAudioElement)
                 && src.readyState >= 2) {
-        
+
             if (src.channels) {
                 const next = src.channels.sfx[src.channels.cur++]
                 if (src.channels.cur >= src.channels.sfx.length) {
