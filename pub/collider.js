@@ -23,7 +23,7 @@ function _evaluate(__$, scope, module, code) {
     return eval(code)
 }
 
-$ = mix = (function(window) {
+const $ = window.$ = window.mix = (function(window) {
 
 // ***********
 // environment
@@ -213,6 +213,7 @@ function distance(x1, y1, x2, y2) {
     return Math.hypot(x2 - x1, y2 - y1)
 }
 
+// TODO migrate on the native deep copy many? The one that handles cyclic dependencies?
 function deepCopy(src) {
     if (isArr(src)) {
         const res = []
@@ -2117,6 +2118,193 @@ class AudioClip {
     }
 }
 
+class Shader {
+
+    constructor(st) {
+        augment(this, st)
+    }
+
+    init() {
+        // the shader is attached to the scene
+        // now we can determine the gl context from the parent mod
+        const __$ = this.__.getMod()
+        const gl = this.gl = __$.gl
+        if (!gl) throw new Error(`Can't locate WebGL context for shader [${this.name}]`)
+
+        switch(this.type) {
+            case 'vertex':
+                this.glType = gl.VERTEX_SHADER
+                break
+            case 'fragment':
+                this.glType = gl.FRAGMENT_SHADER
+                break
+            default:
+                throw new Error(`Can't determine shader type - MUST be either "vertex" or "fragment"`)
+        }
+
+        // TODO parse univorms
+        // ...
+
+        this.register()
+        this.compile()
+    }
+
+    register() {
+        const gl = this.gl
+        if (!gl.shaders) gl.shaders = []
+        gl.shaders.push(this)
+        this.id = gl.shaders.length
+
+        const __$ = this.__.getMod()
+        if (!__$.lib._shaders) __$.lib._shaders = []
+        __$.lib._shaders.push(this)
+    }
+
+    compile() {
+        const gl = this.gl
+
+        _scene.log(`compiling ${this.type} shader [${this.name}]...`)
+        if (!this.src) throw new Error(`[${this.id}:${this.name}] can't compile shader - source is missing!`)
+        try {
+            const glRef = this.glRef = gl.createShader(this.glType)
+            gl.shaderSource(glRef, this.src)
+            gl.compileShader(glRef)
+            if (!gl.getShaderParameter(glRef, gl.COMPILE_STATUS)) {
+                const glLog = this.errorLog = gl.getShaderInfoLog(glRef)
+                throw new Error(`[${this.id}:${this.name}] shader compilcation error! ${glLog}`)
+            }
+        } catch(e) {
+            log.err(e)
+            this.error = e
+        }
+    }
+
+    destruct() {
+        this.gl.deleteShader(this.glRef)
+        this.dead = true
+    }
+}
+
+class Program {
+
+    constructor(st) {
+        augment(this, {
+            uniform:   {},
+            attribute: {},
+        }, st)
+    }
+
+    init() {
+        // the program is attached to the scene
+        // now we can determine the gl context from the parent mod
+        const __$ = this.__.getMod()
+        const gl = this.gl = __$.gl
+        if (!gl) throw new Error(`Can't locate WebGL context for shader [${this.name}]`)
+
+        this.register()
+        this.parse()
+        this.glRef = this.gl.createProgram()
+    }
+
+    register() {
+        const gl = this.gl
+        if (!gl.programs) gl.programs = []
+        gl.programs.push(this)
+        this.id = gl.programs.length
+
+        const __$ = this.__.getMod()
+        if (!__$.lib._programs) __$.lib._programs = []
+        __$.lib._programs.push(this)
+    }
+
+    parse() {
+        if (!this.src) throw new Error(`[${this.id}:${this.name}] program source is missing!`)
+
+        const paths = this.src.trim().split(':')
+        if (paths.length !== 2) {
+            throw new Error(`[${this.id}:${this.name}] a vertex and a fragment shader paths are expected in .prog`)
+        }
+        this.vertexPath   = paths[0]
+        this.fragmentPath = paths[1]
+    }
+
+    bindShaders() {
+        const __$ = this.__.getMod()
+        const vShader = this.vShader = __$.selectOne(this.vertexPath)
+        const fShader = this.fShader = __$.selectOne(this.fragmentPath)
+
+        if (!vShader) throw `[${this.id}:${this.name}] Can't find vertex shader @[${this.vertexPath}]`
+        if (!(vShader instanceof dna.gl.Shader) || vShader.type !== 'vertex') {
+            console.dir(vShader)
+            throw `Wrong Shader! Expecting a vertex shader @[${this.vertexPath}]`
+        }
+        if (!fShader) throw `[${this.id}:${this.name}] Can't find fragment shader @[${this.fragmentPath}]`
+        if (!(fShader instanceof dna.gl.Shader) || fShader.type !== 'fragment') {
+            console.dir(fShader)
+            throw `Wrong Shader! Expecting a fragment shader @[${this.vertexPath}]`
+        }
+    }
+
+    bindLocations(shader) {
+        if (!shader.defs) return
+
+        shader.defs.uniform.forEach(uniform => {
+            this.uniform[uniform.name] = {
+                __:    this,
+                type:  uniform.type,
+                name:  uniform.name,
+                glLoc: gl.getUniformLocation(this.glRef, uniform.name)
+            }
+        })
+
+        if (shader.glType === gl.VERTEX_SHADER) {
+            shader.defs.in.forEach(attribute => {
+                this.attribute[attribute.name] = {
+                    __:    this,
+                    type:  attribute.type,
+                    name:  attribute.name,
+                    glLoc: gl.getAttribLocation(this.glRef, attribute.name)
+                }
+            })
+        }
+    }
+
+    link() {
+        this.bindShaders()
+
+        const glRef = this.glRef
+        gl.attachShader(glRef, this.vShader.glRef)
+        gl.attachShader(glRef, this.fShader.glRef)
+
+        gl.linkProgram(glRef)
+        gl.validateProgram(glRef)
+        if (!gl.getProgramParameter(glRef, gl.VALIDATE_STATUS)) {
+            const glLog = gl.getProgramInfoLog(glRef)
+            throw new Error(`[${this.id}:${this.name}] unable to link the program: ${glLog}`)
+        }
+
+        this.bindLocations(this.vShader)
+        this.bindLocations(this.fShader)
+
+        // TODO
+        // won't work with multiple programs!
+        // this.use()
+    }
+
+    /*
+    use() {
+        // TODO where GLU is coming from? this.gl?
+        glu.withProgram(this)
+    }
+    */
+
+    destruct() {
+        this.fShader.destruct()
+        this.vShader.destruct()
+        this.gl.deleteProgram(this.glRef)
+        this.dead = true
+    }
+}
 
 
 // =============================================================
@@ -3015,6 +3203,39 @@ function evalLoadedContent(script, _, batch) {
             }
             // TODO apply definitions?
             //let declarationsFound = _.scan(scope)
+            break
+
+        case 'vert':
+            const vshader = new Shader({
+                type:   'vertex',
+                name:   script.name,
+                path:   script.path,
+                src:    script.src,
+                // TODO
+                // defs:   lib.glut.parseUniforms(src),
+            })
+            _.patch(script.base, script.path, vshader)
+            break
+
+        case 'frag':
+            const fshader = new Shader({
+                type:   'fragment',
+                name:   script.name,
+                path:   script.path,
+                src:    script.src,
+                // TODO
+                // defs:   lib.glut.parseUniforms(src),
+            })
+            _.patch(script.base, script.path, fshader)
+            break
+
+        case 'prog':
+            const glProg = new Program({
+                name: script.name,
+                path: script.path,
+                src:  script.src,
+            })
+            _.patch(script.base, script.path, glProg)
             break
 
         case 'json':
