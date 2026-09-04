@@ -16,9 +16,14 @@
  * or switched to alternative implementation.
  *
  */
-$ = mix = (function(window) {
-
 "use strict"
+
+// keep JS evaluation out of collider.jam internal scope
+function _evaluate(__$, scope, module, code) {
+    return eval(code)
+}
+
+$ = mix = (function(window) {
 
 // ***********
 // environment
@@ -2849,7 +2854,8 @@ function evalJS(script, $, batch) {
     let val
     try {
         script.evalTries = script.evalTries + 1 || 1
-        val = eval(code)
+        // val = eval(code)
+        val = _evaluate(__$, scope, module, code)
     } catch (e) {
         if (e && isStr(e) && e.includes('no requirement found') && script.evalTries < 64) {
             // TODO I don't like the test for a string and what can we do with cyclic dependencies?
@@ -2888,7 +2894,8 @@ function evalJS(script, $, batch) {
                 def: {},
             }
             const scope = module.def
-            eval(code)
+            // eval(code)
+            _evaluate(__$, scope, module, code)
 
             if (module.def) {
                 if (isContainer(module.def[script.name])) {
@@ -4616,7 +4623,7 @@ Mod.prototype.start = function() {
     this.trap.signal('postSetup')
 
     _scene.log.sys('starting evolution of [' + this.path() + ']')
-    this.trap.signal('start')
+    defer(() => this.trap.signal('start'))
 }
 
 Mod.prototype.inherit = function() {
