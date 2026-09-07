@@ -2341,21 +2341,38 @@ class Pipeline extends Frame {
         super( augment({
             name: 'pipeline',
         }, st) )
+
+        this.touch('canvas')
+        this.touch('context')
+    }
+
+    includeCanvas(canvas, ctx) {
+        this.canvas.attach(canvas)
+        this.context.attach(ctx)
     }
 
     evo(dt) {
     }
 
     draw() {
+        const mix = this.mix
+        mix.draw()
     }
 
-    cycle() {
-    }
-
-    launch() {
+    adjustView() {
+        const mix = this.mix
+        for (let canvas of this.canvas._ls) {
+            if (canvas.adjust) {
+                canvas.adjust()
+                complementContext(canvas.activeContext)
+            }
+        }
+        complementLab(mix)
+        mix.signal('resize')
     }
 
     setup() {
+        // TODO must be called from somewhere at setup/start?
     }
 }
 
@@ -2363,14 +2380,58 @@ class Mixer {
 
     constructor(st) {
         augment(this, {
-            name: 'mixer',
+            name:  'mixer',
         }, st)
+
+        const _ = this,
+              $ = this.mix
+        this.next = function(now) {
+            _.cycle($, now)
+	        requestAnimationFrame(_.next)
+        }
     }
 
-    cycle() {
+    cycle($, now) {
+        let dt = (now - $.env.lastFrame)/1000
+        $.env.realTime += dt
+
+        // adjust according to evo speed
+        dt *= $.env._evoSpeed
+
+        // show, react and update cycle
+        $.dt = dt
+        this.pipeline.draw()
+
+        // max evolution threshold
+        if (dt > $.env.MAX_EVO_PER_CYCLE) {
+            dt = $.env.MAX_EVO_PER_CYCLE
+        }
+
+        // evolve multiple times in small quants
+        // to compensate possible lag due to rendering delays
+        while(dt > 0) {
+            if (dt > $.env.MAX_EVO_STEP) {
+                $.evo($.env.MAX_EVO_STEP)
+            } else {
+                $.evo(dt)
+            }
+            dt -= $.env.MAX_EVO_STEP
+        }
+        $.env.lastFrame = now
     }
 
     launch() {
+        const mix      = this.mix,
+              pipeline = this.pipeline
+
+        pipeline.adjustView()
+        focus()
+        setInterval(focus, 100)  // make sure the window focus is actually applied
+
+        // initiate the game loop
+        mix.log.raw('===== STARTING MAIN EVO-DRAW CYCLE =====')
+        // requestAnimationFrame(cycle)
+        requestAnimationFrame(mix.sys.mixer.next)
     }
 
     setup() {
@@ -3976,7 +4037,7 @@ const Mod = function(st) {
         if (modConfig.buffered2d || modConfig.buffered || name.endsWith('-2d') || name.endsWith('-buf')) {
             _scene.log.sys(`creating a buffered 2D canvas for ${name}`)
             canvas = document.createElement('canvas')
-            canvas.id = 'canvas-' + canvasList.reduce((acc, e) => e.capi? acc + 1 : acc, 1)
+            canvas.id = canvas.name = 'canvas-' + canvasList.reduce((acc, e) => e.capi? acc + 1 : acc, 1)
             canvas.buffer = true
             ctx = get2DContext(canvas)
             defaultCanvasSetup(canvas)
@@ -3985,7 +4046,7 @@ const Mod = function(st) {
         if (modConfig.bufferedGL || modConfig.buffered || name.endsWith('-gl') || name.endsWith('-buf')) {
             _scene.log.sys(`creating a buffered WebGL canvas for ${name}`)
             glCanvas = document.createElement('canvas')
-            glCanvas.id = 'gl-canvas-' + canvasList.reduce((acc, e) => e.wapi? acc + 1 : acc, 1)
+            glCanvas.id = glCanvas.name = 'gl-canvas-' + canvasList.reduce((acc, e) => e.wapi? acc + 1 : acc, 1)
             glCanvas.buffer = true
             gl = getWebGLContext(glCanvas)
             defaultCanvasSetup(glCanvas)
@@ -3999,15 +4060,21 @@ const Mod = function(st) {
             glCanvas: glCanvas,
             gl:       gl,
         }), st)
-        mod._$  = _scene         // reference to the root mod
-        Object.defineProperty(this, '_$',  { enumerable: false })
-        mod.__$ = this.getMod()  // reference to the parent mod
+        mod.__$ = this.getMod()  // parent mod
         Object.defineProperty(this, '__$', { enumerable: false })
+        mod._$  = mod.__$._$     // mix
+        Object.defineProperty(this, '_$',  { enumerable: false })
 
-        canvas.__   = mod
-        ctx.__      = mod
-        glCanvas.__ = mod
-        gl.__       = mod
+        if (!canvas.__$) {
+            canvas.__$   = mod
+            ctx.__$      = mod
+            mod._$.sys.pipeline.includeCanvas(canvas, ctx)
+        }
+        if (!glCanvas.__$) {
+            glCanvas.__$ = mod
+            gl.__$       = mod
+            mod._$.sys.pipeline.includeCanvas(glCanvas, gl)
+        }
 
         return mod
     })
@@ -4833,7 +4900,7 @@ Mod.prototype._runTests = function() {
 Mod.prototype.start = function() {
     if (this.env._started) return
 
-    if (!this.__$) expandView()  // no need to run multiple times for each mod
+    if (!this.__$) this.sys.pipeline.adjustView()  // no need to run multiple times for each mod
     this.trap.signal('preSetup')
     this.env._started = true
     this.inherit()
@@ -4982,6 +5049,7 @@ Mod.prototype.draw = function() {
     if (!this.ctx) return
 
     // boot logic
+    // TODO move out into the rendering pipeline
     if (!this.env._started || this.boot) {
         // try to find and draw boot node or mod
         if (isFun(this.boot)) {
@@ -4992,13 +5060,16 @@ Mod.prototype.draw = function() {
         return
     }
 
+    // TODO shound't that test be external, like with other nodes?
     if (this.hidden) return
 
     // optional background property
     if (this.lab.background && !this.lab._dir.background) {
         this.ctx.draw.background(this.lab.background)
     }
+
     // possible pre-vfx
+    // TODO move out to the pipeline
     if (this.lab.vfx) {
         this.lab.vfx.preVFX()
     }
@@ -5009,15 +5080,9 @@ Mod.prototype.draw = function() {
 
     // draw mods
     this.mod.draw()
-    /*
-    for (let i = 0; i < this.mod._ls.length; i++) {
-        let m = this.mod._ls[i]
-        if (m.draw && !m.hidden) {
-            m.draw()
-        }
-    }
-    */
 
+    // TODO move out of mod? Or make configurable?
+    //      the only reasonable use for now are transitions and simple post-effects
     if (this.lab.vfx) {
         this.lab.vfx.postVFX()
     }
@@ -5943,11 +6008,9 @@ function constructScene(target) {
     mod._$  = mod  // the root mod is the root itself
     mod.__  = null // the root doesn't have a parent node
     mod.__$ = null // the root doesn't have a parent mod
-    mod._canvasList = canvasList
     Object.defineProperty(mod, '_$',  { enumerable: false })
     Object.defineProperty(mod, '__',  { enumerable: false })
     Object.defineProperty(mod, '__$', { enumerable: false })
-    Object.defineProperty(mod, '_canvasList', { enumerable: false })
     mod.inherit = function() {}
 
     // sys
@@ -5993,7 +6056,7 @@ function constructScene(target) {
 
     mod.sys.attach(adjustableCanvasTrait)
     mod.sys.attach(attachCanvasToRenderingSurface)
-    mod.sys.attach(expandView)
+    // mod.sys.attach(expandView)
     mod.sys.attach(evalLoadedContent)
     mod.sys.attach(doBox)
     mod.sys.attach(enableBox)
@@ -6011,12 +6074,10 @@ function constructScene(target) {
     mod.sys.url.attach(getResourceName)
 
     const pipeline = mod.sys.attach(new Pipeline({
-        __$: this,
-        mix: this,
+        mix: mod,
     }))
     const mixer = mod.sys.attach(new Mixer({
-        __$:      this,
-        mix:      this,
+        mix:      mod,
         pipeline: pipeline,
     }))
 
@@ -6061,6 +6122,7 @@ function repatchScene(mod, proto) {
     }
 }
 
+// TODO move to the relative _scene target
 function reconstructScene() {
     const protoLog = {
         _patchLog: _scene._patchLog
@@ -6083,10 +6145,10 @@ function reconstructScene() {
     repatchScene(_scene, protoLog)
     _scene.boot = false
 
-    startCycle()
+    startCycle(_scene)
     startFlow()
     _scene.res._startTrigger()
-    console.dir(_scene)
+    _scene.log.dir(_scene)
 }
 
 // root
@@ -6160,6 +6222,7 @@ function defaultBodySetup(body) {
     document.body.setAttribute("scroll", "no")
 }
 
+// TODO move to the rendering pipeline
 function bindRenderingSurface() {
     let renderingSurface = document.getElementById(renderingSurfaceName)
 
@@ -6218,6 +6281,7 @@ function getWebGLContext(glCanvas, st) {
 
     if (gl) {
         gl.__ = glCanvas.__
+        gl.name = glCanvas.id + '-webgl-context'
         glCanvas.gl = gl
         glCanvas.activeContext = gl
         glCanvas.wapi = true
@@ -6237,7 +6301,8 @@ function getWebGLContext(glCanvas, st) {
     return gl
 }
 
-function bindOrCreateCanvas3D() {
+// TODO move to the rendering pipeline
+function bindOrCreateCanvas3D(mix) {
     // place WebGL context
     let glCanvas = document.getElementById(glCanvasName)
     if (glCanvas == null) {
@@ -6246,22 +6311,25 @@ function bindOrCreateCanvas3D() {
         glCanvas.id = glCanvasName
         defaultCanvasSetup(glCanvas)
         mixin(glCanvas, adjustableCanvasTrait)
+        glCanvas.name = glCanvas.id
 
         attachCanvasToRenderingSurface(glCanvas, 5)
         
         defaultBodySetup()
     }
 
-    glCanvas.__ = _scene
+    glCanvas.__$ = mix
     glCanvas.buffer = false
-    _scene.glCanvas = glCanvas
-    _scene.gl = getWebGLContext(glCanvas)
+    mix.glCanvas = glCanvas
+    mix.gl = getWebGLContext(glCanvas)
     canvasList.push(glCanvas)
+    mix.sys.pipeline.includeCanvas(mix.glCanvas, mix.gl)
 }
 
 function get2DContext(canvas) {
     const ctx = canvas.getContext('2d')
     ctx.__ = canvas.__
+    ctx.name = canvas.id + '-context'
     canvas.capi = true
     canvas.contextId = '2d'
     canvas.ctx = ctx
@@ -6269,7 +6337,8 @@ function get2DContext(canvas) {
     return ctx
 }
 
-function bindOrCreateCanvas2D() {
+// TODO move to the rendering pipeline
+function bindOrCreateCanvas2D(mix) {
     // binding to the graphical canvas/context by convention
     let canvas = document.getElementById(canvasName)
     if (canvas == null) {
@@ -6278,49 +6347,50 @@ function bindOrCreateCanvas2D() {
         canvas.id = canvasName
         defaultCanvasSetup(canvas)
         augment(canvas, adjustableCanvasTrait)
+        canvas.name = canvas.id
 
         attachCanvasToRenderingSurface(canvas, 7)
 
         defaultBodySetup()
     }
 
-    _scene.canvas = canvas
-    canvas.__ = _scene
+    mix.canvas = canvas
+    canvas.__$ = mix
     canvas.buffer = false
-    //_scene.ctx = augmentCtx(canvas.getContext('2d'), _scene)
-    _scene.ctx = get2DContext(canvas)
-    _scene.defineDrawContext()
+    mix.ctx = get2DContext(canvas)
+    mix.defineDrawContext()
     canvasList.push(canvas)
+    mix.sys.pipeline.includeCanvas(mix.canvas, mix.ctx)
 }
 
-function setupGraphics() {
+function setupGraphics(mix) {
     // graphics system setup
-    _scene.log.raw(' * Graphics')
-    _scene._renderingSurface = bindRenderingSurface()
+    mix.log.raw(' * Graphics')
+    mix._renderingSurface = bindRenderingSurface()
 
-    bindOrCreateCanvas3D()
-    bindOrCreateCanvas2D()
-    _scene.defineDrawContext()
-    _scene.populateAlt()
+    bindOrCreateCanvas3D(mix)
+    bindOrCreateCanvas2D(mix)
+    mix.defineDrawContext()
+    mix.populateAlt()
 }
 
-
-function setupAudio() {
+function setupAudio(mix) {
     // TODO create aux here!
-    _scene.log.raw(' * Audio')
-    _scene.aux = new Aux()
+    mix.log.raw(' * Audio')
+    mix.aux = new Aux()
 }
 
-function setupSystems() {
-    _scene.log.raw('Setting up systems...')
-    setupGraphics()
-    setupAudio()
+function setupSystems(mix) {
+    mix.log.raw('Setting up systems...')
+    setupGraphics(mix)
+    setupAudio(mix)
 }
 
+// TODO move to the relative scene
 function bootstrap() {
     _scene.log.raw('===== BOOTING UP =====')
 
-    setupSystems()
+    setupSystems(_scene)
 
     _scene.loadUnits(_scene, _scene.env.syspath)
 
@@ -6369,28 +6439,30 @@ function bootstrap() {
         if (isFun(canvas.msRequestFullscreen)) canvas.msRequestFullscreen()
         if (isFun(canvas.requestFullscreen)) canvas.requestFullscreen()
     }
-    startCycle()
+    _scene.sys.mixer.launch()
+    // startCycle(_scene)
     startFlow()
 }
 
+/*
 // TODO move to pipeline.launch
-function startCycle() {
+function startCycle(mix) {
     expandView()
     focus()
     setInterval(focus, 100)  // make sure the window focus is actually applied
 
     // initiate the game loop
     _scene.log.raw('===== STARTING MAIN EVO-DRAW CYCLE =====')
-    requestAnimationFrame(cycle)
-    /*
+    // requestAnimationFrame(cycle)
+    requestAnimationFrame(mix.sys.mixer.next)
         // old-fasioned way to setup animation
-        if (!_scene.env.TARGET_FPS) {
-            setInterval(cycle, 1)
-        } else {
-            setInterval(cycle, 1000/_scene.env.TARGET_FPS)
-        }
-    */
+        // if (!_scene.env.TARGET_FPS) {
+        //    setInterval(cycle, 1)
+        // } else {
+        //     setInterval(cycle, 1000/_scene.env.TARGET_FPS)
+        // }
 }
+*/
 
 function openSocket(url, retry) {
     const TAG = '[flow]'
@@ -6574,7 +6646,14 @@ function complementLab(mod) {
     mod.mod._ls.forEach(m => complementLab(m))
 }
 
+function adjustView() {
+    _scene.sys.pipeline.adjustView()
+}
+
+/*
+// TODO should be part of the rendering pipeline?
 function expandView() {
+
     for (let i = 0; i < canvasList.length; i++) {
         const canvas = canvasList[i]
         if (canvas.adjust) {
@@ -6585,10 +6664,12 @@ function expandView() {
     complementLab(_scene)
     _scene.signal('resize')
 }
+*/
 
 // *****************************************************************
 // core game update-draw cycle
 // @param now - high-presicion timestamp, equal to performance.now()
+/*
 function cycle(now) {
     let dt = (now - _scene.env.lastFrame)/1000
     _scene.env.realTime += dt
@@ -6619,7 +6700,7 @@ function cycle(now) {
 
 	requestAnimationFrame(cycle)
 }
-
+*/
 
 
 // ***************
@@ -6870,7 +6951,7 @@ function focus() {
 function bindHandlers(target, secondary) {
     if (!target) return
     target.addEventListener('load', preboot)
-    target.addEventListener('resize', expandView)
+    target.addEventListener('resize', adjustView)
     target.addEventListener('blur', handleGameBlur)
     target.addEventListener('focus', handleGameFocus)
     target.addEventListener('hashchange', handleHashChange)
