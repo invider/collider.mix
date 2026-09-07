@@ -2335,6 +2335,47 @@ class Program {
     }
 }
 
+class Pipeline extends Frame {
+
+    constructor(st) {
+        super( augment({
+            name: 'pipeline',
+        }, st) )
+    }
+
+    evo(dt) {
+    }
+
+    draw() {
+    }
+
+    cycle() {
+    }
+
+    launch() {
+    }
+
+    setup() {
+    }
+}
+
+class Mixer {
+
+    constructor(st) {
+        augment(this, {
+            name: 'mixer',
+        }, st)
+    }
+
+    cycle() {
+    }
+
+    launch() {
+    }
+
+    setup() {
+    }
+}
 
 // =============================================================
 //                          LOADER 
@@ -5928,6 +5969,8 @@ function constructScene(target) {
     mod.sys.attach(CueFrame)
     mod.sys.attach(Aux)
     mod.sys.attach(AudioClip)
+    mod.sys.attach(Mixer)
+    mod.sys.attach(Pipeline)
 
     mod.sys.attach(isBool)
     mod.sys.attach(isBoolean)
@@ -5955,6 +5998,7 @@ function constructScene(target) {
     mod.sys.attach(doBox)
     mod.sys.attach(enableBox)
 
+    // attach URL utilities
     mod.sys.attach(new Frame({
         name: 'url',
     }))
@@ -5966,6 +6010,16 @@ function constructScene(target) {
     mod.sys.url.attach(getParentPath)
     mod.sys.url.attach(getResourceName)
 
+    const pipeline = mod.sys.attach(new Pipeline({
+        __$: this,
+        mix: this,
+    }))
+    const mixer = mod.sys.attach(new Mixer({
+        __$:      this,
+        mix:      this,
+        pipeline: pipeline,
+    }))
+
     mod.attach(new Frame({
         name: 'pub',
     }))
@@ -5974,7 +6028,7 @@ function constructScene(target) {
     const log = constructLog()
     mod.attach(log, 'log')
 
-    // setup env
+    // setup default env
     mod.env.TARGET_FPS = 60
     mod.env.MAX_EVO_STEP = 0.01
     mod.env.MAX_EVO_PER_CYCLE = 0.3
@@ -6319,6 +6373,7 @@ function bootstrap() {
     startFlow()
 }
 
+// TODO move to pipeline.launch
 function startCycle() {
     expandView()
     focus()
@@ -6326,7 +6381,7 @@ function startCycle() {
 
     // initiate the game loop
     _scene.log.raw('===== STARTING MAIN EVO-DRAW CYCLE =====')
-    window.requestAnimFrame(cycle)
+    requestAnimationFrame(cycle)
     /*
         // old-fasioned way to setup animation
         if (!_scene.env.TARGET_FPS) {
@@ -6562,7 +6617,7 @@ function cycle(now) {
     }
     _scene.env.lastFrame = now
 
-	window.requestAnimFrame(cycle)
+	requestAnimationFrame(cycle)
 }
 
 
@@ -6848,6 +6903,7 @@ function bindHandlers(target, secondary) {
 bindHandlers(window, document)
 
 
+/*
 // extend window with universal requestAnimFrame
 window.requestAnimFrame = (function() {
   return window.requestAnimationFrame ||
@@ -6859,6 +6915,7 @@ window.requestAnimFrame = (function() {
             window.setTimeout(callback, 1000/_scene.env.TARGET_FPS)
          }
 })();
+*/
 
 return _scene;
 
