@@ -2151,13 +2151,31 @@ class Shader {
 
     register() {
         const gl = this.gl
-        if (!gl.shaders) gl.shaders = []
+        if (!gl.shaders) {
+            gl.shaders = []
+            gl.shaders._dir = {}
+        }
         gl.shaders.push(this)
         this.id = gl.shaders.length
+        if (this.name && gl.shaders._dir[this.name]) {
+           _scene.log.warn(`[#${this.id}:#${this.name}] naming conflict - a shader named [${this.name}] is already registered in this context!`)
+           _scene.log.dir(gl.shaders._dir[this.name])
+           _scene.log.dir(this)
+        }
+        gl.shaders._dir[this.name] = this.name
 
         const __$ = this.__.getMod()
-        if (!__$.lib._shaders) __$.lib._shaders = []
+        if (!__$.lib._shaders) {
+            __$.lib._shaders = []
+            __$.lib._shaders._dir = {}
+        }
         __$.lib._shaders.push(this)
+        if (this.name && __$.lib._shaders._dir[this.name]) {
+           _scene.log.warn(`[#${this.id}:#${this.name}] naming conflict - a shader named [${this.name}] is already registered for this mod!`)
+           _scene.log.dir(__$.lib._shaders._dir[this.name])
+           _scene.log.dir(this)
+        }
+        __$.lib._shaders._dir[this.name] = this.name
     }
 
     compile() {
@@ -2191,6 +2209,8 @@ class Program {
         augment(this, {
             uniform:   {},
             attribute: {},
+
+            linked:    false,
         }, st)
     }
 
@@ -2204,6 +2224,8 @@ class Program {
         this.register()
         this.parse()
         this.glRef = this.gl.createProgram()
+        // need to link after everything is loaded
+        // this.link()
     }
 
     register() {
@@ -2218,28 +2240,29 @@ class Program {
     }
 
     parse() {
-        if (!this.src) throw new Error(`[${this.id}:${this.name}] program source is missing!`)
+        if (!this.src) throw new Error(`[#${this.id}:${this.name}] program source is missing!`)
 
         const paths = this.src.trim().split(':')
         if (paths.length !== 2) {
-            throw new Error(`[${this.id}:${this.name}] a vertex and a fragment shader paths are expected in .prog`)
+            throw new Error(`[#${this.id}:${this.name}] a vertex and a fragment shader paths are expected in .prog`)
         }
         this.vertexPath   = paths[0]
         this.fragmentPath = paths[1]
     }
 
+    // locate and bind vertex and fragment shaders
     bindShaders() {
         const __$ = this.__.getMod()
         const vShader = this.vShader = __$.selectOne(this.vertexPath)
         const fShader = this.fShader = __$.selectOne(this.fragmentPath)
 
-        if (!vShader) throw `[${this.id}:${this.name}] Can't find vertex shader @[${this.vertexPath}]`
-        if (!(vShader instanceof dna.gl.Shader) || vShader.type !== 'vertex') {
+        if (!vShader) throw `[#${this.id}:${this.name}] Can't find vertex shader @[${this.vertexPath}]`
+        if (!(vShader instanceof Shader) || vShader.type !== 'vertex') {
             console.dir(vShader)
             throw `Wrong Shader! Expecting a vertex shader @[${this.vertexPath}]`
         }
-        if (!fShader) throw `[${this.id}:${this.name}] Can't find fragment shader @[${this.fragmentPath}]`
-        if (!(fShader instanceof dna.gl.Shader) || fShader.type !== 'fragment') {
+        if (!fShader) throw `[#${this.id}:${this.name}] Can't find fragment shader @[${this.fragmentPath}]`
+        if (!(fShader instanceof Shader) || fShader.type !== 'fragment') {
             console.dir(fShader)
             throw `Wrong Shader! Expecting a fragment shader @[${this.vertexPath}]`
         }
@@ -2270,9 +2293,13 @@ class Program {
     }
 
     link() {
+        if (this.linked) return false
+
+        const gl    = this.gl,
+              glRef = this.glRef
+
         this.bindShaders()
 
-        const glRef = this.glRef
         gl.attachShader(glRef, this.vShader.glRef)
         gl.attachShader(glRef, this.fShader.glRef)
 
@@ -2286,6 +2313,8 @@ class Program {
         this.bindLocations(this.vShader)
         this.bindLocations(this.fShader)
 
+        this.linked = true
+        return true
         // TODO
         // won't work with multiple programs!
         // this.use()
@@ -4841,6 +4870,11 @@ Mod.prototype.start = function() {
 
         _.status = 'started'
     }
+
+    if (this.gl) {
+        this.gl.glu.linkPrograms()
+    }
+
     this.trap.signal('postSetup')
 
     _scene.log.sys('starting evolution of [' + this.path() + ']')
@@ -6133,6 +6167,18 @@ function getWebGLContext(glCanvas, st) {
         glCanvas.gl = gl
         glCanvas.activeContext = gl
         glCanvas.wapi = true
+
+        gl.glu = {
+            linkPrograms: function() {
+                if (!isArray(gl.programs)) return
+
+                for (let prog of gl.programs) {
+                    _scene.log(`Linking WebGL Program [${prog.name}]...`)
+                    _scene.log(`[${prog.src.trim()}]`)
+                    prog.link()
+                }
+            },
+        }
     }
     return gl
 }
