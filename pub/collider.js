@@ -27,14 +27,28 @@ const $ = window.$ = window.mix = (function(window) {
 
 // ***********
 // environment
-const SCRIPT_SRC = 'collider.mix/collider.js'
-const UNITS_MAP  = 'units.map'
-const JAM_CONFIG = 'jam.config'
 
-// TODO is there a way to rederine those if needed?
-const renderingSurfaceName = 'renderingSurface'
-const canvasName           = 'canvas'
-const glCanvasName         = 'gl-canvas'
+// default global config
+const global = {
+    unitsMap:     'units.map',
+    jamConfig:    'jam.config',
+    surfaceName:  'rendering-surface',
+    canvasName:   'canvas',
+    glCanvasName: 'gl-canvas',
+}
+// determine collider global paths
+global.collider = {
+    origin:  document.currentScript.src,
+    baseURI: document.currentScript.baseURI,
+    path:    document.currentScript.src.substring(document.currentScript.baseURI.length),
+}
+
+// get global config from the script tag if defined
+global.unitsMap     = document.currentScript.dataset['units-map']      || global.unitsMap
+global.jamConfig    = document.currentScript.dataset['jam-config']     || global.jamConfig
+global.surfaceName  = document.currentScript.dataset['surface-name']   || global.surfaceName
+global.canvasName   = document.currentScript.dataset['canvas-name']    || global.canvasName
+global.glCanvasName = document.currentScript.dataset['gl-canvas-name'] || global.glCanvasName
 
 // TODO place them inside the mix or env?
 const canvasList = []
@@ -2351,9 +2365,6 @@ class Pipeline extends Frame {
         this.context.attach(ctx)
     }
 
-    evo(dt) {
-    }
-
     draw() {
         const mix = this.mix
         mix.draw()
@@ -3975,15 +3986,16 @@ const Mod = function(st) {
     // TODO remove in favor of .aug
     //this.attach(new Frame(), 'aug')
     //
-    // static environment data entities
+    // environment
     this.attach(new Frame({
         name:       'env',
+        global:      global,
         _started:    false,
         _evoSpeed:   1,
-        startedTime: Date.now(),
         lastFrame:   performance.now(),
-        time:        0,
+        startedTime: Date.now(),
         realTime:    0,
+        time:        0,
         _keyAction:  {},
     }))
 
@@ -5049,7 +5061,7 @@ Mod.prototype.draw = function() {
     if (!this.ctx) return
 
     // boot logic
-    // TODO move out into the rendering pipeline
+    // TODO move out into the render pipeline
     if (!this.env._started || this.boot) {
         // try to find and draw boot node or mod
         if (isFun(this.boot)) {
@@ -5407,7 +5419,7 @@ function patchImg(_, batch, url, base, path, classifier, onLoad) {
             })
         }
     } else {
-        // static image resource - scheduling the patch in batch 1
+        // global image resource - scheduling the patch in batch 1
         _.res._schedule(1, {
             origin: url,
             base: base,
@@ -5730,7 +5742,7 @@ Mod.prototype.loadUnits = function(baseMod, target) {
     let loaderMod = this
 
     // load collider.units definition
-    let url = addPath(target, UNITS_MAP)
+    let url = addPath(target, global.unitsMap)
     loadJson(randomizeUrl(url))
         .then(units => {
             if (!units) return
@@ -5758,7 +5770,7 @@ Mod.prototype.loadUnits = function(baseMod, target) {
             ignoreList = ignoreList.map(e => new RegExp(e))
 
             // schedule the loading
-            let batch = 2 // 0 is for boot, 1 is for static resources
+            let batch = 2 // 0 is for boot, 1 is for global resources
             loadQueue.forEach(unit => {
                 const ls = unit.ls || []
                 ls.forEach(resLocalUrl => {
@@ -6073,7 +6085,7 @@ function constructScene(target) {
     mod.sys.url.attach(getParentPath)
     mod.sys.url.attach(getResourceName)
 
-    const pipeline = mod.sys.attach(new Pipeline({
+    const pipeline = mod.pipeline = mod.sys.attach(new Pipeline({
         mix: mod,
     }))
     const mixer = mod.sys.attach(new Mixer({
@@ -6191,9 +6203,9 @@ _scene.packDeclarations = function(target) {
 // main scene lifecycle - bootstrap, cycle[evo, draw]
 //
 function preboot() {
-    _scene.log.sys('[loader]', 'loading config: ' + JAM_CONFIG)
+    _scene.log.sys('[loader]', 'loading config: ' + global.jamConfig)
 
-    loadJson(JAM_CONFIG)
+    loadJson(global.jamConfig)
         .then(function(config) {
             if (config) {
                 _scene.log.raw('===== CONFIG =====' + '\n' + JSON.stringify(config, null, ' '))
@@ -6202,7 +6214,7 @@ function preboot() {
             bootstrap()
         })
         .catch((err) => {
-            _scene.log.sys('[loader]', 'unable to get [' + JAM_CONFIG + ']: ' + err)
+            _scene.log.sys('[loader]', `unable to get [${global.jamConfig}]: ${err}`)
             bootstrap()
         })
 }
@@ -6222,14 +6234,14 @@ function defaultBodySetup(body) {
     document.body.setAttribute("scroll", "no")
 }
 
-// TODO move to the rendering pipeline
+// TODO move to the render pipeline
 function bindRenderingSurface() {
-    let renderingSurface = document.getElementById(renderingSurfaceName)
+    let renderingSurface = document.getElementById(global.surfaceName)
 
     // place canvas in a container div
     if (!renderingSurface) {
         renderingSurface = document.createElement('div')
-        renderingSurface.id = renderingSurfaceName
+        renderingSurface.id = global.surfaceName
         document.body.appendChild(renderingSurface)
     }
 
@@ -6301,14 +6313,14 @@ function getWebGLContext(glCanvas, st) {
     return gl
 }
 
-// TODO move to the rendering pipeline
+// TODO move to the render pipeline
 function bindOrCreateCanvas3D(mix) {
     // place WebGL context
-    let glCanvas = document.getElementById(glCanvasName)
+    let glCanvas = document.getElementById(global.glCanvasName)
     if (glCanvas == null) {
         // precreated canvas is not found, so create one
         glCanvas = document.createElement('canvas')
-        glCanvas.id = glCanvasName
+        glCanvas.id = global.glCanvasName
         defaultCanvasSetup(glCanvas)
         mixin(glCanvas, adjustableCanvasTrait)
         glCanvas.name = glCanvas.id
@@ -6337,14 +6349,14 @@ function get2DContext(canvas) {
     return ctx
 }
 
-// TODO move to the rendering pipeline
+// TODO move to the render pipeline
 function bindOrCreateCanvas2D(mix) {
     // binding to the graphical canvas/context by convention
-    let canvas = document.getElementById(canvasName)
+    let canvas = document.getElementById(global.canvasName)
     if (canvas == null) {
         // precreated canvas is not found, so create one
         canvas = document.createElement('canvas')
-        canvas.id = canvasName
+        canvas.id = global.canvasName
         defaultCanvasSetup(canvas)
         augment(canvas, adjustableCanvasTrait)
         canvas.name = canvas.id
@@ -6366,6 +6378,7 @@ function bindOrCreateCanvas2D(mix) {
 function setupGraphics(mix) {
     // graphics system setup
     mix.log.raw(' * Graphics')
+    // TODO move to the rendering pipeline
     mix._renderingSurface = bindRenderingSurface()
 
     bindOrCreateCanvas3D(mix)
@@ -6651,7 +6664,7 @@ function adjustView() {
 }
 
 /*
-// TODO should be part of the rendering pipeline?
+// TODO should be part of the render pipeline?
 function expandView() {
 
     for (let i = 0; i < canvasList.length; i++) {
@@ -6901,7 +6914,7 @@ function handleHashChange() {
 // determine system path
 let scripts = document.getElementsByTagName('script')
 for (let i = 0; i < scripts.length; i++) {
-    if (scripts[i].src.endsWith(SCRIPT_SRC)) {
+    if (scripts[i].src.endsWith(global.collider.path)) {
         let path = scripts[i].src.split('?')[0]
         let syspath = path.split('/').slice(0, -2).join('/')+'/'
         let htmlhost = location.href.split('/').slice(0, -1).join('/')+'/'
