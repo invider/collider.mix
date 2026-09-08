@@ -35,6 +35,7 @@ const global = {
     surfaceName:  'rendering-surface',
     canvasName:   'canvas',
     glCanvasName: 'gl-canvas',
+    loadRetries:   16,
 }
 // determine collider global paths
 global.collider = {
@@ -49,13 +50,10 @@ global.jamConfig    = document.currentScript.dataset['jam-config']     || global
 global.surfaceName  = document.currentScript.dataset['surface-name']   || global.surfaceName
 global.canvasName   = document.currentScript.dataset['canvas-name']    || global.canvasName
 global.glCanvasName = document.currentScript.dataset['gl-canvas-name'] || global.glCanvasName
+global.loadRetries  = document.currentScript.dataset['load-retries']   || global.loadRetries
 
-// TODO place them inside the mix or env?
-const canvasList = []
-
+// global constants
 const GAMEPADS = 4
-
-const LOAD_RETRIES = 16
 
 const TYPE_TEXT = 1
 const TYPE_BLOB = 2
@@ -2365,6 +2363,14 @@ class Pipeline extends Frame {
         this.context.attach(ctx)
     }
 
+    totalCanvas2D() {
+        return this.canvas._ls.reduce((acc, e) => e.capi? acc + 1 : acc, 0)
+    }
+
+    totalCanvasGL() {
+        return this.canvas._ls.reduce((acc, e) => e.wapi? acc + 1 : acc, 0)
+    }
+
     draw() {
         const mix = this.mix
         mix.draw()
@@ -3155,7 +3161,7 @@ function evalJS(script, $, batch) {
             if (!__$.locate(req)) missing = req
         })
         if (missing) {
-            if (script.retries > LOAD_RETRIES) {
+            if (script.retries > global.loadRetries) {
                 throw '[eval]', `unable to find dependency [${missing}] in [${script.path}]`
             } 
             $.log.sys('[eval]', `missing dependency [${missing}], rescheduling [${script.path}]`)
@@ -3534,7 +3540,7 @@ const evalLoadedBatch = function(ibatch, batch, _) {
 const Mod = function(st) {
     const _ = this._ = this
 
-    extend(this, {
+    extend(_, {
         _patchLog:     [],
         paused:        false,
         hidden:        false,
@@ -3547,7 +3553,7 @@ const Mod = function(st) {
 
     const alt = this.attach(new Frame(), 'alt')
 
-    this._scope = {
+    _._scope = {
         key:         _key,
         pad:         _pad,
         mouse:       _mouse,
@@ -3754,12 +3760,12 @@ const Mod = function(st) {
 
         dir: console.dir,
     }
-    if (!this._drawScope) {
+    if (!_._drawScope) {
         // TODO define a new one?
     }
 
     // resources container
-    this.attach(new Frame({
+    _.attach(new Frame({
         name:     'res',
         _included: 0,
         _scheduled: {},
@@ -3928,7 +3934,7 @@ const Mod = function(st) {
     //this.attach(new Frame("log"))
 
     // prototypes/constructors
-    this.attach(new Frame({
+    _.attach(new Frame({
         name:     'dna',
         _reg:     {},
         _catalog: {},
@@ -3980,14 +3986,14 @@ const Mod = function(st) {
         },
     }))
 
-    this.attach(new Frame(), 'lib')
+    _.attach(new Frame(), 'lib')
 
     // augment functions
     // TODO remove in favor of .aug
     //this.attach(new Frame(), 'aug')
     //
     // environment
-    this.attach(new Frame({
+    _.attach(new Frame({
         name:       'env',
         global:      global,
         _started:    false,
@@ -4001,7 +4007,7 @@ const Mod = function(st) {
 
 
     // container for acting entities - actors, ghosts, props
-    this.attach(new LabFrame({
+    _.attach(new LabFrame({
         /*
         // TODO why these two were defined on /lab and /lab only?
         labxy: function(x, y) {
@@ -4014,11 +4020,11 @@ const Mod = function(st) {
         */
     }), 'lab')
 
-    this.attach(new CueFrame(), 'cue')
+    _.attach(new CueFrame(), 'cue')
 
-    this.attach(new LabFrame(), 'job')
+    _.attach(new LabFrame(), 'job')
 
-    this.attach(new Frame(), 'pin')
+    _.attach(new Frame(), 'pin')
 
     // container for mods
     // TODO what to do with this autoloading?
@@ -4037,8 +4043,6 @@ const Mod = function(st) {
     augment(mod, new LabFrame())
 
     mod.touch = touchFun((name, __, st) => {
-        let mod
-
         const modConfig = _scene.env.config[name + '.mod'] || {}
 
         let canvas   = this.canvas,
@@ -4049,48 +4053,46 @@ const Mod = function(st) {
         if (modConfig.buffered2d || modConfig.buffered || name.endsWith('-2d') || name.endsWith('-buf')) {
             _scene.log.sys(`creating a buffered 2D canvas for ${name}`)
             canvas = document.createElement('canvas')
-            canvas.id = canvas.name = 'canvas-' + canvasList.reduce((acc, e) => e.capi? acc + 1 : acc, 1)
+            canvas.id = canvas.name = 'canvas-' + (_.sys.pipeline.totalCanvas2D() + 1)
             canvas.buffer = true
             ctx = get2DContext(canvas)
             defaultCanvasSetup(canvas)
-            canvasList.push(canvas)
         }
         if (modConfig.bufferedGL || modConfig.buffered || name.endsWith('-gl') || name.endsWith('-buf')) {
             _scene.log.sys(`creating a buffered WebGL canvas for ${name}`)
             glCanvas = document.createElement('canvas')
-            glCanvas.id = glCanvas.name = 'gl-canvas-' + canvasList.reduce((acc, e) => e.wapi? acc + 1 : acc, 1)
+            glCanvas.id = glCanvas.name = 'gl-canvas-' + (_.sys.pipeline.totalCanvasGL() + 1)
             glCanvas.buffer = true
             gl = getWebGLContext(glCanvas)
             defaultCanvasSetup(glCanvas)
-            canvasList.push(glCanvas)
         }
 
-        mod = new Mod( extend({
+        const nmod = new Mod( extend({
             name:     name,
             canvas:   canvas,
             ctx:      ctx,
             glCanvas: glCanvas,
             gl:       gl,
         }), st)
-        mod.__$ = this.getMod()  // parent mod
+        nmod.__$ = this.getMod()  // parent mod
         Object.defineProperty(this, '__$', { enumerable: false })
-        mod._$  = mod.__$._$     // mix
+        nmod._$  = nmod.__$._$     // mix
         Object.defineProperty(this, '_$',  { enumerable: false })
 
         if (!canvas.__$) {
-            canvas.__$   = mod
-            ctx.__$      = mod
-            mod._$.sys.pipeline.includeCanvas(canvas, ctx)
+            canvas.__$   = nmod
+            ctx.__$      = nmod
+            nmod._$.sys.pipeline.includeCanvas(canvas, ctx)
         }
         if (!glCanvas.__$) {
-            glCanvas.__$ = mod
-            gl.__$       = mod
-            mod._$.sys.pipeline.includeCanvas(glCanvas, gl)
+            glCanvas.__$ = nmod
+            gl.__$       = nmod
+            nmod._$.sys.pipeline.includeCanvas(glCanvas, gl)
         }
 
-        return mod
+        return nmod
     })
-    this.attach(mod)
+    _.attach(mod)
 
     // container for traps
     const trap = function trap(name, st) {
@@ -4205,12 +4207,12 @@ const Mod = function(st) {
         return trap.echo(name, st, true)
     }
 
-    this.attach(trap)
+    _.attach(trap)
 
     const signal = function(name, st) {
         return _.trap.echo(name, st, false)
     }
-    this.attach(signal)
+    _.attach(signal)
 }
 
 Mod.prototype = Object.create(Frame.prototype)
@@ -6334,7 +6336,6 @@ function bindOrCreateCanvas3D(mix) {
     glCanvas.buffer = false
     mix.glCanvas = glCanvas
     mix.gl = getWebGLContext(glCanvas)
-    canvasList.push(glCanvas)
     mix.sys.pipeline.includeCanvas(mix.glCanvas, mix.gl)
 }
 
@@ -6371,7 +6372,6 @@ function bindOrCreateCanvas2D(mix) {
     canvas.buffer = false
     mix.ctx = get2DContext(canvas)
     mix.defineDrawContext()
-    canvasList.push(canvas)
     mix.sys.pipeline.includeCanvas(mix.canvas, mix.ctx)
 }
 
@@ -6662,22 +6662,6 @@ function complementLab(mod) {
 function adjustView() {
     _scene.sys.pipeline.adjustView()
 }
-
-/*
-// TODO should be part of the render pipeline?
-function expandView() {
-
-    for (let i = 0; i < canvasList.length; i++) {
-        const canvas = canvasList[i]
-        if (canvas.adjust) {
-            canvas.adjust()
-            complementContext(canvas.activeContext)
-        }
-    }
-    complementLab(_scene)
-    _scene.signal('resize')
-}
-*/
 
 // *****************************************************************
 // core game update-draw cycle
