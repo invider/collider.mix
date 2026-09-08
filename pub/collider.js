@@ -2358,7 +2358,16 @@ class Pipeline extends Frame {
         this.touch('context')
     }
 
+    defaultCanvasSetup(canvas) {
+        canvas.style.border   = "0px"
+        canvas.style.margin   = "0px"
+        canvas.style.padding  = "0px"
+        canvas.style.position = "absolute"
+        canvas.style.display  = "block"
+    }
+
     includeCanvas(canvas, ctx) {
+        this.defaultCanvasSetup(canvas)
         this.canvas.attach(canvas)
         this.context.attach(ctx)
     }
@@ -2369,11 +2378,6 @@ class Pipeline extends Frame {
 
     totalCanvasGL() {
         return this.canvas._ls.reduce((acc, e) => e.wapi? acc + 1 : acc, 0)
-    }
-
-    draw() {
-        const mix = this.mix
-        mix.draw()
     }
 
     adjustView() {
@@ -2391,6 +2395,153 @@ class Pipeline extends Frame {
     setup() {
         // TODO must be called from somewhere at setup/start?
     }
+
+    attachCanvasToRenderingSurface(canvas, zIndex) {
+        if (!canvas) throw new Error('a canvas object is expected!')
+        if (canvas instanceof OffscreenCanvas) throw new Error(`can't attach an OffscreenCanvas to the rendering surface!`)
+
+        if (zIndex != null) canvas.style.zIndex = zIndex
+        // TODO rendering surface MUST be local to the pipeline
+        _scene._renderingSurface.appendChild(canvas)
+        canvas.buffered = false
+    }
+
+
+    getWebGLContext(glCanvas, st) {
+        // TODO provide canvas-gradual webgl config to customize things like depth buffer
+        const gl = glCanvas.getContext('webgl2', {
+            depth:     true,
+            antialias: false,
+        })
+        if (gl) {
+            glCanvas.version = 2
+            glCanvas.contextId = 'webgl2'
+        } else {
+            // TODO is that even practial? We don't have mechanism to switch between different shaders!
+            gl = glCanvas.getContext('webgl', {
+                antialias: false,
+                depth: false,
+            })
+            if (gl) {
+                glCanvas.version = 1
+                glCanvas.contextId = 'webgl'
+            } else {
+                // TODO is that even practial? We don't have mechanism to switch between different shaders!
+                gl = glCanvas.getContext('experimental-webgl')
+                if (gl) {
+                    glCanvas.version = 0
+                    glCanvas.contextId = 'experimental-webgl'
+                } else {
+                    // TODO no WebGL support, should we remove it from DOM completely?
+                    glCanvas.disabled = true
+                    glCanvas.wapi = false
+                    glCanvas.version = -1
+                    _scene.log.err('No WebGL support!')
+                }
+            }
+        }
+
+        if (gl) {
+            // setup WebGL context
+            gl.__ = glCanvas.__
+            gl.name = glCanvas.id + '-webgl-context'
+            glCanvas.gl = gl
+            glCanvas.activeContext = gl
+            glCanvas.wapi = true
+
+            gl.glu = {
+                linkPrograms: function() {
+                    if (!isArray(gl.programs)) return
+
+                    for (let prog of gl.programs) {
+                        _scene.log(`Linking WebGL Program [${prog.name}]...`)
+                        _scene.log(`[${prog.src.trim()}]`)
+                        prog.link()
+                    }
+                },
+            }
+        }
+        return gl
+    }
+
+    // setup main WebGL canvas
+    bindOrCreateCanvas3D() {
+        const mix = this.mix
+
+        let glCanvas = document.getElementById(global.glCanvasName)
+        if (glCanvas == null) {
+            // precreated canvas is not found, so create one
+            glCanvas = document.createElement('canvas')
+            glCanvas.id = global.glCanvasName
+            mixin(glCanvas, adjustableCanvasTrait)
+            glCanvas.name = glCanvas.id
+
+            this.attachCanvasToRenderingSurface(glCanvas, 5)
+            
+        }
+
+        glCanvas.__$ = mix
+        glCanvas.buffer = false
+        mix.glCanvas = glCanvas
+        mix.gl = this.getWebGLContext(glCanvas)
+
+        this.includeCanvas(mix.glCanvas, mix.gl)
+    }
+
+    get2DContext(canvas) {
+        const ctx = canvas.getContext('2d')
+
+        ctx.__ = canvas.__
+        ctx.name = canvas.id + '-context'
+        canvas.capi = true
+        canvas.contextId = '2d'
+        canvas.ctx = ctx
+        canvas.activeContext = ctx
+
+        return ctx
+    }
+
+    bindOrCreateCanvas2D() {
+        const mix = this.mix
+
+        // binding to the graphical canvas/context by convention
+        let canvas = document.getElementById(global.canvasName)
+        if (canvas == null) {
+            // precreated canvas is not found, so create one
+            canvas = document.createElement('canvas')
+            canvas.id = global.canvasName
+            augment(canvas, adjustableCanvasTrait)
+            canvas.name = canvas.id
+
+            this.attachCanvasToRenderingSurface(canvas, 7)
+        }
+
+        mix.canvas = canvas
+        canvas.__$ = mix
+        canvas.buffer = false
+        mix.ctx = this.get2DContext(canvas)
+        mix.defineDrawContext()
+
+        this.includeCanvas(mix.canvas, mix.ctx)
+    }
+
+    bindOrCreateRenderingSurface() {
+        let renderingSurface = document.getElementById(global.surfaceName)
+
+        if (!renderingSurface) {
+            renderingSurface = document.createElement('div')
+            renderingSurface.id = global.surfaceName
+            document.body.appendChild(renderingSurface)
+        }
+
+        return renderingSurface
+    }
+
+    draw() {
+        const mix = this.mix
+        mix.draw()
+    }
+
 }
 
 class Mixer {
@@ -4051,20 +4202,18 @@ const Mod = function(st) {
             gl       = this.gl
 
         if (modConfig.buffered2d || modConfig.buffered || name.endsWith('-2d') || name.endsWith('-buf')) {
-            _scene.log.sys(`creating a buffered 2D canvas for ${name}`)
+            _scene.log.sys(`creating a buffered 2D canvas for [${name}]`)
             canvas = document.createElement('canvas')
             canvas.id = canvas.name = 'canvas-' + (_.sys.pipeline.totalCanvas2D() + 1)
             canvas.buffer = true
             ctx = get2DContext(canvas)
-            defaultCanvasSetup(canvas)
         }
         if (modConfig.bufferedGL || modConfig.buffered || name.endsWith('-gl') || name.endsWith('-buf')) {
-            _scene.log.sys(`creating a buffered WebGL canvas for ${name}`)
+            _scene.log.sys(`creating a buffered WebGL canvas for [${name}]`)
             glCanvas = document.createElement('canvas')
             glCanvas.id = glCanvas.name = 'gl-canvas-' + (_.sys.pipeline.totalCanvasGL() + 1)
             glCanvas.buffer = true
             gl = getWebGLContext(glCanvas)
-            defaultCanvasSetup(glCanvas)
         }
 
         const nmod = new Mod( extend({
@@ -6067,10 +6216,8 @@ function constructScene(target) {
     mod.sys.attach(isEmpty)
 
     mod.sys.attach(reconstructScene)
-
     mod.sys.attach(adjustableCanvasTrait)
-    mod.sys.attach(attachCanvasToRenderingSurface)
-    // mod.sys.attach(expandView)
+
     mod.sys.attach(evalLoadedContent)
     mod.sys.attach(doBox)
     mod.sys.attach(enableBox)
@@ -6221,168 +6368,21 @@ function preboot() {
         })
 }
 
-function defaultCanvasSetup(canvas) {
-    canvas.style.border   = "0px"
-    canvas.style.margin   = "0px"
-    canvas.style.padding  = "0px"
-    canvas.style.position = "absolute"
-    canvas.style.display  = "block"
-}
-
-function defaultBodySetup(body) {
+function defaultBodySetup() {
     document.body.style.margin   = "0"
     document.body.style.padding  = "0"
     document.body.style.overflow = "hidden"
     document.body.setAttribute("scroll", "no")
 }
 
-// TODO move to the render pipeline
-function bindRenderingSurface() {
-    let renderingSurface = document.getElementById(global.surfaceName)
-
-    // place canvas in a container div
-    if (!renderingSurface) {
-        renderingSurface = document.createElement('div')
-        renderingSurface.id = global.surfaceName
-        document.body.appendChild(renderingSurface)
-    }
-
-    return renderingSurface
-}
-
-function attachCanvasToRenderingSurface(canvas, zIndex) {
-    if (!canvas) throw new Error('a canvas object is expected!')
-    if (canvas instanceof OffscreenCanvas) throw new Error(`can't attach an OffscreenCanvas to the rendering surface!`)
-
-    if (zIndex != null) canvas.style.zIndex = zIndex
-    _scene._renderingSurface.appendChild(canvas)
-    canvas.buffered = false
-}
-
-function getWebGLContext(glCanvas, st) {
-    // TODO provide canvas-gradual webgl config to customize things like depth buffer
-    const gl = glCanvas.getContext('webgl2', {
-        depth:     true,
-        antialias: false,
-    })
-    if (gl) {
-        glCanvas.version = 2
-        glCanvas.contextId = 'webgl2'
-    } else {
-        // TODO is that even practial? We don't have mechanism to switch between different shaders!
-        gl = glCanvas.getContext('webgl', {
-            antialias: false,
-            depth: false,
-        })
-        if (gl) {
-            glCanvas.version = 1
-            glCanvas.contextId = 'webgl'
-        } else {
-            // TODO is that even practial? We don't have mechanism to switch between different shaders!
-            gl = glCanvas.getContext('experimental-webgl')
-            if (gl) {
-                glCanvas.version = 0
-                glCanvas.contextId = 'experimental-webgl'
-            } else {
-                // TODO no WebGL support, should we remove it from DOM completely?
-                glCanvas.disabled = true
-                glCanvas.wapi = false
-                glCanvas.version = -1
-                _scene.log.err('No WebGL support!')
-            }
-        }
-    }
-
-    if (gl) {
-        gl.__ = glCanvas.__
-        gl.name = glCanvas.id + '-webgl-context'
-        glCanvas.gl = gl
-        glCanvas.activeContext = gl
-        glCanvas.wapi = true
-
-        gl.glu = {
-            linkPrograms: function() {
-                if (!isArray(gl.programs)) return
-
-                for (let prog of gl.programs) {
-                    _scene.log(`Linking WebGL Program [${prog.name}]...`)
-                    _scene.log(`[${prog.src.trim()}]`)
-                    prog.link()
-                }
-            },
-        }
-    }
-    return gl
-}
-
-// TODO move to the render pipeline
-function bindOrCreateCanvas3D(mix) {
-    // place WebGL context
-    let glCanvas = document.getElementById(global.glCanvasName)
-    if (glCanvas == null) {
-        // precreated canvas is not found, so create one
-        glCanvas = document.createElement('canvas')
-        glCanvas.id = global.glCanvasName
-        defaultCanvasSetup(glCanvas)
-        mixin(glCanvas, adjustableCanvasTrait)
-        glCanvas.name = glCanvas.id
-
-        attachCanvasToRenderingSurface(glCanvas, 5)
-        
-        defaultBodySetup()
-    }
-
-    glCanvas.__$ = mix
-    glCanvas.buffer = false
-    mix.glCanvas = glCanvas
-    mix.gl = getWebGLContext(glCanvas)
-    mix.sys.pipeline.includeCanvas(mix.glCanvas, mix.gl)
-}
-
-function get2DContext(canvas) {
-    const ctx = canvas.getContext('2d')
-    ctx.__ = canvas.__
-    ctx.name = canvas.id + '-context'
-    canvas.capi = true
-    canvas.contextId = '2d'
-    canvas.ctx = ctx
-    canvas.activeContext = ctx
-    return ctx
-}
-
-// TODO move to the render pipeline
-function bindOrCreateCanvas2D(mix) {
-    // binding to the graphical canvas/context by convention
-    let canvas = document.getElementById(global.canvasName)
-    if (canvas == null) {
-        // precreated canvas is not found, so create one
-        canvas = document.createElement('canvas')
-        canvas.id = global.canvasName
-        defaultCanvasSetup(canvas)
-        augment(canvas, adjustableCanvasTrait)
-        canvas.name = canvas.id
-
-        attachCanvasToRenderingSurface(canvas, 7)
-
-        defaultBodySetup()
-    }
-
-    mix.canvas = canvas
-    canvas.__$ = mix
-    canvas.buffer = false
-    mix.ctx = get2DContext(canvas)
-    mix.defineDrawContext()
-    mix.sys.pipeline.includeCanvas(mix.canvas, mix.ctx)
-}
-
 function setupGraphics(mix) {
     // graphics system setup
     mix.log.raw(' * Graphics')
     // TODO move to the rendering pipeline
-    mix._renderingSurface = bindRenderingSurface()
+    mix._renderingSurface = mix.pipeline.bindOrCreateRenderingSurface()
 
-    bindOrCreateCanvas3D(mix)
-    bindOrCreateCanvas2D(mix)
+    mix.pipeline.bindOrCreateCanvas3D()
+    mix.pipeline.bindOrCreateCanvas2D()
     mix.defineDrawContext()
     mix.populateAlt()
 }
@@ -6402,6 +6402,9 @@ function setupSystems(mix) {
 // TODO move to the relative scene
 function bootstrap() {
     _scene.log.raw('===== BOOTING UP =====')
+
+    // TODO what system body setup belongs to?
+    defaultBodySetup()
 
     setupSystems(_scene)
 
