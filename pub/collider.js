@@ -23,7 +23,7 @@ function _evaluate(__$, scope, module, code) {
     return eval(code)
 }
 
-const $ = window.$ = window.mix = (function(window) {
+window.$ = window.mix = (function(window) {
 
 // ***********
 // environment
@@ -45,6 +45,7 @@ global.collider = {
 }
 
 // get global config from the script tag if defined
+// TODO document the global options and how to setup them
 global.unitsMap     = document.currentScript.dataset['units-map']      || global.unitsMap
 global.jamConfig    = document.currentScript.dataset['jam-config']     || global.jamConfig
 global.surfaceName  = document.currentScript.dataset['surface-name']   || global.surfaceName
@@ -160,6 +161,7 @@ const isAncestor = function(src, tar) {
 }
 
 // TODO explore if we need both assert() and expect() in scope
+// TODO definitely move it out of here! It is not used by the core!
 function assert(cond, msg) {
     if (cond) return true
     msg = msg || 'assert failed'
@@ -2347,7 +2349,7 @@ class Program {
     }
 }
 
-class Pipeline extends Frame {
+class Pipeline extends LabFrame {
 
     constructor(st) {
         super( augment({
@@ -2356,6 +2358,68 @@ class Pipeline extends Frame {
 
         this.touch('canvas')
         this.touch('context')
+        this.touch('stage')
+        this.touch('standard')
+
+        // define standard stages
+        const ___ = this,
+              __$ = ___.mix
+        this.standard.attachAll([
+            {
+                name: 'boot',
+                draw: function() {
+                    // find and draw boot node
+                    const _    = this.__$,
+                          boot = _.boot
+                    if (boot && boot.draw && !boot.hidden) {
+                        boot.draw()
+                        this.___.continue = false
+                    }
+                },
+            },
+            {
+                name: 'background',
+                draw: function() {
+                    const _ = this.__$
+                    // optional background property
+                    if (_.lab.background && !_.lab._dir.background) {
+                        _.ctx.draw.background(_.lab.background)
+                    }
+                },
+            },
+            {
+                name: 'mix',
+                draw: function() {
+                    if (!this.__$.hidden) {
+                        this.__$.draw()
+                    }
+                },
+            },
+            {
+                name: 'postVFX',
+                draw: function() {
+                    const lab = this.__$.lab
+                    if (lab.vfx) {
+                        lab.vfx.postVFX()
+                    }
+                },
+            },
+        ])
+        this.standard.apply(_ => {
+            _.__$ = __$
+            _.___ = ___
+            _.hidden = false
+        })
+
+        this.buildDefault()
+    }
+
+    buildDefault() {
+        // create default pipeline from standard stages
+        this.stage.attach( extend({}, this.standard['boot']) )
+        this.stage.attach( extend({}, this.standard['background']) )
+        this.stage.attach( extend({}, this.standard['mix']) )
+        this.stage.attach( extend({}, this.standard['postVFX']) )
     }
 
     defaultCanvasSetup(canvas) {
@@ -2372,11 +2436,11 @@ class Pipeline extends Frame {
         this.context.attach(ctx)
     }
 
-    totalCanvas2D() {
+    countCanvas2D() {
         return this.canvas._ls.reduce((acc, e) => e.capi? acc + 1 : acc, 0)
     }
 
-    totalCanvasGL() {
+    countCanvasGL() {
         return this.canvas._ls.reduce((acc, e) => e.wapi? acc + 1 : acc, 0)
     }
 
@@ -2392,10 +2456,6 @@ class Pipeline extends Frame {
         mix.signal('resize')
     }
 
-    setup() {
-        // TODO must be called from somewhere at setup/start?
-    }
-
     attachCanvasToRenderingSurface(canvas, zIndex) {
         if (!canvas) throw new Error('a canvas object is expected!')
         if (canvas instanceof OffscreenCanvas) throw new Error(`can't attach an OffscreenCanvas to the rendering surface!`)
@@ -2405,7 +2465,6 @@ class Pipeline extends Frame {
         _scene._renderingSurface.appendChild(canvas)
         canvas.buffered = false
     }
-
 
     getWebGLContext(glCanvas, st) {
         // TODO provide canvas-gradual webgl config to customize things like depth buffer
@@ -2538,10 +2597,20 @@ class Pipeline extends Frame {
     }
 
     draw() {
-        const mix = this.mix
-        mix.draw()
+        const stages = this.stage._ls
+
+        this.continue = true
+        for (let i = 0; i < stages.length && this.continue; i++) {
+            const stage = stages[i]
+            if (stage.draw && !stage.hidden) {
+                stage.draw()
+            }
+        }
     }
 
+    toString() {
+        return this.stage._ls.filter(stage => stage.draw && !stage.hidden).map(stage => stage.name).join(' -> ')
+    }
 }
 
 class Mixer {
@@ -2559,18 +2628,8 @@ class Mixer {
         }
     }
 
-    cycle($, now) {
-        let dt = (now - $.env.lastFrame)/1000
-        $.env.realTime += dt
-
-        // adjust according to evo speed
-        dt *= $.env._evoSpeed
-
-        // show, react and update cycle
-        $.dt = dt
-        this.pipeline.draw()
-
-        // max evolution threshold
+    evo(dt) {
+        // cap max evolution time
         if (dt > $.env.MAX_EVO_PER_CYCLE) {
             dt = $.env.MAX_EVO_PER_CYCLE
         }
@@ -2585,6 +2644,21 @@ class Mixer {
             }
             dt -= $.env.MAX_EVO_STEP
         }
+    }
+
+    cycle($, now) {
+        let dt = (now - $.env.lastFrame)/1000
+        $.env.realTime += dt
+
+        // adjust according to evo speed
+        dt *= $.env._evoSpeed
+        $.evo.dt = dt
+
+        // draw-evolution step
+        this.pipeline.draw()
+
+        if (!$.paused) this.evo(dt)
+
         $.env.lastFrame = now
     }
 
@@ -4204,14 +4278,14 @@ const Mod = function(st) {
         if (modConfig.buffered2d || modConfig.buffered || name.endsWith('-2d') || name.endsWith('-buf')) {
             _scene.log.sys(`creating a buffered 2D canvas for [${name}]`)
             canvas = document.createElement('canvas')
-            canvas.id = canvas.name = 'canvas-' + (_.sys.pipeline.totalCanvas2D() + 1)
+            canvas.id = canvas.name = 'canvas-' + (_.sys.pipeline.countCanvas2D() + 1)
             canvas.buffer = true
             ctx = get2DContext(canvas)
         }
         if (modConfig.bufferedGL || modConfig.buffered || name.endsWith('-gl') || name.endsWith('-buf')) {
             _scene.log.sys(`creating a buffered WebGL canvas for [${name}]`)
             glCanvas = document.createElement('canvas')
-            glCanvas.id = glCanvas.name = 'gl-canvas-' + (_.sys.pipeline.totalCanvasGL() + 1)
+            glCanvas.id = glCanvas.name = 'gl-canvas-' + (_.sys.pipeline.countCanvasGL() + 1)
             glCanvas.buffer = true
             gl = getWebGLContext(glCanvas)
         }
@@ -5181,7 +5255,7 @@ Mod.prototype.evo = function(dt) {
     // boot logic
     // TODO - move out and inject only into the root mod
     if (!this.env._started || this.boot) {
-        // try to find and evolve boot node or mod
+        // try to find and evolve boot node
         if (this.boot && isFun(this.boot.evo)) {
             this.boot.evo(dt)
         }
@@ -5209,46 +5283,14 @@ Mod.prototype.evo = function(dt) {
 }
 
 Mod.prototype.draw = function() {
-    if (!this.ctx) return
-
-    // boot logic
-    // TODO move out into the render pipeline
-    if (!this.env._started || this.boot) {
-        // try to find and draw boot node or mod
-        if (isFun(this.boot)) {
-            this.boot()
-        } else if (this.boot && isFun(this.boot.draw)) {
-            this.boot.draw()
-        }
-        return
-    }
-
-    // TODO shound't that test be external, like with other nodes?
-    if (this.hidden) return
-
-    // optional background property
-    if (this.lab.background && !this.lab._dir.background) {
-        this.ctx.draw.background(this.lab.background)
-    }
-
-    // possible pre-vfx
-    // TODO move out to the pipeline
-    if (this.lab.vfx) {
-        this.lab.vfx.preVFX()
-    }
+    if (!this.ctx && !this.gl) return  // skip - no graphic context found
 
     // draw entities in the lab
     // we might integrate this mod display as a link in the mod list
     if (!this.lab.hidden) this.lab.draw()
 
     // draw mods
-    this.mod.draw()
-
-    // TODO move out of mod? Or make configurable?
-    //      the only reasonable use for now are transitions and simple post-effects
-    if (this.lab.vfx) {
-        this.lab.vfx.postVFX()
-    }
+    if (!this.mod.hidden) this.mod.draw()
 }
 
 Mod.prototype.patch = function(target, path, node) {
@@ -6055,6 +6097,8 @@ function constructLog() {
     return log
 }
 
+// TODO split to multiple traits - fixed, fullscreen, fixed-aspect
+//      and export through pipeline or sys
 const adjustableCanvasTrait = {
     name: 'adjustableCanvasTrait',
 
@@ -6459,26 +6503,6 @@ function bootstrap() {
     // startCycle(_scene)
     startFlow()
 }
-
-/*
-// TODO move to pipeline.launch
-function startCycle(mix) {
-    expandView()
-    focus()
-    setInterval(focus, 100)  // make sure the window focus is actually applied
-
-    // initiate the game loop
-    _scene.log.raw('===== STARTING MAIN EVO-DRAW CYCLE =====')
-    // requestAnimationFrame(cycle)
-    requestAnimationFrame(mix.sys.mixer.next)
-        // old-fasioned way to setup animation
-        // if (!_scene.env.TARGET_FPS) {
-        //    setInterval(cycle, 1)
-        // } else {
-        //     setInterval(cycle, 1000/_scene.env.TARGET_FPS)
-        // }
-}
-*/
 
 function openSocket(url, retry) {
     const TAG = '[flow]'
@@ -6982,21 +7006,6 @@ function bindHandlers(target, secondary) {
     target.addEventListener('keydown', handleContact, {once: true })
 }
 bindHandlers(window, document)
-
-
-/*
-// extend window with universal requestAnimFrame
-window.requestAnimFrame = (function() {
-  return window.requestAnimationFrame ||
-         window.webkitRequestAnimationFrame ||
-         window.mozRequestAnimationFrame ||
-         window.oRequestAnimationFrame ||
-         window.msRequestAnimationFrame ||
-         function(callback, element) {
-            window.setTimeout(callback, 1000/_scene.env.TARGET_FPS)
-         }
-})();
-*/
 
 return _scene;
 
