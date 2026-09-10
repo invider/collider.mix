@@ -2360,6 +2360,111 @@ class Pipeline extends LabFrame {
         this.touch('context')
         this.touch('stage')
         this.touch('standard')
+        this.touch('trait')
+
+        // TODO split to multiple traits - fixed, fullscreen, fixed-aspect
+        this.trait.attach({
+            name: 'adjustableCanvas',
+
+            adjust: function() {
+                const _    = this,
+                    actx = _.activeContext,
+                    mode = _.mode || _.getAttribute('mode') || 'fullscreen',
+                    devicePixelRatio = _.devicePixelRatio ?? _.getAttribute('devicePixelRatio') ?? window.devicePixelRatio ?? 1
+
+                if (mode === 'preserve') {
+                    // don't touch the canvas placing, just copy the size to the context
+                    actx.width  = canvas.width
+                    actx.height = canvas.height
+                } else if (mode === 'fullscreen') {
+                    const W = window.innerWidth,
+                        H = window.innerHeight,
+                        w = W * devicePixelRatio,
+                        h = H * devicePixelRatio
+
+                    _.style.left = '0px'
+                    _.style.top  = '0px'
+                    actx.width  = _.width  = w
+                    actx.height = _.height = h
+                    _.style.width  = `${W}px`
+                    _.style.height = `${H}px`
+                } else if (mode === 'fix-aspect') {
+                } else if (mode === 'fix-resolution') {
+                }
+                /*
+                    } else if (mode === 'fix-aspect') {
+                        const viewportWidth = baseWidth
+                        const viewportHeight = baseHeight
+
+                        const aspect = parseFloat(canvas.getAttribute('aspect'))
+                        const minHBorder = parseFloat(canvas.getAttribute('minHBorder'))
+                        const minVBorder = parseFloat(canvas.getAttribute('minVBorder'))
+                        const portAspect = viewportWidth / viewportHeight
+
+                        let targetWidth = viewportWidth
+                        let targetHeight = viewportHeight
+                        if (minHBorder > 0) targetWidth = targetWidth - minHBorder*2
+                        if (minVBorder > 0) targetHeight = targetHeight - minVBorder*2
+
+                        if (portAspect > aspect) {
+                            // viewport is actually wider
+                            targetWidth = Math.round(targetHeight * aspect)
+                        } else {
+                            // viewport is higher
+                            targetHeight = Math.round(targetWidth / aspect)
+                        }
+                        const hborder = Math.round((viewportWidth - targetWidth)/2)
+                        const vborder = Math.round((viewportHeight - targetHeight)/2)
+
+                        canvas.width = ctx.width = targetWidth
+                        canvas.height = ctx.height = targetHeight
+                        canvas.style.width = targetWidth + 'px'
+                        canvas.style.height = targetHeight + 'px'
+                        canvas.style.left = hborder + 'px'
+                        canvas.style.top = vborder + 'px'
+
+                    } else if (mode === 'fix-res') {
+                        const viewportWidth = baseWidth
+                        const viewportHeight = baseHeight
+
+                        let targetWidth = canvas.getAttribute('targetWidth')
+                        let targetHeight = canvas.getAttribute('targetHeight')
+                        // TODO maybe show an error that we are expecting custom attributes in here?
+                        if (!targetWidth) targetWidth = viewportWidth
+                        if (!targetHeight) targetHeight = viewportHeight
+
+                        // calculate canvas scale respecting the aspect
+                        const aspect = targetWidth / targetHeight
+                        const vscale = viewportWidth / targetWidth
+                        const hscale = viewportHeight / targetHeight
+                        let scale = hscale
+                        if (hscale > vscale) scale = vscale
+
+                        const hborder = Math.round((viewportWidth - (targetWidth*scale))/2)
+                        const vborder = Math.round((viewportHeight - (targetHeight*scale))/2)
+
+                        canvas.width = ctx.width = targetWidth
+                        canvas.height = ctx.height = targetHeight
+                        canvas.style.width = Math.round(targetWidth * scale) + 'px'
+                        canvas.style.height = Math.round(targetHeight * scale) + 'px'
+                        canvas.style.left = hborder + 'px'
+                        canvas.style.top = vborder + 'px'
+                    } else {
+                */
+            },
+        })
+        const defaultCanvasInit = this.trait.attach({
+            name: 'defaultCanvasInit',
+            // MUST escape "init()" to avoid processing on trait attachment
+            init__: function() {
+                this.style.border   = "0px"
+                this.style.margin   = "0px"
+                this.style.padding  = "0px"
+                this.style.position = "absolute"
+                this.style.display  = "block"
+            },
+        })
+        defaultCanvasInit.init = defaultCanvasInit.init__
 
         // define standard stages
         const ___ = this,
@@ -2416,22 +2521,19 @@ class Pipeline extends LabFrame {
 
     buildDefault() {
         // create default pipeline from standard stages
-        this.stage.attach( extend({}, this.standard['boot']) )
-        this.stage.attach( extend({}, this.standard['background']) )
-        this.stage.attach( extend({}, this.standard['mix']) )
-        this.stage.attach( extend({}, this.standard['postVFX']) )
+        this.stage.attach( extend({ Z: 11, }, this.standard['boot']) )
+        this.stage.attach( extend({ Z: 21, }, this.standard['background']) )
+        this.stage.attach( extend({ Z: 31, }, this.standard['mix']) )
+        this.stage.attach( extend({ Z: 41, }, this.standard['postVFX']) )
     }
 
-    defaultCanvasSetup(canvas) {
-        canvas.style.border   = "0px"
-        canvas.style.margin   = "0px"
-        canvas.style.padding  = "0px"
-        canvas.style.position = "absolute"
-        canvas.style.display  = "block"
+    defaultCanvasTraits(canvas) {
+        mixin(canvas, this.trait.defaultCanvasInit, this.trait.adjustableCanvas)
     }
 
     includeCanvas(canvas, ctx) {
-        this.defaultCanvasSetup(canvas)
+        ctx = ctx || canvas.activeContext
+        // this.defaultCanvasSetup(canvas)
         this.canvas.attach(canvas)
         this.context.attach(ctx)
     }
@@ -2441,7 +2543,7 @@ class Pipeline extends LabFrame {
     }
 
     countCanvasGL() {
-        return this.canvas._ls.reduce((acc, e) => e.wapi? acc + 1 : acc, 0)
+        return this.canvas._ls.reduce((acc, e) => e.gapi? acc + 1 : acc, 0)
     }
 
     adjustView() {
@@ -2493,7 +2595,7 @@ class Pipeline extends LabFrame {
                 } else {
                     // TODO no WebGL support, should we remove it from DOM completely?
                     glCanvas.disabled = true
-                    glCanvas.wapi = false
+                    glCanvas.gapi = false
                     glCanvas.version = -1
                     _scene.log.err('No WebGL support!')
                 }
@@ -2506,7 +2608,7 @@ class Pipeline extends LabFrame {
             gl.name = glCanvas.id + '-webgl-context'
             glCanvas.gl = gl
             glCanvas.activeContext = gl
-            glCanvas.wapi = true
+            glCanvas.gapi = true
 
             gl.glu = {
                 linkPrograms: function() {
@@ -2532,7 +2634,7 @@ class Pipeline extends LabFrame {
             // precreated canvas is not found, so create one
             glCanvas = document.createElement('canvas')
             glCanvas.id = global.glCanvasName
-            mixin(glCanvas, adjustableCanvasTrait)
+            this.defaultCanvasTraits(glCanvas)
             glCanvas.name = glCanvas.id
 
             this.attachCanvasToRenderingSurface(glCanvas, 5)
@@ -2569,7 +2671,7 @@ class Pipeline extends LabFrame {
             // precreated canvas is not found, so create one
             canvas = document.createElement('canvas')
             canvas.id = global.canvasName
-            augment(canvas, adjustableCanvasTrait)
+            this.defaultCanvasTraits(canvas)
             canvas.name = canvas.id
 
             this.attachCanvasToRenderingSurface(canvas, 7)
@@ -6097,99 +6199,6 @@ function constructLog() {
     return log
 }
 
-// TODO split to multiple traits - fixed, fullscreen, fixed-aspect
-//      and export through pipeline or sys
-const adjustableCanvasTrait = {
-    name: 'adjustableCanvasTrait',
-
-    adjust: function() {
-        const _    = this,
-              actx = _.activeContext,
-              mode = _.mode || _.getAttribute('mode') || 'fullscreen',
-              devicePixelRatio = _.devicePixelRatio ?? _.getAttribute('devicePixelRatio') ?? window.devicePixelRatio ?? 1
-
-        if (mode === 'preserve') {
-            // don't touch the canvas placing, just copy the size to the context
-            actx.width  = canvas.width
-            actx.height = canvas.height
-        } else if (mode === 'fullscreen') {
-            const W = window.innerWidth,
-                  H = window.innerHeight,
-                  w = W * devicePixelRatio,
-                  h = H * devicePixelRatio
-
-            _.style.left = '0px'
-            _.style.top  = '0px'
-            actx.width  = _.width  = w
-            actx.height = _.height = h
-            _.style.width  = `${W}px`
-            _.style.height = `${H}px`
-        } else if (mode === 'fix-aspect') {
-        } else if (mode === 'fix-resolution') {
-        }
-        /*
-            } else if (mode === 'fix-aspect') {
-                const viewportWidth = baseWidth
-                const viewportHeight = baseHeight
-
-                const aspect = parseFloat(canvas.getAttribute('aspect'))
-                const minHBorder = parseFloat(canvas.getAttribute('minHBorder'))
-                const minVBorder = parseFloat(canvas.getAttribute('minVBorder'))
-                const portAspect = viewportWidth / viewportHeight
-
-                let targetWidth = viewportWidth
-                let targetHeight = viewportHeight
-                if (minHBorder > 0) targetWidth = targetWidth - minHBorder*2
-                if (minVBorder > 0) targetHeight = targetHeight - minVBorder*2
-
-                if (portAspect > aspect) {
-                    // viewport is actually wider
-                    targetWidth = Math.round(targetHeight * aspect)
-                } else {
-                    // viewport is higher
-                    targetHeight = Math.round(targetWidth / aspect)
-                }
-                const hborder = Math.round((viewportWidth - targetWidth)/2)
-                const vborder = Math.round((viewportHeight - targetHeight)/2)
-
-                canvas.width = ctx.width = targetWidth
-                canvas.height = ctx.height = targetHeight
-                canvas.style.width = targetWidth + 'px'
-                canvas.style.height = targetHeight + 'px'
-                canvas.style.left = hborder + 'px'
-                canvas.style.top = vborder + 'px'
-
-            } else if (mode === 'fix-res') {
-                const viewportWidth = baseWidth
-                const viewportHeight = baseHeight
-
-                let targetWidth = canvas.getAttribute('targetWidth')
-                let targetHeight = canvas.getAttribute('targetHeight')
-                // TODO maybe show an error that we are expecting custom attributes in here?
-                if (!targetWidth) targetWidth = viewportWidth
-                if (!targetHeight) targetHeight = viewportHeight
-
-                // calculate canvas scale respecting the aspect
-                const aspect = targetWidth / targetHeight
-                const vscale = viewportWidth / targetWidth
-                const hscale = viewportHeight / targetHeight
-                let scale = hscale
-                if (hscale > vscale) scale = vscale
-
-                const hborder = Math.round((viewportWidth - (targetWidth*scale))/2)
-                const vborder = Math.round((viewportHeight - (targetHeight*scale))/2)
-
-                canvas.width = ctx.width = targetWidth
-                canvas.height = ctx.height = targetHeight
-                canvas.style.width = Math.round(targetWidth * scale) + 'px'
-                canvas.style.height = Math.round(targetHeight * scale) + 'px'
-                canvas.style.left = hborder + 'px'
-                canvas.style.top = vborder + 'px'
-            } else {
-        */
-    },
-}
-
 
 
 // ***********************
@@ -6260,7 +6269,6 @@ function constructScene(target) {
     mod.sys.attach(isEmpty)
 
     mod.sys.attach(reconstructScene)
-    mod.sys.attach(adjustableCanvasTrait)
 
     mod.sys.attach(evalLoadedContent)
     mod.sys.attach(doBox)
