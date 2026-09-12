@@ -19,8 +19,8 @@
 "use strict"
 
 // keep JS evaluation out of collider.jam internal scope
-function _evaluate(__$, scope, module, code) {
-    return eval(code)
+function _evaluate(__$, _$$_, scope, module, __sourceCode__) {
+    return eval(__sourceCode__)
 }
 
 window.$ = window.mix = (function(window) {
@@ -3382,12 +3382,21 @@ function parseConstants(src, res) {
     }
 }
 
-function generateSource(script, __$) {
+function generateScriptSource(script) {
+    // extract definitions from the script context and set them in local context
+    // TODO find a way to shadow some or all
+    let def = ''
+    Object.keys(script.context).forEach(name => {
+        def += `let ${name} = _$$_['${name}'];`
+    })
 
+    /*
     let def = ''
     Object.keys(__$.alt._dir).forEach(f => {
         def += `let ${f} = __$.alt._dir.${f};`
     })
+    */
+
     // declare the scope
     /*
     Object.keys(__$._scope).forEach(f => {
@@ -3404,11 +3413,21 @@ function generateSource(script, __$) {
     // TODO why do we need both $ and _$ here? Research which one is actually used?
     // TODO MUST be evaluated outside of mix autoexec function, to exclude internal definitions form the evaluated JS scope
     // __$ is already in scope ^^
+    /*
     return '(function(ctx, gl, $, module, sys, lib, math, color, res, dna, env, lab, mod, pin, pub, log, cue, job, trap, signal) {'
         + def 
         + script.src
         + script.def
     + '}).call(scope, __$.ctx, __$.gl, __$._$, module, __$.sys, __$.lib, __$._$.lib.math, __$.lib.color, __$.res, __$.dna, __$.env, __$.lab, __$.mod, __$.pin, __$.pub, __$.log, __$.cue, __$.job, __$.trap, __$.signal)'
+    + '\n//# sourceURL=' + script.origin
+    */
+    return '(function(_$$_) {'
+        + def
+        + '{'
+        + script.src
+        + script.def
+        + '}'
+    + '}).call(scope, _$$_)'
     + '\n//# sourceURL=' + script.origin
 }
 
@@ -3466,17 +3485,43 @@ function touchParent(childPath, $, batch) {
     return __
 }
 
+function defineScriptContext(__$, script) {
+    script.context = {}
+    Object.keys(__$.alt._dir).forEach(name => {
+        script.context[name] = __$.alt._dir[name]
+    })
+    script.context['ctx'] = __$.ctx
+    script.context['gl'] = __$.gl
+    script.context['$'] = __$._$
+    script.context['sys'] = __$.sys
+    script.context['lib'] = __$.lib
+    script.context['math'] = __$._$.lib.math
+    script.context['color'] = __$.lib.color
+    script.context['res'] = __$.res
+    script.context['dna'] = __$.dna
+    script.context['env'] = __$.env
+    script.context['lab'] = __$.lab
+    script.context['mod'] = __$.mod
+    script.context['pin'] = __$.pin
+    script.context['pub'] = __$.pub
+    script.context['log'] = __$.log
+    script.context['cue'] = __$.cue
+    script.context['job'] = __$.job
+    script.context['trap'] = __$.trap
+    script.context['signal'] = __$.signal
+}
+
 function evalJS(script, $, batch) {
     const scope = {}
     const module = {}
 
-    // determine the scope 
-    let __$ = $ // default scope is loader mod
+    // determine the mod context
+    let __$ = $ // default is the loader mod
 
     const __ = script.patch? touchParent(getParentPath(script.path), $, batch) : touchParent(script.path, $, batch)
 
     if (__ && isFun(__.getMod)) {
-        __$ = __.getMod()
+        __$ = __.getMod() // get the actual parent mod context
     }
 
     script.def = ''
@@ -3511,13 +3556,20 @@ function evalJS(script, $, batch) {
         }
     }
 
-    // apply probes if present
-    const preEval = _scene._dir.init?.probe?.preEval
+    script.scope = scope
+    script.module = module
+    defineScriptContext(__$, script)
+
+
+    // determine probes if present
+    const preEval  = _scene._dir.init?.probe?.preEval,
+          postEval = _scene._dir.init?.probe?.postEval
+
     if (preEval) {
-        preEval(script, scope)
+        preEval(__$, script)
     }
 
-    const code = generateSource(script, __$)
+    const code = generateScriptSource(script, __$)
 
     /*
     // TODO is there a better way to handle evaluation errors?
@@ -3536,8 +3588,7 @@ function evalJS(script, $, batch) {
     let val
     try {
         script.evalTries = script.evalTries + 1 || 1
-        // val = eval(code)
-        val = _evaluate(__$, scope, module, code)
+        val = _evaluate(__$, script.context, scope, module, code)
     } catch (e) {
         if (e && isStr(e) && e.includes('no requirement found') && script.evalTries < 64) {
             // TODO I don't like the test for a string and what can we do with cyclic dependencies?
@@ -3549,10 +3600,18 @@ function evalJS(script, $, batch) {
     }
 
     if (val !== undefined) {
-        return withMeta(val, meta, script.name)
+        const mval = withMeta(val, meta, script.name)
+        if (postEval) {
+            postEval(__$, script, mval)
+        }
+        return mval
 
     } else if (module.exports !== undefined) {
-        return withMeta(module.exports, meta, script.name)
+        const val = withMeta(module.exports, meta, script.name)
+        if (postEval) {
+            postEval(__$, script, val)
+        }
+        return val
 
     } else {
         const defs = script.defs || []
@@ -3569,25 +3628,33 @@ function evalJS(script, $, batch) {
 
             // definitions storage code
             script.def = '\n' + defs.map(d => `if (typeof ${d} !== 'undefined') module.def.${d} = ${d}`).join(';')
-            const code = generateSource(script, __$)
+            const code = generateScriptSource(script, __$)
 
             // evaluate once again with definition extraction code
             const module = {
                 def: {},
             }
-            const scope = module.def
+            const scope = module.def // local scope to call evaluator function and catch the definitions
             // eval(code)
             // TODO form a custom scope objects, run preconfig script, generate source, evaluate
             //      that is how we'll be able to inject into the eval process from init-level scripts (boot/init)
-            _evaluate(__$, scope, module, code)
+            _evaluate(__$, script.context, scope, module, code)
 
             if (module.def) {
                 if (isContainer(module.def[script.name])) {
                     $.log.sys(`[eval:${script.path}]`, 'found defining node for export ' + script.name + '()')
-                    return withMeta(module.def[script.name], meta, script.name)
+                    const val = withMeta(module.def[script.name], meta, script.name)
+                    if (postEval) {
+                        postEval(__$, script, val)
+                    }
+                    return val
                 }
                 // TODO what if it is just a primitive value (number/string/boolean) that we want to export?
-                return withMeta(module.def, meta, script.name)
+                const val = withMeta(module.def, meta, script.name)
+                if (postEval) {
+                    postEval(__$, script, val)
+                }
+                return val
             } else {
                 $.log.sys(`[eval:${script.path}]`, 'no value, exports or declarations from ' + script.path, '[eval]')
                 return null
