@@ -686,7 +686,7 @@ const touchFun = function(nodeFactory) {
             // switch to the next target
             const nextName = path.substring(0, i)
             const nextPath = path.substring(i + 1)
-            const nextNode = this[nextName]
+            const nextNode = this?._dir[nextName] || this[nextName]
             if (!nextNode) {
                 // no existing node, provide a new one
                 if (nextPath) {
@@ -718,9 +718,10 @@ const touchFun = function(nodeFactory) {
             // TODO should we check that the final type is frame or object?
             // TODO should we replace it if not etc...
             // we got the name of the final frame in the path
-            if (this[path]) {
-                if (st) augment(this[path], st)
-                return this[path]
+            const targetNode = this?._dir[path] || this[path]
+            if (targetNode) {
+                if (st) augment(targetNode, st)
+                return targetNode
             }
             // node seems to be missing - create a new one
             const node = nodeFactory(path, this, st)
@@ -2244,13 +2245,17 @@ class Program {
 
     register() {
         const gl = this.gl
-        if (!gl.programs) gl.programs = []
+        if (!gl.programs) {
+            gl.programs = []
+            gl.programs._dir = {}
+        }
         gl.programs.push(this)
         this.id = gl.programs.length
+        gl.programs._dir[this.name] = this 
 
         const __$ = this.__.getMod()
-        if (!__$.lib._programs) __$.lib._programs = []
-        __$.lib._programs.push(this)
+        __$.lib.touch('glPrograms')
+        __$.lib.glPrograms.link(this)
     }
 
     parse() {
@@ -2529,6 +2534,14 @@ class Pipeline extends LabFrame {
 
     defaultCanvasTraits(canvas) {
         mixin(canvas, this.trait.defaultCanvasInit, this.trait.adjustableCanvas)
+    }
+
+    collapseCanvas(canvas) {
+        canvas.style.display = 'none'
+    }
+
+    hideCanvas(canvas) {
+        canvas.style.visibility = 'hidden'
     }
 
     includeCanvas(canvas, ctx) {
@@ -3498,6 +3511,12 @@ function evalJS(script, $, batch) {
         }
     }
 
+    // apply probes if present
+    const preEval = _scene._dir.init?.probe?.preEval
+    if (preEval) {
+        preEval(script, scope)
+    }
+
     const code = generateSource(script, __$)
 
     /*
@@ -3558,6 +3577,8 @@ function evalJS(script, $, batch) {
             }
             const scope = module.def
             // eval(code)
+            // TODO form a custom scope objects, run preconfig script, generate source, evaluate
+            //      that is how we'll be able to inject into the eval process from init-level scripts (boot/init)
             _evaluate(__$, scope, module, code)
 
             if (module.def) {
@@ -6076,7 +6097,8 @@ Mod.prototype.loadUnits = function(baseMod, target) {
                     if (isIgnored(url, ignoreList)) {
                         loaderMod.log.sys('loader-' + batch, 'ignoring by rule: ' + url)
                     } else {
-                        if (targetPath.startsWith('boot') || targetPath.startsWith('/boot')) {
+                        if (targetPath.startsWith('boot') || targetPath.startsWith('/boot')
+                                || targetPath.startsWith('init') || targetPath.startsWith('/init')) {
                             loaderMod.batchLoad(0, url, currentMod, targetPath)
                         } else {
                             loaderMod.batchLoad(batch, url, currentMod, targetPath)
@@ -6354,6 +6376,7 @@ function reconstructScene() {
     //_scene.ctx = augmentCtx(canvas.getContext("2d"), _scene)
     _scene.defineDrawContext()
     _scene.populateAlt()
+    _scene.init = null
 
     repatchScene(_scene, protoLog)
     _scene.boot = false
@@ -6437,6 +6460,7 @@ function setupGraphics(mix) {
     mix.pipeline.bindOrCreateCanvas2D()
     mix.defineDrawContext()
     mix.populateAlt()
+    mix.init = null
 }
 
 function setupAudio(mix) {
